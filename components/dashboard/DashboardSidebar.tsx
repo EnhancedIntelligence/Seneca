@@ -1,39 +1,39 @@
-'use client'
+"use client";
 
-import * as React from "react"
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { 
-  Home, 
-  Heart, 
-  Users, 
-  BarChart3, 
-  Settings, 
-  LogOut, 
-  ChevronLeft, 
+import * as React from "react";
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Home,
+  Heart,
+  Users,
+  BarChart3,
+  Settings,
+  LogOut,
+  ChevronLeft,
   ChevronRight,
-  User
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { supabase } from "@/lib/supabase"
+  User,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+// import { supabase } from "@/lib/supabase"
 
 interface NavigationItem {
-  name: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-  badge?: number
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
 }
 
 interface DashboardSidebarProps {
-  className?: string
+  className?: string;
 }
 
 export function DashboardSidebar({ className }: DashboardSidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const pathname = usePathname()
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const pathname = usePathname();
 
   const navigationItems: NavigationItem[] = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -41,21 +41,23 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
     { name: "Family", href: "/dashboard/family", icon: Users },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
-  ]
+  ];
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    window.location.href = '/auth'
-  }
+  // const handleSignOut = async () => {
+  //   await supabase.auth.signOut();
+  //   window.location.href = "/auth";
+  // };
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:flex-col md:h-full">
-        <Card className={cn(
-          "flex flex-col h-full transition-all duration-300",
-          isCollapsed ? "w-16" : "w-64"
-        )}>
+        <Card
+          className={cn(
+            "flex flex-col h-full transition-all duration-300",
+            isCollapsed ? "w-16" : "w-64"
+          )}
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             {!isCollapsed && (
@@ -83,17 +85,17 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2">
             {navigationItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+
               return (
                 <Link
                   key={item.name}
                   href={item.href}
                   className={cn(
                     "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive 
-                      ? "bg-primary text-primary-foreground" 
+                    isActive
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent",
                     isCollapsed && "justify-center"
                   )}
@@ -110,30 +112,34 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
                     </>
                   )}
                 </Link>
-              )
+              );
             })}
           </nav>
 
           {/* Footer */}
           <div className="p-4 border-t">
-            <div className={cn(
-              "flex items-center space-x-3 mb-4",
-              isCollapsed && "justify-center"
-            )}>
+            <div
+              className={cn(
+                "flex items-center space-x-3 mb-4",
+                isCollapsed && "justify-center"
+              )}
+            >
               <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
                 <User className="h-4 w-4" />
               </div>
               {!isCollapsed && (
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">John Doe</p>
-                  <p className="text-xs text-muted-foreground truncate">john@example.com</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    john@example.com
+                  </p>
                 </div>
               )}
             </div>
             <Button
               variant="ghost"
               size={isCollapsed ? "icon" : "sm"}
-              onClick={handleSignOut}
+              // onClick={handleSignOut}
               className={cn(
                 "w-full justify-start text-muted-foreground hover:text-foreground",
                 isCollapsed && "justify-center"
@@ -168,17 +174,17 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
           {isCollapsed && (
             <nav className="mt-4 space-y-2">
               {navigationItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
                     className={cn(
                       "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      isActive 
-                        ? "bg-primary text-primary-foreground" 
+                      isActive
+                        ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-accent"
                     )}
                   >
@@ -190,13 +196,13 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
                       </span>
                     )}
                   </Link>
-                )
+                );
               })}
               <div className="border-t pt-4">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleSignOut}
+                  // onClick={handleSignOut}
                   className="w-full justify-start text-muted-foreground hover:text-foreground"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
@@ -208,5 +214,5 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
         </Card>
       </div>
     </div>
-  )
+  );
 }

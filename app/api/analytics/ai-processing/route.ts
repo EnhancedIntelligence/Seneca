@@ -151,6 +151,11 @@ function getTimeframeHours(timeframe: string): number {
   }
 }
 
+/**
+ *
+ * @param timeframe
+ * @returns
+ */
 function getBucketSize(timeframe: string): string {
   switch (timeframe) {
     case "24h":

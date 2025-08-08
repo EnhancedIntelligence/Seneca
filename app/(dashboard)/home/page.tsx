@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FamilySetup } from "@/components/family/FamilySetup";
-import { MemoryCreateForm } from "@/components/memory/MemoryCreateForm";
-import { MemoryFeed } from "@/components/memory/MemoryFeed";
-import { FamilySelector } from "@/components/family/FamilySelector";
+// import { FamilySetup } from "@/components/family/FamilySetup";
+// import { MemoryCreateForm } from "@/components/memory/MemoryCreateForm";
+// import { MemoryFeed } from "@/components/memory/MemoryFeed";
+// import { FamilySelector } from "@/components/family/FamilySelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

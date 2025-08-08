@@ -81,7 +81,7 @@ export default function Page() {
                       </FormItem>
                     )}
                   />
-                  <Button className="w-full" formAction={login}>
+                  <Button className="w-full mt-5" formAction={login}>
                     Send One-Time Link
                   </Button>
                 </form>

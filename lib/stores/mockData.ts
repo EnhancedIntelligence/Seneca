@@ -4,16 +4,25 @@
  * This will be replaced with actual API calls to Supabase
  */
 
-// ===== Type Definitions =====
-export type MemoryType = 'voice' | 'text' | 'manual';
-export type MilestoneCategory = 'physical' | 'cognitive' | 'social' | 'language' | 'emotional';
-export type Tag =
-  | 'milestone' | 'language' | 'cognitive' | 'social'
-  | 'physical' | 'emotional' | 'creative' | 'eating' | 'sleep' | 'play';
+// Import types from central location
+import type { 
+  MemoryType, 
+  MilestoneCategory, 
+  Tag, 
+  AgeUnit, 
+  Weather, 
+  Mood 
+} from '@/lib/types';
 
-export type AgeUnit = 'months' | 'years';
-export type Weather = 'sunny' | 'cloudy' | 'rainy' | 'snowy' | 'partly-cloudy';
-export type Mood = 'happy' | 'tired' | 'upset' | 'excited' | 'calm';
+// Re-export for backward compatibility
+export type { 
+  MemoryType, 
+  MilestoneCategory, 
+  Tag, 
+  AgeUnit, 
+  Weather, 
+  Mood 
+} from '@/lib/types';
 
 // ===== Helper Functions =====
 const hoursAgo = (hours: number): string => 

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, KeyboardEvent } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import { Plus, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -8,23 +8,35 @@ import { cn } from '@/lib/utils'
  * QuickEntry Component
  * 
  * A text input component with a plus button for manual entry and a send button.
- * Used for quick text-based memory capture in the Memory Vault app.
+ * Supports both controlled and uncontrolled modes.
  * 
  * @component
  * @example
  * ```tsx
+ * // Uncontrolled
  * <QuickEntry
  *   onSend={(text) => console.log('Sending:', text)}
  *   onPlusClick={() => console.log('Opening manual entry')}
- *   placeholder="Type a memory..."
+ * />
+ * 
+ * // Controlled
+ * <QuickEntry
+ *   value={text}
+ *   onChange={setText}
+ *   onSend={handleSend}
+ *   onPlusClick={openSheet}
  * />
  * ```
  */
 
 export interface QuickEntryProps {
-  /** Callback fired when send button is clicked or Enter is pressed */
-  onSend: (text: string) => void
-  /** Callback fired when plus button is clicked */
+  /** Controlled input value. If provided, component is controlled. */
+  value?: string
+  /** Controlled input change handler. Required when value is provided. */
+  onChange?: (value: string) => void
+  /** Send handler; may be async */
+  onSend: (text: string) => void | Promise<void>
+  /** Opens the "+" menu/sheet */
   onPlusClick: () => void
   /** Placeholder text for the input */
   placeholder?: string
@@ -39,6 +51,8 @@ export interface QuickEntryProps {
 }
 
 export function QuickEntry({
+  value: controlledValue,
+  onChange: controlledOnChange,
   onSend,
   onPlusClick,
   placeholder = 'Type a memory...',
@@ -47,25 +61,40 @@ export function QuickEntry({
   isLoading = false,
   maxLength = 500
 }: QuickEntryProps) {
-  const [value, setValue] = useState('')
+  // Support controlled + uncontrolled
+  const [internalValue, setInternalValue] = useState('')
+  const value = controlledValue !== undefined ? controlledValue : internalValue
+  const setValue = controlledOnChange ?? setInternalValue
+  
   const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleSend = () => {
+  const handleSend = useCallback(async () => {
     const trimmedValue = value.trim()
     if (!trimmedValue || isLoading || disabled) return
     
-    onSend(trimmedValue)
-    setValue('')
-    inputRef.current?.blur()
-  }
+    await onSend(trimmedValue)
+    
+    // Only clear local state when uncontrolled; caller owns value for controlled case
+    if (controlledValue === undefined) {
+      setInternalValue('')
+    }
+    
+    // Keep focus on the field after sending
+    inputRef.current?.focus()
+  }, [value, isLoading, disabled, onSend, controlledValue])
 
-  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSend()
+      void handleSend()
     }
-  }
+  }, [handleSend])
+  
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value.slice(0, maxLength)
+    setValue(newValue)
+  }, [setValue, maxLength])
 
   const canSend = value.trim().length > 0 && !isLoading && !disabled
 
@@ -105,8 +134,8 @@ export function QuickEntry({
           ref={inputRef}
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value.slice(0, maxLength))}
-          onKeyPress={handleKeyPress}
+          onChange={handleChange}
+          onKeyDown={handleKeyPress}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}

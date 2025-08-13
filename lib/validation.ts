@@ -58,7 +58,7 @@ export function sanitizeInput(input: string): string {
   })
 
   // Additional validation - remove dangerous protocols and patterns
-  let cleanInput = sanitized
+  const cleanInput = sanitized
     .replace(/javascript:/gi, '') // Remove javascript: protocol
     .replace(/data:/gi, '') // Remove data: protocol  
     .replace(/vbscript:/gi, '') // Remove vbscript: protocol

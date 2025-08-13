@@ -138,7 +138,7 @@ export function InsightCard({
     }
   }
 
-  const style = typeStyles[type]
+  const style = typeStyles[type] || typeStyles.pattern // Default fallback to pattern style
 
   const priorityIndicator = {
     low: 'bg-gray-500',

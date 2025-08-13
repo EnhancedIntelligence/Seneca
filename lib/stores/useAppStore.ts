@@ -5,19 +5,16 @@
  */
 
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
-import type {
-  Child,
-  Memory,
-  Milestone,
-  Tag,
-  MemoryType,
-} from './mockData';
+import { devtools, persist, createJSONStorage } from 'zustand/middleware';
+import { useShallow } from 'zustand/react/shallow';
+import type { Child, MemoryEntry, Tag, MemoryType } from '@/lib/types';
+import type { Milestone } from './mockData';
 import {
-  mockChildren,
-  mockMemories,
+  mockChildren as rawMockChildren,
+  mockMemories as rawMockMemories,
   mockMilestones,
 } from './mockData';
+import { mockChildToDbChild, mockMemoryToDbMemory } from './mockDataAdapter';
 
 // ===== Type Definitions =====
 export type ViewType = 'capture' | 'overview' | 'memories' | 'children' | 'analytics' | 'settings';
@@ -47,14 +44,14 @@ interface CaptureState {
 }
 
 interface FamilyState {
-  children: Child[];
+  children: Child[]; // Now using DB Child type
   activeChildId: string | null;
   switchChild: (childId: string) => void;
   getActiveChild: () => Child | undefined;
 }
 
 interface MemoryState {
-  memories: Memory[];
+  memories: MemoryEntry[]; // Now using DB MemoryEntry type
   milestones: Milestone[];
   pendingMemoryIds: string[];
   error: string | null;
@@ -73,8 +70,15 @@ interface FilterState {
   clearFilters: () => void;
 }
 
+// ===== Hydration Interface =====
+interface HydrationState {
+  hasHydrated: boolean;
+  setHasHydrated: (value: boolean) => void;
+}
+
 // ===== Combined Store Interface =====
 export interface AppStore extends 
+  HydrationState,
   NavigationState, 
   CaptureState, 
   FamilyState, 
@@ -99,8 +103,15 @@ const withinDateRange = (iso: string, start: string | null, end: string | null):
   return date >= startTime && date <= endTime;
 };
 
+// Convert mock data to DB types
+const mockChildren = rawMockChildren.map(mockChildToDbChild);
+const mockMemories = rawMockMemories.map(mockMemoryToDbMemory);
+
 // ===== Initial State =====
 const initialState = {
+  // Hydration state - false until persist middleware completes
+  hasHydrated: false,
+  
   // Navigation
   currentView: 'capture' as ViewType,
   isMenuOpen: false,
@@ -114,11 +125,11 @@ const initialState = {
   isManualPanelOpen: false,
   
   // Family
-  children: mockChildren,
+  children: mockChildren, // Now DB Child[] type
   activeChildId: mockChildren[0]?.id || null,
   
   // Memory
-  memories: mockMemories,
+  memories: mockMemories, // Now DB MemoryEntry[] type
   milestones: mockMilestones,
   pendingMemoryIds: [] as string[],
   error: null,
@@ -135,6 +146,9 @@ export const useAppStore = create<AppStore>()(
     persist(
       (set, get) => ({
         ...initialState,
+        
+        // Hydration action
+        setHasHydrated: (value: boolean) => set({ hasHydrated: value }),
         
         // Navigation Actions
         navigate: (view) => set({ 
@@ -198,7 +212,7 @@ export const useAppStore = create<AppStore>()(
             get().addMemory(
               `Voice recording (${recordingDuration}s)`, 
               'voice',
-              ['voice']
+              [] // Voice is a type, not a tag
             );
           }
         },
@@ -238,14 +252,33 @@ export const useAppStore = create<AppStore>()(
           
           // Create optimistic memory with temp ID
           const tempId = newId('temp');
-          const optimisticMemory: Memory = {
+          const optimisticMemory: MemoryEntry = {
             id: tempId,
-            childId: activeChild.id,
+            child_id: activeChild.id,
+            family_id: 'mock-family-1',
+            created_by: 'mock-user-1',
+            title: null,
             content,
-            type,
+            memory_date: new Date().toISOString(),
+            category: null,
             tags,
-            timestamp: new Date().toISOString(),
-            processingStatus: 'pending',
+            processing_status: 'queued',
+            classification_confidence: null,
+            milestone_detected: tags.includes('milestone'),
+            milestone_type: null,
+            milestone_confidence: null,
+            image_urls: null,
+            video_urls: null,
+            error_message: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            processing_priority: null,
+            retry_count: null,
+            location_lat: null,
+            location_lng: null,
+            location_name: null,
+            app_context: null,
+            needs_review: null
           };
           
           // Optimistically add memory
@@ -261,7 +294,7 @@ export const useAppStore = create<AppStore>()(
           const realId = newId('mem');
           set((state) => ({
             memories: state.memories.map(m => 
-              m.id === tempId ? { ...m, id: realId, processingStatus: 'completed' } : m
+              m.id === tempId ? { ...m, id: realId, processing_status: 'completed' } : m
             ),
             pendingMemoryIds: state.pendingMemoryIds.filter(id => id !== tempId),
           }));
@@ -322,6 +355,18 @@ export const useAppStore = create<AppStore>()(
       }),
       {
         name: 'seneca-app-store',
+        storage: createJSONStorage(() => {
+          // SSR-safe storage
+          if (typeof window === 'undefined') {
+            return {
+              getItem: () => null,
+              setItem: () => {},
+              removeItem: () => {},
+            };
+          }
+          return localStorage;
+        }),
+        skipHydration: true, // Critical: prevent auto-rehydration during SSR
         partialize: (state) => ({
           // Only persist UI preferences, not mock data
           activeChildId: state.activeChildId,
@@ -329,6 +374,11 @@ export const useAppStore = create<AppStore>()(
           currentView: state.currentView,
           selectedTags: state.selectedTags,
         }),
+        onRehydrateStorage: () => (state) => {
+          // Called after state is rehydrated from storage
+          // Use the state parameter to set the flag
+          state?.setHasHydrated(true);
+        },
       }
     ),
     {
@@ -337,57 +387,71 @@ export const useAppStore = create<AppStore>()(
   )
 );
 
+// ===== Hydration Selector =====
+// Tiny selector for hydration status
+export const useHasHydrated = (): boolean => useAppStore((state) => state.hasHydrated);
+
 // ===== Optimized Selectors =====
-// Return only primitives to avoid re-renders
+// Using useShallow to cache object references and prevent infinite loops
 
-export const useNavigation = () => useAppStore((state) => ({
-  currentView: state.currentView,
-  isMenuOpen: state.isMenuOpen,
-  isProfileMenuOpen: state.isProfileMenuOpen,
-  navigate: state.navigate,
-  toggleMenu: state.toggleMenu,
-  toggleProfileMenu: state.toggleProfileMenu,
-  closeAllMenus: state.closeAllMenus,
-}));
+export const useNavigation = () => useAppStore(
+  useShallow((state) => ({
+    currentView: state.currentView,
+    isMenuOpen: state.isMenuOpen,
+    isProfileMenuOpen: state.isProfileMenuOpen,
+    navigate: state.navigate,
+    toggleMenu: state.toggleMenu,
+    toggleProfileMenu: state.toggleProfileMenu,
+    closeAllMenus: state.closeAllMenus,
+  }))
+);
 
-export const useCapture = () => useAppStore((state) => ({
-  isRecording: state.isRecording,
-  recordingDuration: state.recordingDuration,
-  captureMode: state.captureMode,
-  isManualPanelOpen: state.isManualPanelOpen,
-  startRecording: state.startRecording,
-  stopRecording: state.stopRecording,
-  setCaptureMode: state.setCaptureMode,
-  toggleManualPanel: state.toggleManualPanel,
-}));
+export const useCapture = () => useAppStore(
+  useShallow((state) => ({
+    isRecording: state.isRecording,
+    recordingDuration: state.recordingDuration,
+    captureMode: state.captureMode,
+    isManualPanelOpen: state.isManualPanelOpen,
+    startRecording: state.startRecording,
+    stopRecording: state.stopRecording,
+    setCaptureMode: state.setCaptureMode,
+    toggleManualPanel: state.toggleManualPanel,
+  }))
+);
 
-export const useFamily = () => useAppStore((state) => ({
-  children: state.children,
-  activeChildId: state.activeChildId,
-  switchChild: state.switchChild,
-}));
+export const useFamily = () => useAppStore(
+  useShallow((state) => ({
+    children: state.children,
+    activeChildId: state.activeChildId,
+    switchChild: state.switchChild,
+  }))
+);
 
 // Raw data selectors - filter in component with useMemo
-export const useMemoryData = () => useAppStore((state) => ({
-  memories: state.memories,
-  milestones: state.milestones,
-  activeChildId: state.activeChildId,
-  pendingMemoryIds: state.pendingMemoryIds,
-  error: state.error,
-  addMemory: state.addMemory,
-  deleteMemory: state.deleteMemory,
-  clearError: state.clearError,
-}));
+export const useMemoryData = () => useAppStore(
+  useShallow((state) => ({
+    memories: state.memories,
+    milestones: state.milestones,
+    activeChildId: state.activeChildId,
+    pendingMemoryIds: state.pendingMemoryIds,
+    error: state.error,
+    addMemory: state.addMemory,
+    deleteMemory: state.deleteMemory,
+    clearError: state.clearError,
+  }))
+);
 
-export const useFilters = () => useAppStore((state) => ({
-  searchQuery: state.searchQuery,
-  selectedTags: state.selectedTags,
-  dateRange: state.dateRange,
-  setSearchQuery: state.setSearchQuery,
-  toggleTag: state.toggleTag,
-  setDateRange: state.setDateRange,
-  clearFilters: state.clearFilters,
-}));
+export const useFilters = () => useAppStore(
+  useShallow((state) => ({
+    searchQuery: state.searchQuery,
+    selectedTags: state.selectedTags,
+    dateRange: state.dateRange,
+    setSearchQuery: state.setSearchQuery,
+    toggleTag: state.toggleTag,
+    setDateRange: state.setDateRange,
+    clearFilters: state.clearFilters,
+  }))
+);
 
 // ===== Utility Hooks =====
 // These compose the selectors with filtering logic

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+// FamilySetup and FamilySelector components not yet implemented
 // import { FamilySetup } from "@/components/family/FamilySetup";
-// import { MemoryCreateForm } from "@/components/memory/MemoryCreateForm";
-// import { MemoryFeed } from "@/components/memory/MemoryFeed";
 // import { FamilySelector } from "@/components/family/FamilySelector";
+import { MemoryCreateForm } from "@/components/memory/MemoryCreateForm";
+import { MemoryFeed } from "@/components/memory/MemoryFeed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,7 +80,12 @@ export default function DashboardPage() {
     }
   };
 
-  const handleFamilyCreated = async (familyData: any) => {
+  interface FamilyCreateData {
+    name: string;
+    description?: string;
+  }
+
+  const handleFamilyCreated = async (familyData: FamilyCreateData) => {
     try {
       const response = await fetch("/api/families/create", {
         method: "POST",
@@ -146,7 +152,7 @@ export default function DashboardPage() {
   };
 
   const getWelcomeMessage = () => {
-    if (!selectedFamily) return "Welcome! Let's set up your family.";
+    if (!selectedFamily) return "Welcome! Let{`'`}s set up your family.";
 
     const childCount = selectedFamily.children.length;
     const childText = childCount === 1 ? "child" : "children";
@@ -180,13 +186,14 @@ export default function DashboardPage() {
                 </h1>
               </div>
 
-              {families.length > 0 && (
+              {/* FamilySelector component not yet implemented */}
+              {/* {families.length > 0 && (
                 <FamilySelector
                   onFamilyChange={(family) =>
                     setSelectedFamily(family as FetchedFamily)
                   }
                 />
-              )}
+              )} */}
             </div>
 
             {/* Actions */}
@@ -268,13 +275,13 @@ export default function DashboardPage() {
 
         {/* Main Content */}
         <div className="space-y-8">
-          {/* Family Setup Flow */}
-          {currentView === "setup" && (
+          {/* Family Setup Flow - Component not yet implemented */}
+          {/* {currentView === "setup" && (
             <FamilySetup
               onComplete={handleFamilyCreated}
               onSkip={() => setCurrentView("memories")}
             />
-          )}
+          )} */}
 
           {/* Memories View */}
           {currentView === "memories" && selectedFamily && (

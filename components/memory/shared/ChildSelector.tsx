@@ -10,20 +10,30 @@ import {
   Heart
 } from 'lucide-react'
 import type { Child } from '@/lib/types'
+import { useFamily } from '@/lib/stores/useAppStore'
 
 interface ChildSelectorProps {
-  children: Child[]
+  children?: Child[]
   value?: string
-  onValueChange: (childId?: string) => void
+  onValueChange?: (childId?: string) => void
   className?: string
 }
 
 export function ChildSelector({
-  children,
-  value,
-  onValueChange,
+  children: propChildren,
+  value: propValue,
+  onValueChange: propOnValueChange,
   className
 }: ChildSelectorProps) {
+  // Use store values if props not provided
+  const { children: storeChildren, activeChildId, switchChild } = useFamily()
+  
+  const children = propChildren ?? storeChildren
+  const value = propValue ?? activeChildId
+  const onValueChange = propOnValueChange ?? ((childId?: string) => {
+    if (childId) switchChild(childId)
+  })
+  
   const selectedChild = value ? children.find(child => child.id === value) : undefined
 
   const calculateAge = (birthDate: string): string => {

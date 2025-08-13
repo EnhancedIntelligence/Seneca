@@ -16,7 +16,7 @@ const AvatarImage = ({ className, ...props }: React.ImgHTMLAttributes<HTMLImageE
 )
 
 const AvatarFallback = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`flex h-full w-full items-center justify-center rounded-full bg-gray-100 text-sm font-medium text-gray-600 ${className || ''}`} {...props}>
+  <div className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-blue-600 text-sm font-medium text-white ${className || ''}`} {...props}>
     {children}
   </div>
 )
@@ -118,29 +118,29 @@ export function MemoryCard({
   
   return (
     <Card 
-      className={`cursor-pointer hover:shadow-lg transition-shadow duration-200 ${className}`}
+      className={`cursor-pointer bg-white/5 border-white/10 hover:bg-white/10 transition-all duration-200 ${className}`}
       onClick={handleCardClick}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
             {child && (
-              <Avatar className="w-10 h-10">
+              <Avatar className="w-10 h-10 ring-2 ring-white/20">
                 <AvatarImage 
                   src={child.profile_image_url || undefined} 
                   alt={child.name} 
                 />
-                <AvatarFallback>
+                <AvatarFallback className="bg-gradient-to-r from-violet-600 to-blue-600 text-white">
                   {child.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             )}
             <div>
-              <h3 className="font-semibold text-lg leading-tight">
+              <h3 className="font-semibold text-lg leading-tight text-white">
                 {memory.title || 'Untitled Memory'}
               </h3>
               {child && (
-                <p className="text-sm text-gray-600">{child.name}</p>
+                <p className="text-sm text-gray-400">{child.name}</p>
               )}
             </div>
           </div>
@@ -148,11 +148,11 @@ export function MemoryCard({
           <div className="flex items-center space-x-2">
             <Badge 
               variant="secondary" 
-              className={`text-xs ${processingStatusColor} text-white`}
+              className={`text-xs ${processingStatusColor} text-white border-0`}
             >
               {processingStatusText}
             </Badge>
-            <Button variant="ghost" size="sm" className="p-1">
+            <Button variant="ghost" size="sm" className="p-1 text-gray-400 hover:text-white hover:bg-white/10">
               <MoreVertical className="w-4 h-4" />
             </Button>
           </div>
@@ -162,14 +162,14 @@ export function MemoryCard({
       <CardContent className="space-y-4">
         {/* Memory Content */}
         <div className="space-y-2">
-          <p className="text-gray-700 leading-relaxed">
+          <p className="text-gray-300 leading-relaxed">
             {showFullContent ? memory.content : truncatedContent}
           </p>
           {memory.content.length > 150 && (
             <Button
               variant="ghost"
               size="sm"
-              className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+              className="text-violet-400 hover:text-violet-300 p-0 h-auto"
               onClick={(e) => {
                 e.stopPropagation()
                 setShowFullContent(!showFullContent)
@@ -182,7 +182,7 @@ export function MemoryCard({
         
         {/* Media Preview */}
         {hasMedia && (
-          <div className="flex items-center space-x-4 text-sm text-gray-600">
+          <div className="flex items-center space-x-4 text-sm text-gray-400">
             {memory.image_urls && memory.image_urls.length > 0 && (
               <div className="flex items-center space-x-1">
                 <ImageIcon className="w-4 h-4" />
@@ -217,20 +217,20 @@ export function MemoryCard({
         
         {/* AI Insights */}
         {memory.processing_status === 'completed' && (
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-3 rounded-lg">
+          <div className="bg-gradient-to-r from-violet-600/10 to-blue-600/10 p-3 rounded-lg border border-white/10">
             <div className="flex items-center space-x-2 mb-2">
-              <Brain className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-700">AI Insights</span>
+              <Brain className="w-4 h-4 text-violet-400" />
+              <span className="text-sm font-medium text-violet-300">AI Insights</span>
             </div>
             <div className="space-y-1 text-sm">
               {memory.milestone_detected && (
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-3 h-3 text-yellow-500" />
-                  <span className="text-gray-700">
+                  <span className="text-gray-300">
                     Milestone detected: {memory.milestone_type}
                   </span>
                   {memory.milestone_confidence && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-400">
                       ({Math.round(memory.milestone_confidence * 100)}% confidence)
                     </span>
                   )}
@@ -239,7 +239,7 @@ export function MemoryCard({
               {memory.category && (
                 <div className="flex items-center space-x-2">
                   <Star className="w-3 h-3 text-blue-500" />
-                  <span className="text-gray-700">
+                  <span className="text-gray-300">
                     Category: {memory.category.replace('_', ' ')}
                   </span>
                 </div>
@@ -250,16 +250,16 @@ export function MemoryCard({
         
         {/* Location */}
         {memory.location_name && (
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <div className="flex items-center space-x-2 text-sm text-gray-400">
             <MapPin className="w-4 h-4" />
             <span>{memory.location_name}</span>
           </div>
         )}
       </CardContent>
       
-      <CardFooter className="pt-3 border-t">
+      <CardFooter className="pt-3 border-t border-white/10">
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center space-x-4 text-sm text-gray-600">
+          <div className="flex items-center space-x-4 text-sm text-gray-400">
             <div className="flex items-center space-x-1">
               <Calendar className="w-4 h-4" />
               <span>
@@ -279,7 +279,7 @@ export function MemoryCard({
             <Button
               variant="ghost"
               size="sm"
-              className={`p-2 ${isLiked ? 'text-red-500' : 'text-gray-500'}`}
+              className={`p-2 ${isLiked ? 'text-red-400' : 'text-gray-400'} hover:bg-white/10`}
               onClick={handleLike}
             >
               <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
@@ -287,7 +287,7 @@ export function MemoryCard({
             <Button
               variant="ghost"
               size="sm"
-              className="p-2 text-gray-500"
+              className="p-2 text-gray-400 hover:text-white hover:bg-white/10"
               onClick={handleComment}
             >
               <MessageCircle className="w-4 h-4" />
@@ -295,7 +295,7 @@ export function MemoryCard({
             <Button
               variant="ghost"
               size="sm"
-              className="p-2 text-gray-500"
+              className="p-2 text-gray-400 hover:text-white hover:bg-white/10"
             >
               <Eye className="w-4 h-4" />
             </Button>

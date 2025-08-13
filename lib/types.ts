@@ -100,7 +100,7 @@ export interface Database {
           location_lat: number | null
           location_lng: number | null
           location_name: string | null
-          app_context: any | null
+          app_context: Json | null
           needs_review: boolean | null
         }
         Insert: {
@@ -128,7 +128,7 @@ export interface Database {
           location_lat?: number | null
           location_lng?: number | null
           location_name?: string | null
-          app_context?: any | null
+          app_context?: Json | null
           needs_review?: boolean | null
         }
         Update: {
@@ -156,7 +156,7 @@ export interface Database {
           location_lat?: number | null
           location_lng?: number | null
           location_name?: string | null
-          app_context?: any | null
+          app_context?: Json | null
           needs_review?: boolean | null
         }
       }
@@ -348,7 +348,7 @@ export interface Database {
           tokens_used: number | null
           model_version: string | null
           error_message: string | null
-          metadata: any | null
+          metadata: Json | null
           created_at: string
         }
         Insert: {
@@ -360,7 +360,7 @@ export interface Database {
           tokens_used?: number | null
           model_version?: string | null
           error_message?: string | null
-          metadata?: any | null
+          metadata?: Json | null
           created_at?: string
         }
         Update: {
@@ -372,7 +372,7 @@ export interface Database {
           tokens_used?: number | null
           model_version?: string | null
           error_message?: string | null
-          metadata?: any | null
+          metadata?: Json | null
           created_at?: string
         }
       }
@@ -560,6 +560,16 @@ export type QueueJob = Database['public']['Tables']['queue_jobs']['Row']
 // Enum type exports
 export type ProcessingStatus = Database['public']['Enums']['processing_status_enum']
 export type FamilyRole = Database['public']['Enums']['family_role_enum']
+
+// UI-specific types (will be mapped to DB types)
+export type MemoryType = 'voice' | 'text' | 'manual';
+export type MilestoneCategory = 'physical' | 'cognitive' | 'social' | 'language' | 'emotional';
+export type Tag =
+  | 'milestone' | 'language' | 'cognitive' | 'social'
+  | 'physical' | 'emotional' | 'creative' | 'eating' | 'sleep' | 'play';
+export type AgeUnit = 'months' | 'years';
+export type Weather = 'sunny' | 'cloudy' | 'rainy' | 'snowy' | 'partly-cloudy';
+export type Mood = 'happy' | 'tired' | 'upset' | 'excited' | 'calm';
 
 // Legacy compatibility types for existing code
 export type LegacyProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed'

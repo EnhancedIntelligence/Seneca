@@ -60,9 +60,10 @@ export function TopBar({
   return (
     <header
       className={cn(
-        'relative z-30 px-4 py-4',
+        'fixed top-0 left-0 right-0 z-50',
+        'px-4 py-4',
         'flex items-center justify-between',
-        !transparent && 'bg-black/20 backdrop-blur-xl border-b border-white/10',
+        !transparent && 'bg-black/80 backdrop-blur-xl border-b border-white/10',
         className
       )}
     >

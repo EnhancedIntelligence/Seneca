@@ -16,7 +16,7 @@ interface ToastContextValue {
 
 // Simple in-memory toast store for now
 let toastStore: Toast[] = []
-let listeners: Set<() => void> = new Set()
+const listeners: Set<() => void> = new Set()
 
 const addToast = (toast: Omit<Toast, 'id'>) => {
   const id = Math.random().toString(36).substring(2)

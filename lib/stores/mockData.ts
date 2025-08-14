@@ -97,7 +97,7 @@ export const tagOptions = [
   { label: '🍽️ Eating', value: 'eating' },
   { label: '😴 Sleep', value: 'sleep' },
   { label: '🎮 Play', value: 'play' },
-] as const satisfies ReadonlyArray<{ label: string; value: TagLabel }>;
+] satisfies ReadonlyArray<{ label: string; value: TagLabel }>;
 
 export const weatherOptions = [
   { label: '☀️ Sunny', value: 'sunny' },

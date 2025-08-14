@@ -1,27 +1,27 @@
-'use client'
+"use client";
 
-import React from 'react'
-import { 
-  Mic, 
-  LayoutDashboard, 
-  BookOpen, 
-  Baby, 
-  Target, 
-  BarChart3, 
-  Brain, 
-  Settings, 
+import React from "react";
+import {
+  Mic,
+  LayoutDashboard,
+  BookOpen,
+  Baby,
+  Target,
+  BarChart3,
+  Brain,
+  Settings,
   HelpCircle,
   ChevronRight,
-  X
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * SideMenu Component
- * 
+ *
  * Navigation drawer with organized menu sections for app navigation.
  * Includes sections for Main, Family, Intelligence, and Settings.
- * 
+ *
  * @component
  * @example
  * ```tsx
@@ -34,79 +34,79 @@ import { cn } from '@/lib/utils'
  * ```
  */
 
-export type NavigationView = 
-  | 'capture' 
-  | 'overview' 
-  | 'memories' 
-  | 'children' 
-  | 'milestones' 
-  | 'analytics' 
-  | 'insights' 
-  | 'settings' 
-  | 'help'
+export type NavigationView =
+  | "capture"
+  | "overview"
+  | "memories"
+  | "children"
+  | "milestones"
+  | "analytics"
+  | "insights"
+  | "settings"
+  | "help";
 
 interface MenuSection {
-  title: string
-  items: MenuItem[]
+  title: string;
+  items: MenuItem[];
 }
 
 interface MenuItem {
-  id: NavigationView
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-  badge?: string | number
+  id: NavigationView;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string | number;
 }
 
 export interface SideMenuProps {
   /** Current active view */
-  currentView: NavigationView
+  currentView: NavigationView;
   /** Callback fired when a menu item is clicked */
-  onNavigate: (view: NavigationView) => void
+  onNavigate: (view: NavigationView) => void;
   /** Whether the menu is open */
-  isOpen?: boolean
+  isOpen?: boolean;
   /** Callback fired when close button is clicked */
-  onClose?: () => void
+  onClose?: () => void;
   /** User information to display in header */
   user?: {
-    name: string
-    email?: string
-    avatarUrl?: string
-  }
+    name: string;
+    email?: string;
+    avatarUrl?: string;
+  };
   /** Additional CSS classes */
-  className?: string
+  className?: string;
 }
 
 const MENU_SECTIONS: MenuSection[] = [
   {
-    title: 'Main',
+    title: "Main",
     items: [
-      { id: 'capture', label: 'Capture', icon: Mic },
-      { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-      { id: 'memories', label: 'Memories', icon: BookOpen },
-    ]
+      { id: "capture", label: "Capture", icon: Mic },
+      { id: "overview", label: "Overview", icon: LayoutDashboard },
+      { id: "memories", label: "Memories", icon: BookOpen },
+    ],
   },
   {
-    title: 'Family',
+    title: "Family",
     items: [
-      { id: 'children', label: 'Children', icon: Baby },
-      { id: 'milestones', label: 'Milestones', icon: Target },
-    ]
+      { id: "children", label: "Children", icon: Baby },
+      { id: "milestones", label: "Milestones", icon: Target },
+    ],
   },
   {
-    title: 'Intelligence',
+    title: "Intelligence",
     items: [
-      { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-      { id: 'insights', label: 'AI Insights', icon: Brain },
-    ]
+      { id: "analytics", label: "Analytics", icon: BarChart3 },
+      { id: "insights", label: "AI Insights", icon: Brain },
+    ],
   },
   {
-    title: 'Settings',
+    title: "Settings",
     items: [
-      { id: 'settings', label: 'Settings', icon: Settings },
-      { id: 'help', label: 'Help & Support', icon: HelpCircle },
-    ]
-  }
-]
+      { id: "settings", label: "Settings", icon: Settings },
+      { id: "help", label: "Help & Support", icon: HelpCircle },
+    ],
+  },
+];
 
 export function SideMenu({
   currentView,
@@ -114,19 +114,19 @@ export function SideMenu({
   isOpen = false,
   onClose,
   user,
-  className
+  className,
 }: SideMenuProps) {
   const handleNavigate = (view: NavigationView) => {
-    onNavigate(view)
-    onClose?.()
-  }
+    onNavigate(view);
+    onClose?.();
+  };
 
   return (
     <div
       className={cn(
-        'w-80 h-full bg-zinc-900/98 backdrop-blur-xl',
-        'shadow-2xl border-r border-white/10',
-        'flex flex-col',
+        "w-80 h-full bg-zinc-900/98  z-50 backdrop-blur-xl",
+        "shadow-2xl border-r border-white/10",
+        "flex flex-col",
         className
       )}
     >
@@ -142,12 +142,12 @@ export function SideMenu({
             <X className="w-4 h-4 text-white" />
           </button>
         )}
-        
+
         <div>
           <h2 className="text-2xl font-bold text-white mb-1">MemoryVault AI</h2>
           <p className="text-white/80 text-sm">Enhanced Intelligence</p>
         </div>
-        
+
         {user && (
           <div className="mt-4 pt-4 border-t border-white/20">
             <p className="text-white font-medium">{user.name}</p>
@@ -165,51 +165,52 @@ export function SideMenu({
             <h3 className="px-6 mb-2 text-xs font-semibold text-white/40 uppercase tracking-wider">
               {section.title}
             </h3>
-            
+
             <div className="space-y-1">
               {section.items.map((item) => {
-                const Icon = item.icon
-                const isActive = currentView === item.id
-                
+                const Icon = item.icon;
+                const isActive = currentView === item.id;
+
                 return (
                   <button
                     key={item.id}
                     onClick={() => handleNavigate(item.id)}
                     className={cn(
-                      'w-full px-6 py-3',
-                      'flex items-center gap-3',
-                      'text-left transition-all duration-200',
-                      'hover:bg-white/5',
-                      'focus:outline-none focus-visible:bg-white/5',
-                      isActive && 'bg-violet-600/10 border-l-3 border-violet-600'
+                      "w-full px-6 py-3",
+                      "flex items-center gap-3",
+                      "text-left transition-all duration-200",
+                      "hover:bg-white/5",
+                      "focus:outline-none focus-visible:bg-white/5",
+                      isActive &&
+                        "bg-violet-600/10 border-l-3 border-violet-600"
                     )}
                   >
-                    <Icon 
+                    <Icon
                       className={cn(
-                        'w-5 h-5',
-                        isActive ? 'text-violet-400' : 'text-white/60'
-                      )} 
+                        "w-5 h-5",
+                        isActive ? "text-violet-400" : "text-white/60"
+                      )}
                     />
-                    <span 
+                    <span
                       className={cn(
-                        'flex-1 font-medium',
-                        isActive ? 'text-violet-400' : 'text-white/90'
+                        "flex-1 font-medium",
+                        isActive ? "text-violet-400" : "text-white/90"
                       )}
                     >
                       {item.label}
                     </span>
-                    
+
                     {item.badge && (
                       <span className="px-2 py-0.5 bg-violet-600/20 text-violet-400 text-xs rounded-full">
                         {item.badge}
                       </span>
                     )}
-                    
+
                     {isActive && (
                       <ChevronRight className="w-4 h-4 text-violet-400" />
                     )}
                   </button>
-                )
+                );
               })}
             </div>
           </div>
@@ -224,5 +225,5 @@ export function SideMenu({
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,15 +1,15 @@
-'use client'
+"use client";
 
-import React from 'react'
-import { Menu, User, Bell, Settings } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import React from "react";
+import { Menu, User, Bell, Settings } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * TopBar Component
- * 
+ *
  * Header navigation bar with menu toggle and profile/action buttons.
  * Provides consistent top navigation across all app views.
- * 
+ *
  * @component
  * @example
  * ```tsx
@@ -24,25 +24,25 @@ import { cn } from '@/lib/utils'
 
 export interface TopBarProps {
   /** Callback fired when menu button is clicked */
-  onMenuClick?: () => void
+  onMenuClick?: () => void;
   /** Callback fired when profile button is clicked */
-  onProfileClick?: () => void
+  onProfileClick?: () => void;
   /** Callback fired when notification button is clicked */
-  onNotificationClick?: () => void
+  onNotificationClick?: () => void;
   /** Callback fired when settings button is clicked */
-  onSettingsClick?: () => void
+  onSettingsClick?: () => void;
   /** Optional title to display in the center */
-  title?: string
+  title?: string;
   /** Whether to show notification badge */
-  showNotificationBadge?: boolean
+  showNotificationBadge?: boolean;
   /** Number to display in notification badge */
-  notificationCount?: number
+  notificationCount?: number;
   /** Whether the menu button is in open state */
-  isMenuOpen?: boolean
+  isMenuOpen?: boolean;
   /** Additional CSS classes */
-  className?: string
+  className?: string;
   /** Whether to use transparent background */
-  transparent?: boolean
+  transparent?: boolean;
 }
 
 export function TopBar({
@@ -55,15 +55,15 @@ export function TopBar({
   notificationCount,
   isMenuOpen = false,
   className,
-  transparent = false
+  transparent = false,
 }: TopBarProps) {
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 right-0 z-50',
-        'px-4 py-4',
-        'flex items-center justify-between',
-        !transparent && 'bg-black/80 backdrop-blur-xl border-b border-white/10',
+        "fixed top-0 left-0 right-0 z-20",
+        "px-4 py-4",
+        "flex items-center justify-between",
+        !transparent && "bg-black/80 backdrop-blur-xl border-b border-white/10",
         className
       )}
     >
@@ -71,13 +71,13 @@ export function TopBar({
       <button
         onClick={onMenuClick}
         className={cn(
-          'relative w-10 h-10 rounded-full',
-          'bg-white/10 border border-white/20',
-          'flex items-center justify-center',
-          'transition-all duration-200',
-          'hover:bg-white/20 hover:scale-105',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500',
-          'active:scale-95'
+          "relative w-10 h-10 rounded-full",
+          "bg-white/10 border border-white/20",
+          "flex items-center justify-center",
+          "transition-all duration-200",
+          "hover:bg-white/20 hover:scale-105",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
+          "active:scale-95"
         )}
         aria-label="Toggle menu"
         aria-expanded={isMenuOpen}
@@ -99,13 +99,13 @@ export function TopBar({
           <button
             onClick={onNotificationClick}
             className={cn(
-              'relative w-10 h-10 rounded-full',
-              'bg-white/10 border border-white/20',
-              'flex items-center justify-center',
-              'transition-all duration-200',
-              'hover:bg-white/20 hover:scale-105',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500',
-              'active:scale-95'
+              "relative w-10 h-10 rounded-full",
+              "bg-white/10 border border-white/20",
+              "flex items-center justify-center",
+              "transition-all duration-200",
+              "hover:bg-white/20 hover:scale-105",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
+              "active:scale-95"
             )}
             aria-label="Notifications"
           >
@@ -116,7 +116,7 @@ export function TopBar({
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500">
                   {notificationCount && notificationCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
-                      {notificationCount > 99 ? '99+' : notificationCount}
+                      {notificationCount > 99 ? "99+" : notificationCount}
                     </span>
                   )}
                 </span>
@@ -130,13 +130,13 @@ export function TopBar({
           <button
             onClick={onSettingsClick}
             className={cn(
-              'relative w-10 h-10 rounded-full',
-              'bg-white/10 border border-white/20',
-              'flex items-center justify-center',
-              'transition-all duration-200',
-              'hover:bg-white/20 hover:scale-105',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500',
-              'active:scale-95'
+              "relative w-10 h-10 rounded-full",
+              "bg-white/10 border border-white/20",
+              "flex items-center justify-center",
+              "transition-all duration-200",
+              "hover:bg-white/20 hover:scale-105",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
+              "active:scale-95"
             )}
             aria-label="Settings"
           >
@@ -148,14 +148,14 @@ export function TopBar({
         <button
           onClick={onProfileClick}
           className={cn(
-            'relative w-10 h-10 rounded-full',
-            'bg-gradient-to-br from-violet-600 to-blue-600',
-            'border-2 border-white/30',
-            'flex items-center justify-center',
-            'transition-all duration-200',
-            'hover:scale-105 hover:shadow-lg hover:shadow-violet-500/30',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500',
-            'active:scale-95'
+            "relative w-10 h-10 rounded-full",
+            "bg-gradient-to-br from-violet-600 to-blue-600",
+            "border-2 border-white/30",
+            "flex items-center justify-center",
+            "transition-all duration-200",
+            "hover:scale-105 hover:shadow-lg hover:shadow-violet-500/30",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
+            "active:scale-95"
           )}
           aria-label="Profile menu"
         >
@@ -163,5 +163,5 @@ export function TopBar({
         </button>
       </div>
     </header>
-  )
+  );
 }

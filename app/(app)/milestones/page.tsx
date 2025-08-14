@@ -232,10 +232,19 @@ export default function MilestonesPage() {
               <div key={monthKey}>
                 <h3 className="text-lg font-semibold mb-3 text-white/80">{monthName}</h3>
                 <MilestoneTimeline
-                  milestones={monthMilestones.map(m => ({
-                    ...m,
-                    confidence: m.verifiedBy === 'ai' ? 0.85 : 1.0,
-                  }))}
+                  milestones={monthMilestones.map(m => {
+                    const child = children.find(c => c.id === m.childId);
+                    return {
+                      id: m.id,
+                      child: child?.name || 'Unknown',
+                      title: m.title,
+                      date: m.achievedAt,
+                      category: m.category,
+                      aiConfidence: m.verifiedBy === 'ai' ? 85 : 100,
+                      verified: m.verifiedBy === 'parent' || m.verifiedBy === 'both',
+                      description: m.description,
+                    };
+                  })}
                 />
               </div>
             );

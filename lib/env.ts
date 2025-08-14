@@ -29,8 +29,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_GA_ID: z.string().optional(),
   JWT_SECRET: z.string().optional(),
   CORS_ORIGINS: z.string().optional(),
-  DEBUG: z.string().transform(val => val === 'true').default('false'),
-  SKIP_ENV_VALIDATION: z.string().transform(val => val === 'true').default('false'),
+  DEBUG: z.coerce.boolean().default(false),
+  SKIP_ENV_VALIDATION: z.coerce.boolean().default(false),
   TEST_DATABASE_URL: z.string().optional(),
 })
 
@@ -41,8 +41,8 @@ function validateEnv() {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Environment validation failed:')
-      error.errors.forEach((err) => {
-        console.error(`  - ${err.path.join('.')}: ${err.message}`)
+      error.issues.forEach((issue) => {
+        console.error(`  - ${issue.path.join('.')}: ${issue.message}`)
       })
       console.error('\n📋 Check your .env.local file and compare with README environment section')
       process.exit(1)

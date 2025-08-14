@@ -176,7 +176,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-gray-400">{child?.name}</span>
                     <span className="text-xs text-gray-500">•</span>
-                    <span className="text-xs text-gray-400">{formatTimestamp(memory.created_at)}</span>
+                    <span className="text-xs text-gray-400">{formatTimestamp(memory.timestamp)}</span>
                   </div>
                 </div>
               </div>

@@ -6,6 +6,7 @@
 
 import type { MemoryEntry, Child, ProcessingStatus } from '@/lib/types'
 import type { Memory as MockMemory, Child as MockChild, Milestone } from './mockData'
+import { toLabels, hasTagLabel } from '@/lib/utils/tags'
 
 // Convert mock memory to database MemoryEntry type
 export function mockMemoryToDbMemory(mock: MockMemory): MemoryEntry {
@@ -26,10 +27,10 @@ export function mockMemoryToDbMemory(mock: MockMemory): MemoryEntry {
     content: mock.content,
     memory_date: mock.timestamp, // Already ISO string
     category: null, // Don't derive from tags - keep separate
-    tags: mock.tags || null,
+    tags: mock.tags ? toLabels(mock.tags) : null,
     processing_status: (processingStatusMap[mock.processingStatus || ''] || 'queued') as ProcessingStatus,
     classification_confidence: null,
-    milestone_detected: mock.tags?.includes('milestone') || null,
+    milestone_detected: mock.tags ? hasTagLabel(mock.tags, 'milestone') : null,
     milestone_type: null,
     milestone_confidence: null,
     image_urls: null,

@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { Family, Child } from "@/lib/types";
+import { apiChildToUi } from "@/lib/adapters/api";
 
 interface FetchedFamily extends Family {
   role: string;
@@ -421,7 +422,7 @@ export default function DashboardPage() {
 
               <MemoryCreateForm
                 family={selectedFamily}
-                children={selectedFamily.children}
+                children={(selectedFamily.children || []).map(apiChildToUi)}
                 onSuccess={handleMemoryCreated}
                 onCancel={() => setShowCreateForm(false)}
               />

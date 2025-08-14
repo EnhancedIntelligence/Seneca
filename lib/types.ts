@@ -564,7 +564,7 @@ export type FamilyRole = Database['public']['Enums']['family_role_enum']
 // UI-specific types (will be mapped to DB types)
 export type MemoryType = 'voice' | 'text' | 'manual';
 export type MilestoneCategory = 'physical' | 'cognitive' | 'social' | 'language' | 'emotional';
-export type Tag =
+export type TagLabel =
   | 'milestone' | 'language' | 'cognitive' | 'social'
   | 'physical' | 'emotional' | 'creative' | 'eating' | 'sleep' | 'play';
 export type AgeUnit = 'months' | 'years';
@@ -579,6 +579,57 @@ export type MemoryEntryInsert = Database['public']['Tables']['memory_entries']['
 export type MemoryEntryUpdate = Database['public']['Tables']['memory_entries']['Update']
 export type FamilyInsert = Database['public']['Tables']['families']['Insert']
 export type ChildInsert = Database['public']['Tables']['children']['Insert']
+export type ChildUpdate = Database['public']['Tables']['children']['Update']
 export type FamilyMembershipInsert = Database['public']['Tables']['family_memberships']['Insert']
 export type QueueJobInsert = Database['public']['Tables']['queue_jobs']['Insert']
 export type QueueJobUpdate = Database['public']['Tables']['queue_jobs']['Update']
+
+// ==== DB shapes (snake_case, nullable where source is nullable) ====
+export type DbMemory = MemoryEntry; // Alias for clarity
+export type DbChild = Child; // Alias for clarity
+
+// ==== UI shapes (camelCase, total/non-null where possible) ====
+export type UITag = { id: string; label: string };
+// Back-compat alias for existing imports
+export type Tag = UITag;
+export type UIMemoryType = 'text' | 'voice' | 'photo' | 'video' | 'event';
+
+export type UIMemory = {
+  id: string;
+  childId: string | null;
+  familyId: string | null;
+  createdBy: string;
+  title: string | null;
+  content: string;
+  timestamp: string;           // memory_date ?? created_at
+  type: UIMemoryType;          // derived from category/media
+  tags: UITag[];               // never null, always array
+  category: string | null;     // optional passthrough
+  needsReview: boolean;
+  processingStatus: ProcessingStatus;
+  // Required media fields with empty array defaults
+  imageUrls: string[];
+  videoUrls: string[];
+  // Truly optional fields - only present when data exists
+  locationName?: string;
+  locationLat?: number;
+  locationLng?: number;
+  milestoneDetected?: boolean;
+  milestoneType?: string;
+  milestoneConfidence?: number;
+  memoryDate?: string;
+};
+
+export type UIChild = {
+  id: string;
+  familyId: string | null;
+  name: string;
+  avatarUrl: string | null;
+  birthDate: string | null;
+  age: { years: number; months: number } | null; // computed
+  initials: string;            // computed
+  emoji: string;               // computed (fallback)
+  gradient: string;            // computed
+  createdAt: string;
+  updatedAt: string;
+};

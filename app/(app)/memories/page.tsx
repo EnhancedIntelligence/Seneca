@@ -8,6 +8,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { MemoryCard } from '@/components/memory/MemoryCard';
 import { useFilteredMemories, useFilters, useFamily } from '@/lib/stores/useAppStore';
+import type { UIMemory } from '@/lib/types';
 import { useApi } from '@/lib/services/mockApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -56,26 +57,26 @@ export default function MemoriesPage() {
     
     switch (sortBy) {
       case 'oldest':
-        sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        sorted.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         break;
       case 'milestone':
         sorted.sort((a, b) => {
-          const aMilestone = a.tags?.includes('milestone') ? 1 : 0;
-          const bMilestone = b.tags?.includes('milestone') ? 1 : 0;
+          const aMilestone = a.tags.some(t => t.label === 'milestone') ? 1 : 0;
+          const bMilestone = b.tags.some(t => t.label === 'milestone') ? 1 : 0;
           return bMilestone - aMilestone;
         });
         break;
       case 'confidence':
         // Mock confidence score based on processing status and tags
         sorted.sort((a, b) => {
-          const aScore = a.processing_status === 'completed' ? 1 : 0.5;
-          const bScore = b.processing_status === 'completed' ? 1 : 0.5;
+          const aScore = a.processingStatus === 'completed' ? 1 : 0.5;
+          const bScore = b.processingStatus === 'completed' ? 1 : 0.5;
           return bScore - aScore;
         });
         break;
       case 'recent':
       default:
-        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        sorted.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         break;
     }
     

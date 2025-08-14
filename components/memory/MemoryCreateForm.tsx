@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useRef } from 'react'
-import { useForm, Controller, ControllerRenderProps } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { 
@@ -54,70 +54,49 @@ import { LocationPicker } from './shared/LocationPicker'
 import { TagSelector } from './shared/TagSelector'
 import { ChildSelector } from './shared/ChildSelector'
 import { supabase } from '@/lib/supabase'
-import type { Child, Family } from '@/lib/types'
+import type { UIChild, Family } from '@/lib/types'
 
-// AI-Native Memory Creation Schema with Enterprise Validation
-const memoryFormSchema = z.object({
-  title: z.string()
-    .min(1, 'Title is required')
-    .max(200, 'Title must be under 200 characters')
-    .refine(
-      (val) => val.trim().length > 0, 
-      'Title cannot be empty or whitespace only'
-    ),
-  content: z.string()
-    .min(10, 'Memory content must be at least 10 characters')
-    .max(10000, 'Memory content must be under 10,000 characters')
-    .refine(
-      (val) => val.trim().length >= 10,
-      'Memory content must contain meaningful text'
-    ),
-  child_id: z.string().uuid().optional(),
-  family_id: z.string().uuid(),
-  memory_date: z.string().datetime().optional(),
-  location_name: z.string().max(200).optional(),
-  location_lat: z.number().min(-90).max(90).optional(),
-  location_lng: z.number().min(-180).max(180).optional(),
-  category: z.enum([
-    'milestone', 'daily_life', 'celebration', 'learning', 
-    'social', 'creative', 'outdoor', 'family_time', 'other'
-  ]).optional(),
-  tags: z.array(z.string().max(50)).max(20, 'Maximum 20 tags allowed'),
-  image_urls: z.array(z.string().url()).max(10, 'Maximum 10 images allowed'),
-  video_urls: z.array(z.string().url()).max(5, 'Maximum 5 videos allowed'),
-  // AI Processing Configuration
-  ai_processing: z.object({
-    auto_process: z.boolean().default(true),
-    priority: z.enum(['low', 'normal', 'high']).default('normal'),
-    generate_embedding: z.boolean().default(true),
-    detect_milestones: z.boolean().default(true),
-    analyze_sentiment: z.boolean().default(true),
-    generate_insights: z.boolean().default(true),
-    extract_entities: z.boolean().default(true),
-    classify_activities: z.boolean().default(true)
+// Memory Creation Schema - UI layer uses camelCase
+export const memoryCreateSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  content: z.string().min(1, 'Content is required'),
+  childId: z.string().optional(), // Memory can be associated with specific child
+  familyId: z.string(), // Family is required
+  tags: z.array(z.string()),
+  imageUrls: z.array(z.string()),
+  videoUrls: z.array(z.string()),
+  category: z.enum(['social','language','cognitive','physical','emotional','creative','eating','sleep','play']).optional(),
+  locationName: z.string().optional(),
+  locationLat: z.number().min(-90).max(90).optional(),
+  locationLng: z.number().min(-180).max(180).optional(),
+  memoryDate: z.string().optional(),
+  aiProcessing: z.object({
+    autoProcess: z.boolean(),
+    priority: z.enum(['normal','low','high']),
+    generateEmbedding: z.boolean(),
+    redactPii: z.boolean(),
+    classifyActivities: z.boolean(),
   }),
-  // Agentic Workflow Metadata
-  workflow_context: z.object({
-    creation_source: z.enum(['manual', 'voice_assistant', 'import', 'mobile_app']).default('manual'),
-    user_intent: z.string().optional(),
-    suggested_improvements: z.array(z.string()).default([]),
-    agent_confidence: z.number().min(0).max(1).optional()
-  }).default({
-    creation_source: 'manual',
-    suggested_improvements: []
-  })
-})
+  workflowContext: z.object({
+    source: z.string(),
+    device: z.string().optional(),
+  }),
+}).refine(v =>
+  (v.locationLat == null && v.locationLng == null) ||
+  (v.locationLat != null && v.locationLng != null),
+  { message: 'Provide both latitude and longitude or leave both empty', path: ['locationLat'] }
+)
 
-type MemoryFormData = z.infer<typeof memoryFormSchema>
+export type MemoryFormValues = z.infer<typeof memoryCreateSchema>
 
 interface MemoryCreateFormProps {
   family: Family
-  children: Child[]
+  children: UIChild[]
   onSuccess?: (memory: any) => void
   onCancel?: () => void
   className?: string
   // AI Agent Integration
-  initialData?: Partial<MemoryFormData>
+  initialData?: Partial<MemoryFormValues>
   agentSuggestions?: {
     title?: string
     content?: string
@@ -142,28 +121,31 @@ export function MemoryCreateForm({
   const [aiProcessingEstimate, setAiProcessingEstimate] = useState<number | null>(null)
   const [formStep, setFormStep] = useState<'basic' | 'details' | 'ai_config' | 'review'>('basic')
   
-  const form = useForm<z.infer<typeof memoryFormSchema>>({
-    resolver: zodResolver(memoryFormSchema),
+  const form = useForm<MemoryFormValues>({
+    resolver: zodResolver(memoryCreateSchema),
     defaultValues: {
-      family_id: family.id,
-      memory_date: new Date().toISOString(),
-      category: 'daily_life',
+      title: '',
+      content: '',
+      familyId: family.id,
+      childId: undefined,
       tags: [],
-      image_urls: [],
-      video_urls: [],
-      ai_processing: {
-        auto_process: true,
+      imageUrls: [],
+      videoUrls: [],
+      category: undefined,
+      locationName: undefined,
+      locationLat: undefined,
+      locationLng: undefined,
+      memoryDate: undefined,
+      aiProcessing: {
+        autoProcess: false,
         priority: 'normal',
-        generate_embedding: true,
-        detect_milestones: true,
-        analyze_sentiment: true,
-        generate_insights: true,
-        extract_entities: true,
-        classify_activities: true
+        generateEmbedding: false,
+        redactPii: false,
+        classifyActivities: false,
       },
-      workflow_context: {
-        creation_source: 'manual',
-        suggested_improvements: []
+      workflowContext: {
+        source: 'ui',
+        device: undefined,
       },
       ...initialData
     }
@@ -173,10 +155,10 @@ export function MemoryCreateForm({
 
   // Real-time AI processing estimation
   const watchedContent = watch('content')
-  const watchedAiConfig = watch('ai_processing')
+  const watchedAiConfig = watch('aiProcessing')
 
   React.useEffect(() => {
-    if (watchedContent && watchedAiConfig.auto_process) {
+    if (watchedContent && watchedAiConfig.autoProcess) {
       const estimateMs = calculateProcessingTime(watchedContent, watchedAiConfig)
       setAiProcessingEstimate(estimateMs)
     }
@@ -211,8 +193,8 @@ export function MemoryCreateForm({
       improvements.push('Applied AI-suggested category')
     }
 
-    setValue('workflow_context.suggested_improvements', improvements)
-    setValue('workflow_context.agent_confidence', agentSuggestions.confidence || 0.8)
+    // Store improvements in workflow context if needed
+    // setValue('workflow_context.device', 'web') // optional
 
     toast({
       title: "✨ AI Suggestions Applied",
@@ -220,24 +202,34 @@ export function MemoryCreateForm({
     })
   }, [agentSuggestions, setValue, getValues, toast])
 
-  const onSubmit = async (data: MemoryFormData) => {
+  const onSubmit = async (data: MemoryFormValues) => {
     setIsSubmitting(true)
     
     try {
-      // Security: Sanitize and validate data before submission
-      const sanitizedData = {
-        ...data,
-        content: data.content.trim(),
+      // Convert camelCase UI data to snake_case for API
+      const apiData = {
         title: data.title?.trim(),
+        content: data.content.trim(),
+        child_id: data.childId || null,
+        family_id: data.familyId,
         tags: data.tags.filter(tag => tag.trim().length > 0).map(tag => tag.trim().toLowerCase()),
-        // Flatten AI processing options for API compatibility
-        auto_process: data.ai_processing.auto_process,
-        processing_priority: data.ai_processing.priority,
-        processing_options: {
-          generate_embedding: data.ai_processing.generate_embedding,
-          detect_milestones: data.ai_processing.detect_milestones,
-          analyze_sentiment: data.ai_processing.analyze_sentiment,
-          generate_insights: data.ai_processing.generate_insights
+        image_urls: data.imageUrls,
+        video_urls: data.videoUrls,
+        category: data.category,
+        location_name: data.locationName || null,
+        location_lat: data.locationLat || null,
+        location_lng: data.locationLng || null,
+        memory_date: data.memoryDate ? new Date(data.memoryDate).toISOString() : null,
+        ai_processing: {
+          auto_process: data.aiProcessing.autoProcess,
+          priority: data.aiProcessing.priority,
+          generate_embedding: data.aiProcessing.generateEmbedding,
+          redact_pii: data.aiProcessing.redactPii,
+          classify_activities: data.aiProcessing.classifyActivities,
+        },
+        workflow_context: {
+          source: data.workflowContext.source,
+          device: data.workflowContext.device,
         }
       }
 
@@ -255,7 +247,7 @@ export function MemoryCreateForm({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(sanitizedData)
+        body: JSON.stringify(apiData)
       })
 
       if (!response.ok) {
@@ -267,7 +259,7 @@ export function MemoryCreateForm({
 
       toast({
         title: "🎉 Memory Created Successfully!",
-        description: data.ai_processing.auto_process 
+        description: data.aiProcessing.autoProcess 
           ? "Your memory is being processed by AI. You'll see insights soon!"
           : "Your memory has been saved and is ready to view.",
       })
@@ -286,7 +278,7 @@ export function MemoryCreateForm({
     }
   }
 
-  const calculateProcessingTime = (content: string, aiConfig: MemoryFormData['ai_processing']): number => {
+  const calculateProcessingTime = (content: string, aiConfig: MemoryFormValues['aiProcessing']): number => {
     const baseTime = 2000 // 2 seconds base
     const contentMultiplier = Math.max(1, content.length / 100)
     const featuresEnabled = Object.values(aiConfig).filter(Boolean).length
@@ -306,7 +298,7 @@ export function MemoryCreateForm({
             <FormField
               control={form.control}
               name="title"
-              render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'title'> }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Memory Title</FormLabel>
                   <FormControl>
@@ -327,7 +319,7 @@ export function MemoryCreateForm({
             <FormField
               control={form.control}
               name="content"
-              render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'content'> }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Memory Details</FormLabel>
                   <FormControl>
@@ -348,8 +340,8 @@ export function MemoryCreateForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="child_id"
-                render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'child_id'> }) => (
+                name="childId"
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Child (Optional)</FormLabel>
                     <FormControl>
@@ -369,7 +361,7 @@ export function MemoryCreateForm({
               <FormField
                 control={form.control}
                 name="category"
-                render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'category'> }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -433,8 +425,8 @@ export function MemoryCreateForm({
 
             <FormField
               control={form.control}
-              name="image_urls"
-              render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'image_urls'> }) => (
+              name="imageUrls"
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Photos & Videos</FormLabel>
                   <FormControl>
@@ -465,21 +457,21 @@ export function MemoryCreateForm({
 
             <FormField
               control={form.control}
-              name="location_name"
-              render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'location_name'> }) => (
+              name="locationName"
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Location (Optional)</FormLabel>
                   <FormControl>
                     <LocationPicker
                       value={{
                         name: field.value || '',
-                        lat: form.getValues('location_lat'),
-                        lng: form.getValues('location_lng')
+                        lat: form.getValues('locationLat'),
+                        lng: form.getValues('locationLng')
                       }}
                       onChange={(location) => {
                         field.onChange(location.name)
-                        form.setValue('location_lat', location.lat)
-                        form.setValue('location_lng', location.lng)
+                        form.setValue('locationLat', location.lat)
+                        form.setValue('locationLng', location.lng)
                       }}
                     />
                   </FormControl>
@@ -493,7 +485,7 @@ export function MemoryCreateForm({
             <FormField
               control={form.control}
               name="tags"
-              render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'tags'> }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tags</FormLabel>
                   <FormControl>
@@ -513,8 +505,8 @@ export function MemoryCreateForm({
 
             <FormField
               control={form.control}
-              name="memory_date"
-              render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'memory_date'> }) => (
+              name="memoryDate"
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Memory Date</FormLabel>
                   <FormControl>
@@ -555,8 +547,8 @@ export function MemoryCreateForm({
               <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="ai_processing.auto_process"
-                  render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'ai_processing.auto_process'> }) => (
+                  name="aiProcessing.autoProcess"
+                  render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">
@@ -576,12 +568,12 @@ export function MemoryCreateForm({
                   )}
                 />
 
-                {watchedAiConfig.auto_process && (
+                {watchedAiConfig.autoProcess && (
                   <>
                     <FormField
                       control={form.control}
-                      name="ai_processing.priority"
-                      render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'ai_processing.priority'> }) => (
+                      name="aiProcessing.priority"
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Processing Priority</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -606,8 +598,8 @@ export function MemoryCreateForm({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
-                        name="ai_processing.detect_milestones"
-                        render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'ai_processing.detect_milestones'> }) => (
+                        name="aiProcessing.autoProcess"
+                        render={({ field }) => (
                           <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                             <FormControl>
                               <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -624,8 +616,8 @@ export function MemoryCreateForm({
 
                       <FormField
                         control={form.control}
-                        name="ai_processing.analyze_sentiment"
-                        render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'ai_processing.analyze_sentiment'> }) => (
+                        name="aiProcessing.generateEmbedding"
+                        render={({ field }) => (
                           <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                             <FormControl>
                               <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -642,8 +634,8 @@ export function MemoryCreateForm({
 
                       <FormField
                         control={form.control}
-                        name="ai_processing.generate_insights"
-                        render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'ai_processing.generate_insights'> }) => (
+                        name="aiProcessing.redactPii"
+                        render={({ field }) => (
                           <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                             <FormControl>
                               <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -660,8 +652,8 @@ export function MemoryCreateForm({
 
                       <FormField
                         control={form.control}
-                        name="ai_processing.generate_embedding"
-                        render={({ field }: { field: ControllerRenderProps<z.infer<typeof memoryFormSchema>, 'ai_processing.generate_embedding'> }) => (
+                        name="aiProcessing.generateEmbedding"
+                        render={({ field }) => (
                           <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                             <FormControl>
                               <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -730,7 +722,7 @@ export function MemoryCreateForm({
                   <div>
                     <h4 className="font-semibold text-sm">Child</h4>
                     <p className="text-sm text-muted-foreground">
-                      {values.child_id ? children.find(c => c.id === values.child_id)?.name : 'Family memory'}
+                      {values.childId ? children.find(c => c.id === values.childId)?.name : 'Family memory'}
                     </p>
                   </div>
                 </div>
@@ -748,12 +740,12 @@ export function MemoryCreateForm({
                   </div>
                 )}
 
-                {values.location_name && (
+                {values.locationName && (
                   <div>
                     <h4 className="font-semibold text-sm">Location</h4>
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      {values.location_name}
+                      {values.locationName}
                     </p>
                   </div>
                 )}
@@ -761,8 +753,8 @@ export function MemoryCreateForm({
                 <div>
                   <h4 className="font-semibold text-sm">AI Processing</h4>
                   <p className="text-sm text-muted-foreground">
-                    {values.ai_processing.auto_process 
-                      ? `Enabled (${values.ai_processing.priority} priority)`
+                    {values.aiProcessing.autoProcess 
+                      ? `Enabled (${values.aiProcessing.priority} priority)`
                       : 'Disabled'
                     }
                   </p>

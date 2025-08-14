@@ -11,6 +11,7 @@ import { InsightCard } from '@/components/dashboard/InsightCard';
 import { ChildCard } from '@/components/dashboard/ChildCard';
 import { MilestoneTimeline } from '@/components/dashboard/MilestoneTimeline';
 import { useFamily, useMemoryData } from '@/lib/stores/useAppStore';
+import type { UIMemory, UIChild } from '@/lib/types';
 import { useApi } from '@/lib/services/mockApi';
 import { BookOpen, TrendingUp, Award, Activity, Zap } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -28,14 +29,20 @@ export default function OverviewPage() {
       memories: number;
       milestones: number;
     };
+    monthlyUsage?: {
+      cost: number;
+      tokens: number;
+      processingTime: number;
+      errorRate: number;
+    };
   }
   
   interface InsightData {
     id: string;
-    type: 'milestone' | 'pattern' | 'suggestion';
+    type: 'prediction' | 'pattern' | 'recommendation' | 'comparison' | 'milestone' | 'alert';
     severity: 'info' | 'success' | 'warning' | 'error';
     title: string;
-    content: string;
+    description: string; // API returns description, not content
     childId: string | null;
     timestamp: string;
   }
@@ -54,8 +61,29 @@ export default function OverviewPage() {
           api.getAnalytics(),
           api.getInsights(),
         ]);
+        
+        // Use actual analytics data from API, don't compute fake metrics
         setAnalytics(analyticsData);
-        setInsights(insightsData);
+        
+        // Safely coerce insight types
+        const toInsightType = (s: string): InsightData['type'] => {
+          if (['prediction', 'pattern', 'recommendation', 'comparison', 'milestone', 'alert'].includes(s)) {
+            return s as InsightData['type'];
+          }
+          return 'pattern';
+        };
+        
+        setInsights(
+          insightsData.map((i: any) => ({
+            id: i.id,
+            type: toInsightType(i.type),
+            severity: i.severity as InsightData['severity'],
+            title: i.title,
+            description: i.description,
+            childId: i.childId ?? null,
+            timestamp: i.timestamp,
+          }))
+        );
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -137,7 +165,7 @@ export default function OverviewPage() {
         <h2 className="text-xl font-semibold mb-3">Your Children</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {children.map((child) => {
-            const childMemories = memories.filter(m => m.child_id === child.id);
+            const childMemories = memories.filter(m => m.childId === child.id);
             const childMilestones = milestones.filter(m => m.childId === child.id);
             
             return (
@@ -146,12 +174,13 @@ export default function OverviewPage() {
                 child={{
                   id: child.id,
                   name: child.name,
-                  age: '2 years', // Calculate from birth_date in real app
+                  age: child.age 
+                    ? { value: child.age.years, unit: 'years' as const, months: child.age.months }
+                    : { value: 0, unit: 'years' as const },
                   developmentScore: 85 + Math.floor(Math.random() * 15),
-                  recentMemories: childMemories.length,
+                  totalMemories: childMemories.length,
                   milestones: childMilestones.length,
-                  lastActivity: "2 hours ago",
-                  gradient: 'bg-gradient-to-r from-violet-500 to-blue-500',
+                  lastEntry: "2 hours ago",
                 }}
               />
             );
@@ -168,7 +197,7 @@ export default function OverviewPage() {
               key={insight.id}
               type={insight.type}
               title={insight.title}
-              content={insight.content}
+              content={insight.description}
             />
           ))}
         </div>
@@ -178,10 +207,19 @@ export default function OverviewPage() {
       <div>
         <h2 className="text-xl font-semibold mb-3">Recent Milestones</h2>
         <MilestoneTimeline
-          milestones={milestones.slice(0, 5).map((m) => ({
-            ...m,
-            confidence: m.verifiedBy === 'ai' ? 0.85 : 1.0,
-          }))}
+          milestones={milestones.slice(0, 5).map((m) => {
+            const child = children.find(c => c.id === m.childId);
+            return {
+              id: m.id,
+              child: child?.name || 'Unknown',
+              title: m.title,
+              date: m.achievedAt,
+              category: m.category,
+              aiConfidence: m.verifiedBy === 'ai' ? 85 : 100,
+              verified: m.verifiedBy === 'parent' || m.verifiedBy === 'both',
+              description: m.description,
+            };
+          })}
         />
       </div>
 
@@ -193,19 +231,51 @@ export default function OverviewPage() {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <div className="text-2xl font-bold">${analytics?.monthlyUsage?.cost || 0}</div>
+            <div className="text-2xl font-bold">
+              {!analytics ? (
+                <span className="text-sm">Loading...</span>
+              ) : (
+                typeof analytics.monthlyUsage?.cost === 'number' 
+                  ? `$${analytics.monthlyUsage.cost.toFixed(2)}` 
+                  : '—'
+              )}
+            </div>
             <div className="text-sm text-gray-400">Total Cost</div>
           </div>
           <div>
-            <div className="text-2xl font-bold">{(analytics?.monthlyUsage?.tokens || 0).toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              {!analytics ? (
+                <span className="text-sm">Loading...</span>
+              ) : (
+                typeof analytics.monthlyUsage?.tokens === 'number'
+                  ? analytics.monthlyUsage.tokens.toLocaleString()
+                  : '—'
+              )}
+            </div>
             <div className="text-sm text-gray-400">API Tokens</div>
           </div>
           <div>
-            <div className="text-2xl font-bold">{analytics?.monthlyUsage?.processingTime || 0}s</div>
+            <div className="text-2xl font-bold">
+              {!analytics ? (
+                <span className="text-sm">Loading...</span>
+              ) : (
+                typeof analytics.monthlyUsage?.processingTime === 'number'
+                  ? `${analytics.monthlyUsage.processingTime}s`
+                  : '—'
+              )}
+            </div>
             <div className="text-sm text-gray-400">Avg Processing</div>
           </div>
           <div>
-            <div className="text-2xl font-bold">{analytics?.monthlyUsage?.errorRate || 0}%</div>
+            <div className="text-2xl font-bold">
+              {!analytics ? (
+                <span className="text-sm">Loading...</span>
+              ) : (
+                typeof analytics.monthlyUsage?.errorRate === 'number'
+                  ? `${analytics.monthlyUsage.errorRate.toFixed(1)}%`
+                  : '—'
+              )}
+            </div>
             <div className="text-sm text-gray-400">Error Rate</div>
           </div>
         </div>

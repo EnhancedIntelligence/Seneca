@@ -57,7 +57,7 @@ class MockApiService {
     
     if (filters?.tags && filters.tags.length > 0) {
       filtered = filtered.filter(m => 
-        filters.tags!.some(tag => m.tags.includes(tag))
+        filters.tags!.some(filterTag => m.tags.some(memTag => memTag.id === filterTag.id))
       );
     }
     
@@ -102,7 +102,7 @@ class MockApiService {
         memories[memIndex].processingStatus = 'completed';
         
         // Randomly detect milestones
-        if (Math.random() > 0.7 && memory.tags.includes('milestone')) {
+        if (Math.random() > 0.7 && memory.tags.some(t => t.id === 'milestone')) {
           this.createMilestone({
             childId: memory.childId,
             title: 'Achievement Detected',
@@ -349,7 +349,7 @@ class MockApiService {
       childId,
       content: `[Voice ${duration}s] ${content}`,
       type: 'voice',
-      tags: ['voice'],
+      tags: [{ id: 'voice', label: 'voice' }],
     });
   }
 
@@ -365,7 +365,7 @@ class MockApiService {
     const lowerQuery = query.toLowerCase();
     return memories.filter(m => 
       m.content.toLowerCase().includes(lowerQuery) ||
-      m.tags.some(tag => tag.includes(lowerQuery))
+      m.tags.some(tag => tag.label.toLowerCase().includes(lowerQuery))
     );
   }
 

@@ -7,7 +7,7 @@
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type { Child, MemoryEntry, Tag, MemoryType } from '@/lib/types';
+import type { UIChild, UIMemory, UITag, UIMemoryType, DbChild, DbMemory } from '@/lib/types';
 import type { Milestone } from './mockData';
 import {
   mockChildren as rawMockChildren,
@@ -15,6 +15,8 @@ import {
   mockMilestones,
 } from './mockData';
 import { mockChildToDbChild, mockMemoryToDbMemory } from './mockDataAdapter';
+import { dbToUiChild } from '@/lib/adapters/child';
+import { dbToUiMemory } from '@/lib/adapters/memory';
 
 // ===== Type Definitions =====
 export type ViewType = 'capture' | 'overview' | 'memories' | 'children' | 'analytics' | 'settings';
@@ -44,28 +46,31 @@ interface CaptureState {
 }
 
 interface FamilyState {
-  children: Child[]; // Now using DB Child type
+  children: UIChild[]; // Using UI Child type
   activeChildId: string | null;
   switchChild: (childId: string) => void;
-  getActiveChild: () => Child | undefined;
+  getActiveChild: () => UIChild | undefined;
+  ingestDbChildren: (children: DbChild[]) => void;
 }
 
 interface MemoryState {
-  memories: MemoryEntry[]; // Now using DB MemoryEntry type
+  memories: UIMemory[]; // Using UI Memory type
   milestones: Milestone[];
   pendingMemoryIds: string[];
   error: string | null;
-  addMemory: (content: string, type?: MemoryType, tags?: Tag[]) => Promise<void>;
+  addMemory: (content: string, type?: UIMemoryType, tags?: UITag[]) => Promise<void>;
+  addMemoryUI: (memory: UIMemory) => void;
+  ingestDbMemories: (memories: DbMemory[]) => void;
   deleteMemory: (id: string) => void;
   clearError: () => void;
 }
 
 interface FilterState {
   searchQuery: string;
-  selectedTags: Tag[];
+  selectedTags: string[]; // Tag labels for filtering
   dateRange: { start: string | null; end: string | null }; // ISO strings for consistency
   setSearchQuery: (query: string) => void;
-  toggleTag: (tag: Tag) => void;
+  toggleTag: (tag: string) => void;
   setDateRange: (start: string | null, end: string | null) => void;
   clearFilters: () => void;
 }
@@ -103,9 +108,11 @@ const withinDateRange = (iso: string, start: string | null, end: string | null):
   return date >= startTime && date <= endTime;
 };
 
-// Convert mock data to DB types
-const mockChildren = rawMockChildren.map(mockChildToDbChild);
-const mockMemories = rawMockMemories.map(mockMemoryToDbMemory);
+// Convert mock data to UI types via DB types
+const mockDbChildren = rawMockChildren.map(mockChildToDbChild);
+const mockDbMemories = rawMockMemories.map(mockMemoryToDbMemory);
+const mockChildren = mockDbChildren.map(dbToUiChild);
+const mockMemories = mockDbMemories.map(dbToUiMemory);
 
 // ===== Initial State =====
 const initialState = {
@@ -125,18 +132,18 @@ const initialState = {
   isManualPanelOpen: false,
   
   // Family
-  children: mockChildren, // Now DB Child[] type
+  children: mockChildren, // Now UI Child[] type
   activeChildId: mockChildren[0]?.id || null,
   
   // Memory
-  memories: mockMemories, // Now DB MemoryEntry[] type
+  memories: mockMemories, // Now UI Memory[] type
   milestones: mockMilestones,
   pendingMemoryIds: [] as string[],
   error: null,
   
   // Filters
   searchQuery: '',
-  selectedTags: [] as Tag[],
+  selectedTags: [] as string[],
   dateRange: { start: null, end: null },
 };
 
@@ -237,6 +244,11 @@ export const useAppStore = create<AppStore>()(
             : undefined;
         },
         
+        ingestDbChildren: (dbChildren) => {
+          const uiChildren = dbChildren.map(dbToUiChild);
+          set({ children: uiChildren });
+        },
+        
         // Memory Actions (optimistic updates)
         addMemory: async (content, type = 'text', tags = []) => {
           const state = get();
@@ -250,35 +262,24 @@ export const useAppStore = create<AppStore>()(
           // Clear previous error
           set({ error: null });
           
-          // Create optimistic memory with temp ID
+          // Create optimistic UI memory with temp ID
           const tempId = newId('temp');
-          const optimisticMemory: MemoryEntry = {
+          const timestamp = new Date().toISOString();
+          const optimisticMemory: UIMemory = {
             id: tempId,
-            child_id: activeChild.id,
-            family_id: 'mock-family-1',
-            created_by: 'mock-user-1',
+            childId: activeChild.id,
+            familyId: 'mock-family-1',
+            createdBy: 'mock-user-1',
             title: null,
             content,
-            memory_date: new Date().toISOString(),
-            category: null,
+            timestamp,
+            type,
             tags,
-            processing_status: 'queued',
-            classification_confidence: null,
-            milestone_detected: tags.includes('milestone'),
-            milestone_type: null,
-            milestone_confidence: null,
-            image_urls: null,
-            video_urls: null,
-            error_message: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            processing_priority: null,
-            retry_count: null,
-            location_lat: null,
-            location_lng: null,
-            location_name: null,
-            app_context: null,
-            needs_review: null
+            category: null,
+            needsReview: false,
+            processingStatus: 'queued',
+            imageUrls: [],
+            videoUrls: [],
           };
           
           // Optimistically add memory
@@ -294,19 +295,19 @@ export const useAppStore = create<AppStore>()(
           const realId = newId('mem');
           set((state) => ({
             memories: state.memories.map(m => 
-              m.id === tempId ? { ...m, id: realId, processing_status: 'completed' } : m
+              m.id === tempId ? { ...m, id: realId, processingStatus: 'completed' } : m
             ),
             pendingMemoryIds: state.pendingMemoryIds.filter(id => id !== tempId),
           }));
           
           // Check for milestone (mock AI detection)
-          if (tags.includes('milestone')) {
+          if (tags.some(t => t.label === 'milestone')) {
             const newMilestone: Milestone = {
               id: newId('milestone'),
               childId: activeChild.id,
               title: 'New Achievement',
               description: content,
-              achievedAt: new Date().toISOString(),
+              achievedAt: timestamp,
               category: 'physical',
               verifiedBy: 'ai',
             };
@@ -315,6 +316,17 @@ export const useAppStore = create<AppStore>()(
               milestones: [newMilestone, ...state.milestones],
             }));
           }
+        },
+        
+        addMemoryUI: (memory) => {
+          set((state) => ({
+            memories: [memory, ...state.memories],
+          }));
+        },
+        
+        ingestDbMemories: (dbMemories) => {
+          const uiMemories = dbMemories.map(dbToUiMemory);
+          set({ memories: uiMemories });
         },
         
         deleteMemory: (id) => set((state) => ({
@@ -327,10 +339,10 @@ export const useAppStore = create<AppStore>()(
         // Filter Actions
         setSearchQuery: (query) => set({ searchQuery: query }),
         
-        toggleTag: (tag) => set((state) => ({
-          selectedTags: state.selectedTags.includes(tag)
-            ? state.selectedTags.filter(t => t !== tag)
-            : [...state.selectedTags, tag]
+        toggleTag: (tagLabel) => set((state) => ({
+          selectedTags: state.selectedTags.includes(tagLabel)
+            ? state.selectedTags.filter(t => t !== tagLabel)
+            : [...state.selectedTags, tagLabel]
         })),
         
         setDateRange: (start, end) => set({ 
@@ -463,9 +475,10 @@ export const useFilteredMemories = () => {
   const { searchQuery, selectedTags, dateRange } = useFilters();
   
   return useMemo(() => {
+    // memories is already UIMemory[]
     let filtered = memories;
     
-    // Filter by active child
+    // Filter by active child - using UI field childId
     if (activeChildId) {
       filtered = filtered.filter(m => m.childId === activeChildId);
     }
@@ -474,18 +487,20 @@ export const useFilteredMemories = () => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(m => 
-        m.content.toLowerCase().includes(query)
+        (m.title ?? '').toLowerCase().includes(query) ||
+        m.content.toLowerCase().includes(query) ||
+        m.tags.some(t => t.label.toLowerCase().includes(query))
       );
     }
     
-    // Filter by tags
+    // Filter by tags - tags are UITag[] in UI types
     if (selectedTags.length > 0) {
       filtered = filtered.filter(m => 
-        selectedTags.some(tag => m.tags.includes(tag))
+        selectedTags.some(tagLabel => m.tags.some(t => t.label === tagLabel))
       );
     }
     
-    // Filter by date range
+    // Filter by date range - using timestamp from UI type
     if (dateRange.start || dateRange.end) {
       filtered = filtered.filter(m => 
         withinDateRange(m.timestamp, dateRange.start, dateRange.end)

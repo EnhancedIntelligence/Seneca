@@ -31,7 +31,7 @@ import { TrendingUp, Brain, Heart, Activity } from 'lucide-react';
 
 export default function AnalyticsPage() {
   const { children } = useFamily();
-  const { memories, milestones } = useMemoryData();
+  const { memories, milestones } = useMemoryData(); // already UIMemory[]
   interface AnalyticsData {
     totalMemories: number;
     totalMilestones: number;
@@ -73,18 +73,20 @@ export default function AnalyticsPage() {
     );
   }
 
-  // Prepare chart data
+  // Prepare chart data - using UI types now
   const memoryTypeData = [
     { name: 'Voice', value: memories.filter(m => m.type === 'voice').length, color: '#8b5cf6' },
     { name: 'Text', value: memories.filter(m => m.type === 'text').length, color: '#3b82f6' },
-    { name: 'Manual', value: memories.filter(m => m.type === 'manual').length, color: '#10b981' },
+    { name: 'Photo', value: memories.filter(m => m.type === 'photo').length, color: '#10b981' },
+    { name: 'Video', value: memories.filter(m => m.type === 'video').length, color: '#ef4444' },
+    { name: 'Event', value: memories.filter(m => m.type === 'event').length, color: '#f59e0b' },
   ];
 
   const weeklyData = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
     const dayMemories = memories.filter(m => {
-      const memDate = new Date(m.timestamp);
+      const memDate = new Date(m.timestamp); // UI type has timestamp
       return memDate.toDateString() === date.toDateString();
     });
     return {
@@ -98,11 +100,11 @@ export default function AnalyticsPage() {
   });
 
   const tagDistribution = [
-    { tag: 'Physical', count: memories.filter(m => m.tags.includes('physical')).length },
-    { tag: 'Language', count: memories.filter(m => m.tags.includes('language')).length },
-    { tag: 'Cognitive', count: memories.filter(m => m.tags.includes('cognitive')).length },
-    { tag: 'Social', count: memories.filter(m => m.tags.includes('social')).length },
-    { tag: 'Emotional', count: memories.filter(m => m.tags.includes('emotional')).length },
+    { tag: 'Physical', count: memories.filter(m => m.tags.some(t => t.label === 'physical')).length },
+    { tag: 'Language', count: memories.filter(m => m.tags.some(t => t.label === 'language')).length },
+    { tag: 'Cognitive', count: memories.filter(m => m.tags.some(t => t.label === 'cognitive')).length },
+    { tag: 'Social', count: memories.filter(m => m.tags.some(t => t.label === 'social')).length },
+    { tag: 'Emotional', count: memories.filter(m => m.tags.some(t => t.label === 'emotional')).length },
   ];
 
   return (
@@ -240,7 +242,7 @@ export default function AnalyticsPage() {
         <TabsContent value="children" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {children.map((child) => {
-              const childMemories = memories.filter(m => m.child_id === child.id);
+              const childMemories = memories.filter(m => m.childId === child.id);
               const childMilestones = milestones.filter(m => m.childId === child.id);
               
               return (

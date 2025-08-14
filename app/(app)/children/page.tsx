@@ -6,6 +6,8 @@
  */
 
 import { useEffect, useState } from 'react';
+import type { UIChild } from '@/lib/types';
+import { apiChildToUi } from '@/lib/adapters/api';
 import { useFamily, useMemoryData } from '@/lib/stores/useAppStore';
 import { useApi } from '@/lib/services/mockApi';
 import { Button } from '@/components/ui/button';
@@ -56,7 +58,7 @@ export default function ChildrenPage() {
   const { toast } = useToast();
 
   // Local UI copy so we don't need to reload the page on changes
-  const [uiChildren, setUiChildren] = useState(children);
+  const [uiChildren, setUiChildren] = useState<UIChild[]>(children);
   useEffect(() => {
     setUiChildren(children);
   }, [children]);
@@ -101,8 +103,9 @@ export default function ChildrenPage() {
 
       setIsAddDialogOpen(false);
       setFormData({ name: '', age: '', ageUnit: 'years', emoji: '👶' });
-      // Update local UI list
-      setUiChildren((prev) => [...prev, newChild]);
+      // Update local UI list - convert API response to UI child
+      const uiChild = apiChildToUi(newChild);
+      setUiChildren((prev) => [...prev, uiChild]);
     } catch {
       toast({
         title: 'Error adding child',
@@ -133,7 +136,15 @@ export default function ChildrenPage() {
       setEditingChild(null);
       // Update local UI list
       setUiChildren((prev) =>
-        prev.map((c) => (c.id === editingChild.id ? { ...c, name: formData.name, age: parseInt(formData.age), ageUnit: formData.ageUnit, emoji: formData.emoji } : c))
+        prev.map((c) => {
+          if (c.id !== editingChild.id) return c;
+          return {
+            ...c,
+            name: formData.name,
+            emoji: formData.emoji,
+            // Keep computed properties as-is since they're computed by adapter
+          };
+        })
       );
     } catch {
       toast({
@@ -173,7 +184,7 @@ export default function ChildrenPage() {
     }
   };
 
-  const openEditDialog = (child: Child) => {
+  const openEditDialog = (child: UIChild) => {
     setEditingChild({
       id: child.id,
       name: child.name,

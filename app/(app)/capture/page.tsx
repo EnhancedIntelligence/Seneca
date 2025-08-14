@@ -5,11 +5,15 @@
  * Primary interface for recording memories
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { RecordButton } from '@/components/capture/RecordButton';
 import { QuickEntry } from '@/components/capture/QuickEntry';
 import { ManualEntrySheet } from '@/components/capture/ManualEntrySheet';
 import { useCapture, useFamily, useMemoryData } from '@/lib/stores/useAppStore';
+import type { UIChild, UITag, Tag, Weather, Mood } from '@/lib/types';
+
+// Helper to convert string array to Tag objects (Tag is alias for UITag)
+const toTags = (arr: string[]): Tag[] => arr.map(label => ({ id: label, label }));
 import { useApi } from '@/lib/services/mockApi';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
@@ -72,46 +76,47 @@ export default function CapturePage() {
     }
   };
 
-  interface ManualMemoryData {
-    content: string;
-    tags?: string[];
-    date?: string;
-    time?: string;
-    location?: string;
-    weather?: string;
-    mood?: string;
-    notes?: string;
-  }
+  // Import the type from ManualEntrySheet to ensure consistency
+  type ManualMemoryData = import('@/components/capture/ManualEntrySheet').ManualMemoryData;
 
-  const handleManualSave = async (data: ManualMemoryData) => {
+  const handleManualSave: (data: ManualMemoryData) => void = (data) => {
     if (!activeChild) return;
 
-    try {
-      await api.createDetailedMemory({
-        childId: activeChild.id,
-        content: data.content,
-        type: 'manual',
-        tags: data.tags || [],
-        date: data.date,
-        time: data.time,
-        location: data.location,
-        weather: data.weather,
-        mood: data.mood,
-        additionalNotes: data.notes,
-      });
-      
-      setIsManualEntryOpen(false);
-      toast({
-        title: 'Memory saved',
-        description: 'Your detailed memory has been saved',
-      });
-    } catch {
-      toast({
-        title: 'Error saving memory',
-        description: 'Please try again',
-        variant: 'destructive',
-      });
-    }
+    // Convert string tags to UITag objects, filtering valid tags
+    const validTags = (data.tags || []).filter(t => 
+      ['milestone', 'language', 'cognitive', 'social', 'physical', 
+       'emotional', 'creative', 'eating', 'sleep', 'play'].includes(t)
+    );
+    const tagsUi = toTags(validTags);
+
+    void (async () => {
+      try {
+        await api.createDetailedMemory({
+          childId: activeChild.id,
+          content: data.description, // ManualEntrySheet uses 'description'
+          type: 'text', // UI uses 'text', API can map to 'manual' category if needed
+          tags: tagsUi, // API expects Tag[]
+          date: data.date ?? '',          // satisfy string
+          time: data.time ?? '',          // satisfy string
+          location: data.location,
+          weather: (data.weather as Weather) ?? undefined,
+          mood: (data.mood as Mood) ?? undefined,
+          additionalNotes: data.parentInsight,
+        });
+        
+        setIsManualEntryOpen(false);
+        toast({
+          title: 'Memory saved',
+          description: 'Your detailed memory has been saved',
+        });
+      } catch {
+        toast({
+          title: 'Error saving memory',
+          description: 'Please try again',
+          variant: 'destructive',
+        });
+      }
+    })();
   };
 
   return (
@@ -148,7 +153,7 @@ export default function CapturePage() {
               Recording for {activeChild.name}
             </h2>
             <p className="text-gray-400 text-sm mt-1">
-              {activeChild.age} {activeChild.ageUnit} old
+              {activeChild.age ? `${activeChild.age.years} years, ${activeChild.age.months} months` : 'Age not set'} old
             </p>
           </div>
         )}

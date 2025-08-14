@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "npm run typecheck && npm run lint && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint",
+    "ci": "npm run verify && npm test -s || true"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

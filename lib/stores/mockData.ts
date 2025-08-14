@@ -8,7 +8,8 @@
 import type { 
   MemoryType, 
   MilestoneCategory, 
-  Tag, 
+  Tag,
+  TagLabel, 
   AgeUnit, 
   Weather, 
   Mood 
@@ -18,7 +19,8 @@ import type {
 export type { 
   MemoryType, 
   MilestoneCategory, 
-  Tag, 
+  Tag,
+  TagLabel, 
   AgeUnit, 
   Weather, 
   Mood 
@@ -95,7 +97,7 @@ export const tagOptions = [
   { label: '🍽️ Eating', value: 'eating' },
   { label: '😴 Sleep', value: 'sleep' },
   { label: '🎮 Play', value: 'play' },
-] as const satisfies ReadonlyArray<{ label: string; value: Tag }>;
+] as const satisfies ReadonlyArray<{ label: string; value: TagLabel }>;
 
 export const weatherOptions = [
   { label: '☀️ Sunny', value: 'sunny' },
@@ -147,7 +149,10 @@ export const mockMemories: Memory[] = [
     childId: 'child-1',
     content: 'First steps in the living room!',
     type: 'voice',
-    tags: ['milestone', 'physical'],
+    tags: [
+      { id: 'milestone', label: 'milestone' },
+      { id: 'physical', label: 'physical' }
+    ],
     timestamp: hoursAgo(2),
     emoji: '👣',
   },
@@ -156,7 +161,10 @@ export const mockMemories: Memory[] = [
     childId: 'child-2',
     content: 'Said "mama" clearly at dinner',
     type: 'text',
-    tags: ['language', 'milestone'],
+    tags: [
+      { id: 'language', label: 'language' },
+      { id: 'milestone', label: 'milestone' }
+    ],
     timestamp: daysAgo(1),
     emoji: '🗣️',
   },
@@ -165,7 +173,11 @@ export const mockMemories: Memory[] = [
     childId: 'child-1',
     content: 'Playing with blocks, built a tall tower',
     type: 'manual',
-    tags: ['cognitive', 'play', 'creative'],
+    tags: [
+      { id: 'cognitive', label: 'cognitive' },
+      { id: 'play', label: 'play' },
+      { id: 'creative', label: 'creative' }
+    ],
     timestamp: daysAgo(2),
     emoji: '🧩',
   },
@@ -174,7 +186,10 @@ export const mockMemories: Memory[] = [
     childId: 'child-2',
     content: 'Rolled over from back to tummy',
     type: 'voice',
-    tags: ['physical', 'milestone'],
+    tags: [
+      { id: 'physical', label: 'physical' },
+      { id: 'milestone', label: 'milestone' }
+    ],
     timestamp: daysAgo(3),
     emoji: '🔄',
   },
@@ -183,7 +198,10 @@ export const mockMemories: Memory[] = [
     childId: 'child-1',
     content: 'Shared toys with friend at playdate',
     type: 'text',
-    tags: ['social', 'emotional'],
+    tags: [
+      { id: 'social', label: 'social' },
+      { id: 'emotional', label: 'emotional' }
+    ],
     timestamp: daysAgo(5),
     emoji: '🤝',
   },

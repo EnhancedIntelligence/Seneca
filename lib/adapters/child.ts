@@ -1,129 +1,154 @@
 /**
- * Bidirectional Child Adapters
- * Converts between UI camelCase types and DB snake_case types
+ * Child Adapter with Computed Fields
+ * Converts between DB Child type and UI-friendly format with computed properties
  */
 
-import type { Child } from '@/lib/types';
+import type { DbChild, UIChild, ChildInsert, ChildUpdate } from '@/lib/types';
 
-// UI-friendly child type with camelCase and computed fields
-export type UIChild = {
-  id: string;
-  familyId: string | null;
-  name: string;
-  birthDate: string;
-  age: string; // Computed from birthDate
-  gender: string | null;
-  notes: string | null;
-  profileImageUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
-  // UI-only fields for display
-  initials: string;
-  gradient: string;
+/**
+ * Generate initials from a name
+ */
+const initialsOf = (name: string): string =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase() ?? '')
+    .join('') || name[0]?.toUpperCase() || '?';
+
+/**
+ * Generate a consistent emoji based on name
+ */
+const emojiOf = (name: string): string => {
+  const table = ['🦊', '🐻', '🐨', '🦁', '🐯', '🐼', '🐵', '🐧', '🦄', '🐙'];
+  const hash = Math.abs(
+    Array.from(name).reduce((a, c) => a + c.charCodeAt(0), 0)
+  );
+  const index = hash % table.length;
+  return table[index] ?? '🌟';
 };
 
 /**
- * Calculate age from birth date
+ * Generate a gradient based on a seed string
  */
-function calculateAge(birthDate: string): string {
-  const birth = new Date(birthDate);
-  const now = new Date();
-  const ageMs = now.getTime() - birth.getTime();
-  const ageYears = Math.floor(ageMs / (365.25 * 24 * 60 * 60 * 1000));
-  const ageMonths = Math.floor(ageMs / (30.44 * 24 * 60 * 60 * 1000));
-  
-  if (ageYears >= 2) {
-    return `${ageYears} years`;
-  } else if (ageMonths >= 1) {
-    return `${ageMonths} months`;
-  } else {
-    const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
-    return `${ageDays} days`;
-  }
-}
-
-/**
- * Generate gradient based on child ID
- */
-function generateGradient(id: string): string {
+const gradientOf = (seed: string): string => {
+  const hash = Math.abs(
+    Array.from(seed).reduce((a, c) => a + c.charCodeAt(0), 0)
+  );
+  const hue = hash % 360;
+  // Return Tailwind-compatible gradient classes
   const gradients = [
     'bg-gradient-to-r from-pink-500 to-rose-500',
     'bg-gradient-to-r from-blue-500 to-cyan-500',
     'bg-gradient-to-r from-purple-500 to-indigo-500',
     'bg-gradient-to-r from-green-500 to-emerald-500',
     'bg-gradient-to-r from-yellow-500 to-orange-500',
+    'bg-gradient-to-r from-violet-500 to-purple-500',
+    'bg-gradient-to-r from-teal-500 to-cyan-500',
+    'bg-gradient-to-r from-amber-500 to-orange-500',
   ];
-  
-  // Use ID to deterministically select a gradient
-  const index = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % gradients.length;
-  return gradients[index];
-}
+  return gradients[hash % gradients.length] ?? gradients[0];
+};
 
 /**
- * Convert DB Child to UI-friendly format
+ * Calculate age from birth date
  */
-export function dbToUiChild(db: Child): UIChild {
-  const initials = db.name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+const ageFrom = (iso: string | null): { years: number; months: number } | null => {
+  if (!iso) return null;
+  
+  try {
+    const birth = new Date(iso);
+    const now = new Date();
     
+    let years = now.getFullYear() - birth.getFullYear();
+    let months = now.getMonth() - birth.getMonth();
+    
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+    
+    // Adjust if day hasn't occurred yet this month
+    if (now.getDate() < birth.getDate()) {
+      months -= 1;
+      if (months < 0) {
+        years -= 1;
+        months += 12;
+      }
+    }
+    
+    return { years, months };
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Convert DB Child to UI-friendly format with computed fields
+ */
+export function dbToUiChild(c: DbChild): UIChild {
+  const name = c.name;
+  
   return {
-    id: db.id,
-    familyId: db.family_id,
-    name: db.name,
-    birthDate: db.birth_date,
-    age: calculateAge(db.birth_date),
-    gender: db.gender,
-    notes: db.notes,
-    profileImageUrl: db.profile_image_url,
-    createdAt: db.created_at,
-    updatedAt: db.updated_at,
-    initials,
-    gradient: generateGradient(db.id),
+    id: c.id,
+    familyId: c.family_id,
+    name,
+    avatarUrl: c.profile_image_url,
+    birthDate: c.birth_date,
+    age: ageFrom(c.birth_date),
+    initials: initialsOf(name),
+    emoji: emojiOf(name),
+    gradient: gradientOf(c.id + name), // Use id + name for uniqueness
+    createdAt: c.created_at,
+    updatedAt: c.updated_at,
   };
 }
 
 /**
- * Convert UI child draft to DB Child for creation
+ * Convert UI Child to DB Insert format
  */
-export function uiToDbChild(input: {
-  name: string;
-  birthDate: string;
-  gender?: string;
-  notes?: string;
-  familyId?: string;
-}): Child {
-  const now = new Date().toISOString();
+export function uiToDbChildInsert(
+  c: Omit<UIChild, 'id' | 'createdAt' | 'updatedAt' | 'age' | 'initials' | 'emoji' | 'gradient'>,
+  createdBy: string
+): ChildInsert {
   return {
-    id: `child-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    family_id: input.familyId || 'mock-family-1',
-    name: input.name,
-    birth_date: input.birthDate,
-    gender: input.gender || null,
-    notes: input.notes || null,
-    profile_image_url: null,
-    created_by: 'mock-user-1',
-    created_at: now,
-    updated_at: now,
+    family_id: c.familyId,
+    name: c.name,
+    birth_date: c.birthDate || '', // DB requires string, use empty string for null
+    profile_image_url: c.avatarUrl,
+    created_by: createdBy,
+    // created_at/updated_at are DB defaults
+  };
+}
+
+/**
+ * Convert UI Child back to full DB format (for mocking/testing)
+ */
+export function uiToDbChild(c: UIChild): DbChild {
+  return {
+    id: c.id,
+    family_id: c.familyId,
+    name: c.name,
+    birth_date: c.birthDate ?? '',
+    gender: null,
+    notes: null,
+    profile_image_url: c.avatarUrl,
+    created_by: 'system',
+    created_at: c.createdAt,
+    updated_at: c.updatedAt,
   };
 }
 
 /**
  * Convert partial UI updates to DB update format
  */
-export function uiChildUpdateToDb(updates: Partial<UIChild>): Partial<Child> {
-  const dbUpdate: Partial<Child> = {};
+export function uiChildUpdateToDb(updates: Partial<UIChild>): ChildUpdate {
+  const dbUpdate: ChildUpdate = {};
   
   if (updates.name !== undefined) dbUpdate.name = updates.name;
-  if (updates.birthDate !== undefined) dbUpdate.birth_date = updates.birthDate;
-  if (updates.gender !== undefined) dbUpdate.gender = updates.gender;
-  if (updates.notes !== undefined) dbUpdate.notes = updates.notes;
-  if (updates.profileImageUrl !== undefined) dbUpdate.profile_image_url = updates.profileImageUrl;
+  if (updates.birthDate !== undefined) dbUpdate.birth_date = updates.birthDate || '';
+  if (updates.avatarUrl !== undefined) dbUpdate.profile_image_url = updates.avatarUrl;
   
-  dbUpdate.updated_at = new Date().toISOString();
-  
+  // updated_at handled by DB trigger
   return dbUpdate;
 }

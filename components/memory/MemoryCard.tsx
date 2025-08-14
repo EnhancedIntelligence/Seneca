@@ -48,11 +48,11 @@ const formatDistanceToNow = (date: Date): string => {
   if (diffMinutes > 0) return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`
   return 'Just now'
 }
-import type { MemoryEntry, Child } from '@/lib/types'
+import type { UIMemory, UIChild } from '@/lib/types'
 
 interface MemoryCardProps {
-  memory: MemoryEntry
-  child?: Child
+  memory: UIMemory
+  child?: UIChild
   onCardClick?: (memoryId: string) => void
   onLike?: (memoryId: string) => void
   onComment?: (memoryId: string) => void
@@ -85,8 +85,8 @@ export function MemoryCard({
     onCardClick?.(memory.id)
   }
   
-  const hasMedia = (memory.image_urls && memory.image_urls.length > 0) || 
-                   (memory.video_urls && memory.video_urls.length > 0)
+  const hasMedia = (memory.imageUrls && memory.imageUrls.length > 0) || 
+                   (memory.videoUrls && memory.videoUrls.length > 0)
   
   const processingStatusColor = {
     'queued': 'bg-yellow-500',
@@ -98,7 +98,7 @@ export function MemoryCard({
     'completed': 'bg-green-500',
     'failed': 'bg-red-500',
     'error': 'bg-red-500'
-  }[memory.processing_status] || 'bg-gray-500'
+  }[memory.processingStatus] || 'bg-gray-500'
   
   const processingStatusText = {
     'queued': 'Queued',
@@ -110,7 +110,7 @@ export function MemoryCard({
     'completed': 'AI Processed',
     'failed': 'Failed',
     'error': 'Error'
-  }[memory.processing_status] || 'Unknown'
+  }[memory.processingStatus] || 'Unknown'
   
   const truncatedContent = memory.content.length > 150 
     ? memory.content.substring(0, 150) + '...'
@@ -127,7 +127,7 @@ export function MemoryCard({
             {child && (
               <Avatar className="w-10 h-10 ring-2 ring-white/20">
                 <AvatarImage 
-                  src={child.profile_image_url || undefined} 
+                  src={child.avatarUrl || undefined} 
                   alt={child.name} 
                 />
                 <AvatarFallback className="bg-gradient-to-r from-violet-600 to-blue-600 text-white">
@@ -183,16 +183,16 @@ export function MemoryCard({
         {/* Media Preview */}
         {hasMedia && (
           <div className="flex items-center space-x-4 text-sm text-gray-400">
-            {memory.image_urls && memory.image_urls.length > 0 && (
+            {memory.imageUrls && memory.imageUrls.length > 0 && (
               <div className="flex items-center space-x-1">
                 <ImageIcon className="w-4 h-4" />
-                <span>{memory.image_urls.length} photo{memory.image_urls.length !== 1 ? 's' : ''}</span>
+                <span>{memory.imageUrls.length} photo{memory.imageUrls.length !== 1 ? 's' : ''}</span>
               </div>
             )}
-            {memory.video_urls && memory.video_urls.length > 0 && (
+            {memory.videoUrls && memory.videoUrls.length > 0 && (
               <div className="flex items-center space-x-1">
                 <Video className="w-4 h-4" />
-                <span>{memory.video_urls.length} video{memory.video_urls.length !== 1 ? 's' : ''}</span>
+                <span>{memory.videoUrls.length} video{memory.videoUrls.length !== 1 ? 's' : ''}</span>
               </div>
             )}
           </div>
@@ -204,7 +204,7 @@ export function MemoryCard({
             {memory.tags.slice(0, 3).map((tag, index) => (
               <Badge key={index} variant="outline" className="text-xs">
                 <Tag className="w-3 h-3 mr-1" />
-                {tag}
+                {tag.label}
               </Badge>
             ))}
             {memory.tags.length > 3 && (
@@ -216,22 +216,22 @@ export function MemoryCard({
         )}
         
         {/* AI Insights */}
-        {memory.processing_status === 'completed' && (
+        {memory.processingStatus === 'completed' && (
           <div className="bg-gradient-to-r from-violet-600/10 to-blue-600/10 p-3 rounded-lg border border-white/10">
             <div className="flex items-center space-x-2 mb-2">
               <Brain className="w-4 h-4 text-violet-400" />
               <span className="text-sm font-medium text-violet-300">AI Insights</span>
             </div>
             <div className="space-y-1 text-sm">
-              {memory.milestone_detected && (
+              {memory.milestoneDetected && (
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-3 h-3 text-yellow-500" />
                   <span className="text-gray-300">
-                    Milestone detected: {memory.milestone_type}
+                    Milestone detected: {memory.milestoneType}
                   </span>
-                  {memory.milestone_confidence && (
+                  {memory.milestoneConfidence && (
                     <span className="text-xs text-gray-400">
-                      ({Math.round(memory.milestone_confidence * 100)}% confidence)
+                      ({Math.round(memory.milestoneConfidence * 100)}% confidence)
                     </span>
                   )}
                 </div>
@@ -249,10 +249,10 @@ export function MemoryCard({
         )}
         
         {/* Location */}
-        {memory.location_name && (
+        {memory.locationName && (
           <div className="flex items-center space-x-2 text-sm text-gray-400">
             <MapPin className="w-4 h-4" />
-            <span>{memory.location_name}</span>
+            <span>{memory.locationName}</span>
           </div>
         )}
       </CardContent>
@@ -263,15 +263,15 @@ export function MemoryCard({
             <div className="flex items-center space-x-1">
               <Calendar className="w-4 h-4" />
               <span>
-                {memory.memory_date 
-                  ? formatDistanceToNow(new Date(memory.memory_date))
-                  : formatDistanceToNow(new Date(memory.created_at))
+                {memory.memoryDate 
+                  ? formatDistanceToNow(new Date(memory.memoryDate))
+                  : formatDistanceToNow(new Date(memory.timestamp))
                 }
               </span>
             </div>
             <div className="flex items-center space-x-1">
               <Clock className="w-4 h-4" />
-              <span>{formatDistanceToNow(new Date(memory.created_at))}</span>
+              <span>{formatDistanceToNow(new Date(memory.timestamp))}</span>
             </div>
           </div>
           

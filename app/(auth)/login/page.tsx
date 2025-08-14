@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { useAuthContext } from "@/lib/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Form,
   FormControl,
@@ -23,9 +23,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+} from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const { login, register } = useAuthContext();
@@ -35,27 +35,27 @@ export default function LoginPage() {
 
   // Login form schema
   const loginSchema = z.object({
-    email: z.string().email('Invalid email address'),
+    email: z.string().email("Invalid email address"),
   });
 
   // Register form schema
   const registerSchema = z.object({
-    email: z.string().email('Invalid email address'),
-    name: z.string().min(2, 'Name must be at least 2 characters'),
+    email: z.string().email("Invalid email address"),
+    name: z.string().min(2, "Name must be at least 2 characters"),
   });
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'demo@seneca.com',
+      email: "demo@seneca.com",
     },
   });
 
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: '',
-      name: '',
+      email: "",
+      name: "",
     },
   });
 
@@ -64,24 +64,24 @@ export default function LoginPage() {
     try {
       // TODO: Replace with actual authentication when backend is ready
       const result = await login(values.email);
-      
+
       if (result.success) {
         toast({
-          title: 'Login successful',
+          title: "Login successful",
           description: result.message,
         });
       } else {
         toast({
-          title: 'Login failed',
+          title: "Login failed",
           description: result.message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -93,24 +93,24 @@ export default function LoginPage() {
     try {
       // TODO: Replace with actual registration when backend is ready
       const result = await register(values.email, values.name);
-      
+
       if (result.success) {
         toast({
-          title: 'Registration successful',
+          title: "Registration successful",
           description: result.message,
         });
       } else {
         toast({
-          title: 'Registration failed',
+          title: "Registration failed",
           description: result.message,
-          variant: 'destructive',
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -142,10 +142,13 @@ export default function LoginPage() {
                   <TabsTrigger value="login">Login</TabsTrigger>
                   <TabsTrigger value="register">Register</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="login">
                   <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+                    <form
+                      onSubmit={loginForm.handleSubmit(handleLogin)}
+                      className="space-y-4"
+                    >
                       <FormField
                         control={loginForm.control}
                         name="email"
@@ -165,8 +168,8 @@ export default function LoginPage() {
                           </FormItem>
                         )}
                       />
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         className="w-full bg-gradient-to-r from-violet-600 to-blue-600"
                         disabled={isLoading}
                       >
@@ -176,22 +179,26 @@ export default function LoginPage() {
                             Signing in...
                           </>
                         ) : (
-                          'Sign In with Email'
+                          "Sign In with Email"
                         )}
                       </Button>
                     </form>
                   </Form>
-                  
+
                   <div className="mt-4 text-center">
                     <p className="text-sm text-gray-400">
-                      Demo account: <code className="text-violet-400">demo@seneca.com</code>
+                      Demo account:{" "}
+                      <code className="text-violet-400">demo@seneca.com</code>
                     </p>
                   </div>
                 </TabsContent>
-                
+
                 <TabsContent value="register">
                   <Form {...registerForm}>
-                    <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
+                    <form
+                      onSubmit={registerForm.handleSubmit(handleRegister)}
+                      className="space-y-4"
+                    >
                       <FormField
                         control={registerForm.control}
                         name="name"
@@ -229,8 +236,8 @@ export default function LoginPage() {
                           </FormItem>
                         )}
                       />
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         className="w-full bg-gradient-to-r from-violet-600 to-blue-600"
                         disabled={isLoading}
                       >
@@ -240,7 +247,7 @@ export default function LoginPage() {
                             Creating account...
                           </>
                         ) : (
-                          'Create Account'
+                          "Create Account"
                         )}
                       </Button>
                     </form>

@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI artifacts (optional - remove this section if you want to track AI docs)
+.ai/artifacts/**
+.ai/sessions/**
+!.ai/sessions/README.md
+# Keep all AI documentation
+!.ai/docs/**

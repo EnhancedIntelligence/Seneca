@@ -190,3 +190,14 @@ When working with Claude on this project, start your conversation with:
 "You are a senior engineer on the Seneca Protocol project. Please review CLAUDE.md for context."
 
 This will ensure Claude has the proper context and approach for helping with the codebase.
+
+<!-- AI-DOCS:BEGIN -->
+## AI Documentation Locations
+
+- Session handovers: `.ai/sessions/`
+- Build log: `.ai/docs/BUILD_LOG.md`
+- Architecture: `.ai/docs/DATA_FLOW_ARCHITECTURE.md`
+- Implementation strategy: `.ai/docs/IMPLEMENTATION_STRATEGY.md`
+- AI-generated tests: `.ai/tests/` (reference only, not CI-enforced)
+- Build artifacts: `.ai/artifacts/`
+<!-- AI-DOCS:END -->

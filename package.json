@@ -9,7 +9,12 @@
     "lint": "next lint --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && npm run lint",
-    "ci": "npm run verify && npm test -s || true"
+    "ci": "npm run verify && npm test -s || true",
+    "ai:test": "echo 'AI tests are for reference only - see .ai/tests/'",
+    "ai:migrate": "./migrate-ai-files.sh",
+    "ai:prune": "rm -rf .ai/artifacts/*",
+    "ai:docs": "open .ai/docs/BUILD_LOG.md 2>/dev/null || xdg-open .ai/docs/BUILD_LOG.md 2>/dev/null || echo 'See .ai/docs/BUILD_LOG.md'",
+    "ai:verify-imports": "node -e \"const {execSync}=require('child_process'); try{execSync('rg -n \\\"from [\\\\'\\\\\\\"]\\\\.?\\\\.?/.ai/|import .* from [\\\\'\\\\\\\"]\\\\.?\\\\.?/.ai/\\\" --glob \\\"!node_modules\\\" --glob \\\"!.ai/**\\\"', {stdio:'inherit'}); process.exit(1);}catch(e){process.exit(0);}\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

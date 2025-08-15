@@ -31,14 +31,20 @@ const eslintConfig = [
           message: 'Use camelCase in app/components; convert in adapters/services.'
         }
       ],
-      // Block direct DB type imports in UI
+      // Block direct DB type imports in UI and AI imports
       'no-restricted-imports': [
-        'warn',
+        'error',
         {
-          patterns: [{
-            group: ['**/lib/types/database*'],
-            message: 'Do not import database types directly in UI layer'
-          }]
+          patterns: [
+            {
+              group: ['**/lib/types/database*'],
+              message: 'Do not import database types directly in UI layer'
+            },
+            {
+              group: ['.ai/*', '**/.ai/*'],
+              message: 'AI artifacts are reference-only; do not import.'
+            }
+          ]
         }
       ]
     }

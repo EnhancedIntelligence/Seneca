@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/server-only/admin-client";
 import { z } from "zod";
 import type { Database } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
 
 // Validation schema for family creation
 const familyCreationSchema = z.object({
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Validation failed",
-          details: error.errors.map((err) => ({
+          details: error.issues.map((err) => ({
             field: err.path.join("."),
             message: err.message,
           })),
@@ -193,22 +194,37 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint to fetch family information
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("user_id");
-
-    if (!userId) {
+    const authHeader =
+      request.headers.get("authorization") ||
+      request.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
-        { error: "user_id parameter is required" },
-        { status: 400 }
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+    const token = authHeader.substring(7);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Invalid authentication token" },
+        { status: 401 }
       );
     }
 
+    const { searchParams } = new URL(request.url);
+    const limitParam = parseInt(searchParams.get("limit") || "50", 10);
+    const limit = Number.isFinite(limitParam)
+      ? Math.min(Math.max(limitParam, 1), 50)
+      : 50;
+
     const adminClient = createAdminClient();
 
-    // Get user's families
     const { data: memberships, error: membershipError } = await adminClient
       .from("family_memberships")
       .select(
@@ -216,57 +232,34 @@ export async function GET(request: NextRequest) {
         family_id,
         role,
         joined_at,
-        families (
-          id,
-          name,
-          description,
-          created_by,
-          created_at,
-          updated_at
-        )
+        families ( id, name, description, created_by, created_at, updated_at )
       `
       )
-      .eq("user_id", userId);
+      .eq("user_id", user.id)
+      .limit(limit);
 
-    if (membershipError || !memberships || !memberships.length) {
+    if (membershipError) {
+      console.error("Families list error:", membershipError);
       return NextResponse.json(
-        { error: "Access denied: You are not a member of this family" },
-        { status: 403 }
+        { error: "Failed to fetch families" },
+        { status: 500 }
       );
     }
 
-    // Get children for each family
-    const familiesWithChildren = await Promise.all(
-      (memberships || []).map(async (membership) => {
-        const { data: children, error: childrenError } = await adminClient
-          .from("children")
-          .select("id, name, birth_date, gender, profile_image_url")
-          .eq("family_id", membership.family_id!)
-          .order("birth_date", { ascending: true });
+    const families = (memberships || []).map((m) => ({
+      id: m.families?.id || "",
+      name: m.families?.name || "",
+      description: m.families?.description || null,
+      created_by: m.families?.created_by || "",
+      created_at: m.families?.created_at || "",
+      updated_at: m.families?.updated_at || "",
+      role: m.role,
+      joined_at: m.joined_at || "",
+    }));
 
-        if (childrenError) {
-          console.error("Error fetching children:", childrenError);
-        }
-
-        return {
-          id: membership.families?.id || "",
-          name: membership.families?.name || "",
-          description: membership.families?.description || "",
-          created_by: membership.families?.created_by || "",
-          created_at: membership.families?.created_at || "",
-          updated_at: membership.families?.updated_at || "",
-          role: membership.role,
-          joined_at: membership.joined_at || "",
-          children: children || [],
-        };
-      })
-    );
-
-    return NextResponse.json({
-      families: familiesWithChildren,
-    });
+    return NextResponse.json({ families, count: families.length });
   } catch (error) {
-    console.error("Family fetch API error:", error);
+    console.error("Families GET error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

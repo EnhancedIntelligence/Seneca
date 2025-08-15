@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
         name: validatedData.family.name,
         description: validatedData.family.description,
         created_by: user.id,
+
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -171,6 +172,7 @@ export async function POST(request: NextRequest) {
       throw new ServerError('Failed to create family membership');
     }
     
+
     // 3. Create children
     const childrenToInsert = validatedData.children.map((child) => ({
       ...child,
@@ -211,3 +213,4 @@ export async function POST(request: NextRequest) {
     return err(error);
   }
 }
+

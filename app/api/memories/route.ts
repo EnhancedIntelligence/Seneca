@@ -15,6 +15,7 @@ import { validateRequestBody, memorySchema } from '@/lib/validation';
 import { StatusCompat } from '@/lib/database-compatibility';
 import type { Database } from '@/lib/types';
 
+
 /**
  * GET /api/memories
  * List memories with filtering and pagination
@@ -46,10 +47,12 @@ export async function GET(request: NextRequest) {
     
     const adminClient = createAdminClient();
     
+
     // Build query for memories
     let query = adminClient
-      .from('memory_entries')
-      .select(`
+      .from("memory_entries")
+      .select(
+        `
         id,
         title,
         content,
@@ -78,31 +81,35 @@ export async function GET(request: NextRequest) {
       .eq('family_id', familyId)
       .order('created_at', { ascending: false });
     
+
     // Apply filters
     if (search) {
       query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
     }
-    
+
     if (childId) {
       query = query.eq('child_id', childId);
+
     }
-    
+
     if (category) {
       query = query.eq('category', category);
+
     }
-    
+
     if (processingStatus) {
       query = query.eq(
         'processing_status',
         processingStatus as Database['public']['Enums']['processing_status_enum']
+
       );
     }
-    
+
     // Apply pagination
     if (limit > 0) {
       query = query.limit(limit);
     }
-    
+
     if (offset > 0) {
       query = query.range(offset, offset + limit - 1);
     }
@@ -114,6 +121,7 @@ export async function GET(request: NextRequest) {
       throw new Error('Failed to fetch memories');
     }
     
+
     // Filter out items the current user has soft-deleted (hidden)
     const visibleMemories = (memories || []).filter((m: any) => {
       const ctx = m.app_context as Record<string, any> | null;
@@ -205,5 +213,6 @@ export async function POST(request: NextRequest) {
     }, 201); // 201 Created for POST
   } catch (error) {
     return err(error);
+
   }
 }

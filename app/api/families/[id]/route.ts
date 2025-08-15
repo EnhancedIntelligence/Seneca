@@ -24,6 +24,7 @@ type FamilyUpdate = z.infer<typeof familyUpdateSchema>;
  * GET /api/families/[id]
  * Fetch a specific family the user has access to
  */
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -61,6 +62,7 @@ export async function GET(
  * PATCH /api/families/[id]
  * Partial update of family details
  */
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -113,6 +115,7 @@ export async function PATCH(
  * PUT /api/families/[id]
  * Full update (delegates to PATCH for now)
  */
+
 export async function PUT(
   request: NextRequest,
   ctx: { params: { id: string } }
@@ -125,6 +128,7 @@ export async function PUT(
  * Soft delete - remove current user's membership
  * Data remains for other members
  */
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -163,3 +167,4 @@ export async function DELETE(
     return err(error);
   }
 }
+

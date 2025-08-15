@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         console.error('Queue error (non-blocking):', queueError);
       }
     }
-    
+
     return ok({
       id: memory.id,
       title: memory.title,
@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
         ? 'Memory created (processing queue unavailable)'
         : 'Memory created (manual processing)',
     }, 201); // 201 Created for POST
+
   } catch (error) {
     return err(error);
   }

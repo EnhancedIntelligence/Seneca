@@ -8,7 +8,7 @@ import { createClient } from "@/utils/supabase/server";
 export async function login(formData: FormData) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase.auth.signInWithOtp({
+  const { error } = await supabase.auth.signInWithOtp({
     email: formData.get("email") as string,
     options: {
       emailRedirectTo: "http://localhost:3000/login/confirm", //should rename to callback

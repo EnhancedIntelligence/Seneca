@@ -1,0 +1,20 @@
+# Linguist overrides for GitHub statistics
+# Mark AI content as documentation so it doesn't affect language stats
+.ai/** linguist-documentation
+.ai/artifacts/** linguist-generated
+.ai/tests/** linguist-documentation
+
+# Mark generated/vendor files
+*.min.js linguist-vendored
+*.min.css linguist-vendored
+package-lock.json linguist-generated
+pnpm-lock.yaml linguist-generated
+
+# Ensure proper line endings
+* text=auto
+*.tsx text eol=lf
+*.ts text eol=lf
+*.jsx text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf

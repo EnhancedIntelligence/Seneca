@@ -9,24 +9,35 @@ import {
   Baby,
   Heart
 } from 'lucide-react'
-import type { Child } from '@/lib/types'
+import type { UIChild } from '@/lib/types'
+import { useFamily } from '@/lib/stores/useAppStore'
 
 interface ChildSelectorProps {
-  children: Child[]
+  children?: UIChild[]
   value?: string
-  onValueChange: (childId?: string) => void
+  onValueChange?: (childId?: string) => void
   className?: string
 }
 
 export function ChildSelector({
-  children,
-  value,
-  onValueChange,
+  children: propChildren,
+  value: propValue,
+  onValueChange: propOnValueChange,
   className
 }: ChildSelectorProps) {
+  // Use store values if props not provided
+  const { children: storeChildren, activeChildId, switchChild } = useFamily()
+  
+  const children = propChildren ?? storeChildren
+  const value = propValue ?? activeChildId
+  const onValueChange = propOnValueChange ?? ((childId?: string) => {
+    if (childId) switchChild(childId)
+  })
+  
   const selectedChild = value ? children.find(child => child.id === value) : undefined
 
-  const calculateAge = (birthDate: string): string => {
+  const calculateAge = (birthDate: string | null): string => {
+    if (!birthDate) return 'Unknown age'
     const birth = new Date(birthDate)
     const now = new Date()
     const ageInMonths = (now.getFullYear() - birth.getFullYear()) * 12 + 
@@ -46,8 +57,8 @@ export function ChildSelector({
     }
   }
 
-  const getChildIcon = (child: Child) => {
-    const age = calculateAge(child.birth_date)
+  const getChildIcon = (child: UIChild) => {
+    const age = calculateAge(child.birthDate)
     if (age.includes('month') || parseInt(age) < 2) {
       return <Baby className="h-4 w-4" />
     }
@@ -109,9 +120,9 @@ export function ChildSelector({
               >
                 <div className="flex items-center gap-3 w-full">
                   <div className="flex items-center justify-center w-10 h-10 rounded-full bg-secondary">
-                    {child.profile_image_url ? (
+                    {child.avatarUrl ? (
                       <img 
-                        src={child.profile_image_url} 
+                        src={child.avatarUrl} 
                         alt={child.name}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -122,10 +133,7 @@ export function ChildSelector({
                   <div className="flex-1 text-left">
                     <div className="font-medium">{child.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {calculateAge(child.birth_date)} old
-                      {child.gender && (
-                        <span> • {child.gender}</span>
-                      )}
+                      {calculateAge(child.birthDate)} old
                     </div>
                   </div>
                   {value === child.id && (

@@ -58,7 +58,7 @@ export function sanitizeInput(input: string): string {
   })
 
   // Additional validation - remove dangerous protocols and patterns
-  let cleanInput = sanitized
+  const cleanInput = sanitized
     .replace(/javascript:/gi, '') // Remove javascript: protocol
     .replace(/data:/gi, '') // Remove data: protocol  
     .replace(/vbscript:/gi, '') // Remove vbscript: protocol
@@ -105,7 +105,7 @@ export function validateRequestBody<T>(
     return { success: true, data }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map(err => `${err.path.join('.')}: ${err.message}`)
+      const errors = error.issues.map(err => `${err.path.join('.')}: ${err.message}`)
       return { success: false, errors }
     }
     return { success: false, errors: ['Invalid request data'] }

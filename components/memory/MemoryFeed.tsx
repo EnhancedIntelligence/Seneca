@@ -13,7 +13,9 @@ import {
   List,
   Loader2
 } from 'lucide-react'
-import type { MemoryEntry, Child } from '@/lib/types'
+import type { UIMemory, UIChild } from '@/lib/types'
+import { dbToUiMemory } from '@/lib/adapters/memory'
+import { apiChildToUi } from '@/lib/adapters/api'
 
 interface MemoryFeedProps {
   familyId: string
@@ -28,8 +30,8 @@ export function MemoryFeed({
   onMemoryClick,
   className = ''
 }: MemoryFeedProps) {
-  const [memories, setMemories] = useState<MemoryEntry[]>([])
-  const [children, setChildren] = useState<Child[]>([])
+  const [memories, setMemories] = useState<UIMemory[]>([])
+  const [children, setChildren] = useState<UIChild[]>([])
   const [loading, setLoading] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchTerm, setSearchTerm] = useState('')
@@ -59,7 +61,8 @@ export function MemoryFeed({
       }
       
       const data = await response.json()
-      setMemories(data.memories || [])
+      const uiMemories = (data.memories || []).map(dbToUiMemory)
+      setMemories(uiMemories)
       
     } catch (error) {
       console.error('Error loading memories:', error)
@@ -78,7 +81,8 @@ export function MemoryFeed({
       }
       
       const data = await response.json()
-      setChildren(data.children || [])
+      const uiChildren = (data.children || []).map(apiChildToUi)
+      setChildren(uiChildren)
       
     } catch (error) {
       console.error('Error loading children:', error)
@@ -103,7 +107,7 @@ export function MemoryFeed({
     if (!searchTerm) return true
     return memory.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
            memory.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           memory.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+           memory.tags?.some(tag => tag.label.toLowerCase().includes(searchTerm.toLowerCase()))
   })
   
   return (
@@ -187,7 +191,7 @@ export function MemoryFeed({
             <MemoryCard
               key={memory.id}
               memory={memory}
-              child={memory.child_id ? getChildById(memory.child_id) : undefined}
+              child={memory.childId ? getChildById(memory.childId) : undefined}
               onCardClick={onMemoryClick}
               className={viewMode === 'list' ? 'max-w-none' : ''}
             />

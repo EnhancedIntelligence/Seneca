@@ -30,6 +30,21 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## AI Files Organization
+
+The `.ai/` directory contains AI-related artifacts that are **reference-only** and not part of the application runtime:
+
+- **`.ai/sessions/`** - Development session handover documents
+- **`.ai/docs/`** - AI-specific documentation (BUILD_LOG, architecture)
+- **`.ai/tests/`** - Reference tests (not run in CI)
+- **`.ai/artifacts/`** - Build artifacts (TypeScript cache)
+
+### Important Notes:
+- AI files in `.ai/` are for documentation purposes only
+- ESLint will error if you try to import from `.ai/`
+- To reorganize AI files, run: `npm run ai:migrate`
+- To clean build artifacts: `npm run ai:prune`
+
 ## Environment Variables
 
 ```

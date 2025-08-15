@@ -206,7 +206,7 @@ export function withErrorHandling<T extends any[], R>(
 // Database error handler
 export function handleDatabaseError(error: any, operation: string): never {
   let message = `Database operation failed: ${operation}`
-  let details: Record<string, any> = { operation }
+  const details: Record<string, any> = { operation }
 
   if (error?.code) {
     details.code = error.code
@@ -278,7 +278,7 @@ export function handleExternalAPIError(
     data: response?.data
   }
 
-  let message = `${service} API error during ${operation}`
+  const message = `${service} API error during ${operation}`
   
   if (response?.status === 429) {
     throw new RateLimitError(`${service} rate limit exceeded`)

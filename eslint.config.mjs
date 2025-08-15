@@ -48,6 +48,31 @@ const eslintConfig = [
         }
       ]
     }
+  },
+  // API layer - allow snake_case for database fields
+  {
+    files: ['app/api/**/*.ts'],
+    rules: {
+      '@typescript-eslint/naming-convention': [
+        'error',
+        {
+          selector: 'property',
+          format: ['camelCase', 'snake_case', 'UPPER_CASE', 'PascalCase'],
+          filter: { regex: '^(aria-.+|data-.+|__html)', match: false }
+        }
+      ],
+      // Disable snake_case warnings in API routes
+      'no-restricted-syntax': 'off',
+      // Allow unused _ prefixed variables (for unused params)
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { 
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true
+        }
+      ]
+    }
   }
 ];
 

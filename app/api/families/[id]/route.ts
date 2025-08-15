@@ -1,148 +1,118 @@
-import { createAdminClient } from "@/lib/server-only/admin-client";
-import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-import { z } from "zod";
+/* eslint-disable @typescript-eslint/naming-convention */
+/**
+ * Family Individual Route Handler
+ * Handles operations on specific families
+ */
 
-// GET /api/families/[id] - fetch a specific family the user has access to
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const authHeader =
-      request.headers.get("authorization") ||
-      request.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-    const token = authHeader.substring(7);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser(token);
-    if (!user)
-      return NextResponse.json(
-        { error: "Invalid authentication token" },
-        { status: 401 }
-      );
+import { NextRequest } from 'next/server';
+import { ok, err, readJson } from '@/lib/server/api';
+import { requireUser, requireFamilyAccess, getUserFamilyRole } from '@/lib/server/auth';
+import { NotFoundError, ForbiddenError, ValidationError } from '@/lib/server/errors';
+import { checkRateLimit } from '@/lib/server/middleware/rate-limit';
+import { createAdminClient } from '@/lib/server-only/admin-client';
+import { z } from 'zod';
 
-    const familyId = params.id;
-    const adminClient = createAdminClient();
-
-    // Verify membership
-    const { data: membership, error: membershipError } = await adminClient
-      .from("family_memberships")
-      .select("user_id, role")
-      .eq("family_id", familyId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (membershipError || !membership) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
-    }
-
-    // Fetch family
-    const { data: family, error: familyError } = await adminClient
-      .from("families")
-      .select("id, name, description, created_by, created_at, updated_at")
-      .eq("id", familyId)
-      .single();
-
-    if (familyError || !family) {
-      return NextResponse.json({ error: "Family not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ ...family, role: membership.role });
-  } catch (error) {
-    console.error("Family GET error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
+// Validation schema for family updates
 const familyUpdateSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   description: z.string().max(500).nullable().optional(),
 });
 
-// PATCH /api/families/[id] - partial update
+type FamilyUpdate = z.infer<typeof familyUpdateSchema>;
+
+/**
+ * GET /api/families/[id]
+ * Fetch a specific family the user has access to
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await requireUser(request);
+    const familyId = params.id;
+    
+    // Verify user has access to this family
+    await requireFamilyAccess(user.id, familyId);
+    
+    const adminClient = createAdminClient();
+    
+    // Get user's role in the family
+    const role = await getUserFamilyRole(user.id, familyId);
+    
+    // Fetch family details
+    const { data: family, error: familyError } = await adminClient
+      .from('families')
+      .select('id, name, description, created_by, created_at, updated_at')
+      .eq('id', familyId)
+      .single();
+    
+    if (familyError || !family) {
+      throw new NotFoundError('Family not found');
+    }
+    
+    return ok({ ...family, role });
+  } catch (error) {
+    return err(error);
+  }
+}
+
+/**
+ * PATCH /api/families/[id]
+ * Partial update of family details
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const payload = familyUpdateSchema.parse(body);
-
-    const authHeader =
-      request.headers.get("authorization") ||
-      request.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-    const token = authHeader.substring(7);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser(token);
-    if (!user)
-      return NextResponse.json(
-        { error: "Invalid authentication token" },
-        { status: 401 }
-      );
-
+    const user = await requireUser(request);
     const familyId = params.id;
+    
+    // Rate limit updates
+    await checkRateLimit(`${user.id}:family-update`);
+    
+    // Parse and validate request body
+    const body = await readJson<FamilyUpdate>(request);
+    const payload = familyUpdateSchema.parse(body);
+    
+    // Verify user has access to this family
+    await requireFamilyAccess(user.id, familyId);
+    
+    // Optional: Check if user has admin role
+    const role = await getUserFamilyRole(user.id, familyId);
+    if (role !== 'admin' && role !== 'owner') {
+      throw new ForbiddenError('Only family admins can update family details');
+    }
+    
     const adminClient = createAdminClient();
-
-    // Verify membership
-    const { data: membership } = await adminClient
-      .from("family_memberships")
-      .select("user_id, role")
-      .eq("family_id", familyId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!membership)
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
-
-    const { data, error } = await adminClient
-      .from("families")
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq("id", familyId)
+    
+    // Update family
+    const { data, error: updateError } = await adminClient
+      .from('families')
+      .update({ 
+        ...payload, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', familyId)
       .select()
       .single();
-
-    if (error) {
-      console.error("Family update error:", error);
-      return NextResponse.json(
-        { error: "Failed to update family" },
-        { status: 500 }
-      );
+    
+    if (updateError) {
+      console.error('Family update error:', updateError);
+      throw new Error('Failed to update family');
     }
-
-    return NextResponse.json({ success: true, family: data });
+    
+    return ok(data);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation failed", details: error.issues },
-        { status: 400 }
-      );
-    }
-    console.error("Family PATCH error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return err(error);
   }
 }
 
-// PUT /api/families/[id] - full update (same behavior as PATCH for now)
+/**
+ * PUT /api/families/[id]
+ * Full update (delegates to PATCH for now)
+ */
 export async function PUT(
   request: NextRequest,
   ctx: { params: { id: string } }
@@ -150,59 +120,46 @@ export async function PUT(
   return PATCH(request, ctx);
 }
 
-// DELETE /api/families/[id] - soft delete: remove current user's membership so they no longer see it
+/**
+ * DELETE /api/families/[id]
+ * Soft delete - remove current user's membership
+ * Data remains for other members
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const authHeader =
-      request.headers.get("authorization") ||
-      request.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-    const token = authHeader.substring(7);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser(token);
-    if (!user)
-      return NextResponse.json(
-        { error: "Invalid authentication token" },
-        { status: 401 }
-      );
-
+    const user = await requireUser(request);
     const familyId = params.id;
+    
+    // Rate limit deletes
+    await checkRateLimit(`${user.id}:family-delete`);
+    
+    // Verify user is a member before removing
+    await requireFamilyAccess(user.id, familyId);
+    
     const adminClient = createAdminClient();
-
-    // If user is the creator/admin, we still soft-delete by removing their membership;
-    // data remains for other members. If last member, data remains per requirement.
+    
+    // Remove user's membership (soft delete for this user)
+    // Data remains for other members
     const { error } = await adminClient
-      .from("family_memberships")
+      .from('family_memberships')
       .delete()
-      .eq("family_id", familyId)
-      .eq("user_id", user.id);
-
+      .eq('family_id', familyId)
+      .eq('user_id', user.id);
+    
     if (error) {
-      console.error("Family soft delete (membership removal) error:", error);
-      return NextResponse.json(
-        { error: "Failed to remove membership" },
-        { status: 500 }
-      );
+      console.error('Family membership removal error:', error);
+      throw new Error('Failed to leave family');
     }
-
-    return NextResponse.json({
-      success: true,
-      message: "You will no longer see this family.",
+    
+    return ok({
+      id: familyId,
+      deleted: true,
+      message: 'You have left this family'
     });
   } catch (error) {
-    console.error("Family DELETE error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return err(error);
   }
 }

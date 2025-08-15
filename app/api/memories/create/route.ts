@@ -1,8 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/server-only/admin-client'
-import { MemoryQueue } from '@/lib/queue'
-import { z } from 'zod'
-import type { Database } from '@/lib/types'
+/* eslint-disable @typescript-eslint/naming-convention */
+/**
+ * Memory Create Route Handler (Legacy)
+ * @deprecated Use POST /api/memories instead
+ * Kept for backward compatibility with existing UI components
+ */
+
+import { NextRequest } from 'next/server';
+import { ok, err, readJson } from '@/lib/server/api';
+import { requireUser, requireFamilyAccess } from '@/lib/server/auth';
+import { ValidationError, ServerError } from '@/lib/server/errors';
+import { checkRateLimit } from '@/lib/server/middleware/rate-limit';
+import { createAdminClient } from '@/lib/server-only/admin-client';
+import { MemoryQueue } from '@/lib/queue';
+import { z } from 'zod';
+import type { Database } from '@/lib/types';
 
 // Validation schema for memory creation
 const createMemorySchema = z.object({
@@ -18,9 +29,9 @@ const createMemorySchema = z.object({
     'milestone', 'daily_life', 'celebration', 'learning', 
     'social', 'creative', 'outdoor', 'family_time', 'other'
   ]).optional(),
-  tags: z.array(z.string().max(50)).max(20),
-  image_urls: z.array(z.string().url()).max(10),
-  video_urls: z.array(z.string().url()).max(5),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  image_urls: z.array(z.string().url()).max(10).optional(),
+  video_urls: z.array(z.string().url()).max(5).optional(),
   auto_process: z.boolean().default(true),
   processing_priority: z.enum(['low', 'normal', 'high']).default('normal'),
   processing_options: z.object({
@@ -29,227 +40,99 @@ const createMemorySchema = z.object({
     analyze_sentiment: z.boolean().default(true),
     generate_insights: z.boolean().default(true)
   }).optional()
-})
+});
 
+type CreateMemoryInput = z.infer<typeof createMemorySchema>;
+
+/**
+ * POST /api/memories/create
+ * Create a new memory with enhanced options
+ * @deprecated Use POST /api/memories instead
+ */
 export async function POST(request: NextRequest) {
   try {
-    // Get user from auth
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
-
+    const user = await requireUser(request);
+    
+    // Rate limit memory creation
+    await checkRateLimit(`${user.id}:memory-create`);
+    
     // Parse and validate request body
-    const body = await request.json()
-    const validatedData = createMemorySchema.parse(body)
-
-    // Create admin client for database operations
-    const adminClient = createAdminClient()
-
-    // Verify user has access to family
-    const { data: membership, error: membershipError } = await adminClient
-      .from('family_memberships')
-      .select('user_id, family_id, role')
-      .eq('family_id', validatedData.family_id)
-      .single()
-
-    if (membershipError || !membership) {
-      return NextResponse.json(
-        { error: 'Access denied: You are not a member of this family' },
-        { status: 403 }
-      )
-    }
-
-         // Get user ID from token (simplified - in production you'd decode the JWT)
-     const userId = membership.user_id
-     
-     if (!userId) {
-       return NextResponse.json(
-         { error: 'User ID not found in membership' },
-         { status: 403 }
-       )
-     }
-
-     // If child_id is provided, verify it belongs to the family
-    if (validatedData.child_id) {
-      const { data: child, error: childError } = await adminClient
-        .from('children')
-        .select('id, family_id')
-        .eq('id', validatedData.child_id)
-        .eq('family_id', validatedData.family_id)
-        .single()
-
-      if (childError || !child) {
-        return NextResponse.json(
-          { error: 'Invalid child: Child not found in this family' },
-          { status: 400 }
-        )
-      }
-    }
-
-         // Prepare memory data for database
-     const memoryData = {
-       title: validatedData.title.trim(),
-       content: validatedData.content.trim(),
-       family_id: validatedData.family_id,
-       child_id: validatedData.child_id || null,
-       created_by: userId, // userId is guaranteed to be a string from membership check
-       memory_date: validatedData.memory_date || new Date().toISOString(),
-       location_name: validatedData.location_name?.trim() || null,
-       location_lat: validatedData.location_lat || null,
-       location_lng: validatedData.location_lng || null,
-       category: validatedData.category || 'daily_life',
-       tags: validatedData.tags.filter(tag => tag.trim().length > 0),
-       image_urls: validatedData.image_urls || [],
-       video_urls: validatedData.video_urls || [],
-       processing_status: (validatedData.auto_process ? 'queued' : 'completed') as Database['public']['Enums']['processing_status_enum'],
-       created_at: new Date().toISOString(),
-       updated_at: new Date().toISOString()
-     }
-
-    // Insert memory into database
-    const { data: memory, error: insertError } = await adminClient
+    const body = await readJson<CreateMemoryInput>(request);
+    const validatedData = createMemorySchema.parse(body);
+    
+    // Verify user has access to this family
+    await requireFamilyAccess(user.id, validatedData.family_id);
+    
+    const adminClient = createAdminClient();
+    
+    // Map processing priority to numeric value
+    const priorityMap = { low: 0, normal: 5, high: 10 };
+    const processingPriority = priorityMap[validatedData.processing_priority];
+    
+    // Create memory entry
+    const { data: memory, error: createError } = await adminClient
       .from('memory_entries')
-      .insert(memoryData)
+      .insert({
+        title: validatedData.title,
+        content: validatedData.content,
+        family_id: validatedData.family_id,
+        child_id: validatedData.child_id,
+        memory_date: validatedData.memory_date,
+        location_name: validatedData.location_name,
+        location_lat: validatedData.location_lat,
+        location_lng: validatedData.location_lng,
+        category: validatedData.category,
+        tags: validatedData.tags || [],
+        image_urls: validatedData.image_urls || [],
+        video_urls: validatedData.video_urls || [],
+        processing_status: validatedData.auto_process ? 'queued' : 'completed',
+        processing_priority: processingPriority,
+        app_context: validatedData.processing_options ? {
+          processing_options: validatedData.processing_options
+        } : null,
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .select()
-      .single()
-
-    if (insertError) {
-      console.error('Memory creation error:', insertError)
-      return NextResponse.json(
-        { error: 'Failed to create memory: Database error' },
-        { status: 500 }
-      )
+      .single();
+    
+    if (createError || !memory) {
+      console.error('Memory creation error:', createError);
+      throw new ServerError('Failed to create memory');
     }
-
-    // Queue for AI processing if enabled
+    
+    // Queue for processing if auto_process is enabled
+    let jobId: string | undefined;
     if (validatedData.auto_process) {
       try {
-                 const queueManager = new MemoryQueue()
-        const jobId = await queueManager.addJob(
-          memory.id,
-          validatedData.family_id,
-          {
-            priority: validatedData.processing_priority,
-            processingOptions: {
-              generateEmbedding: validatedData.processing_options?.generate_embedding ?? true,
-              detectMilestones: validatedData.processing_options?.detect_milestones ?? true,
-              analyzeSentiment: validatedData.processing_options?.analyze_sentiment ?? true,
-              generateInsights: validatedData.processing_options?.generate_insights ?? true
-            }
-          }
-        )
-
-        console.log(`Memory ${memory.id} queued for AI processing with job ID: ${jobId}`)
+        const queue = new MemoryQueue();
+        jobId = await queue.addJob(
+          memory.id, 
+          validatedData.family_id
+        );
       } catch (queueError) {
-        console.error('Failed to queue memory for processing:', queueError)
-        // Don't fail the entire request if queueing fails
-        // The memory was created successfully
+        // Log but don't fail the request if queue is unavailable
+        console.error('Queue error (non-blocking):', queueError);
       }
     }
-
-    // Return success response
-    return NextResponse.json({
-      success: true,
-      memory: {
-        id: memory.id,
-        title: memory.title,
-        content: memory.content,
-        category: memory.category,
-        tags: memory.tags,
-        processing_status: memory.processing_status,
-        created_at: memory.created_at
-      },
-      message: validatedData.auto_process 
-        ? 'Memory created and queued for AI processing'
-        : 'Memory created successfully'
-    }, { status: 201 })
-
+    
+    return ok({
+      id: memory.id,
+      title: memory.title,
+      content: memory.content,
+      family_id: memory.family_id,
+      child_id: memory.child_id,
+      processing_status: memory.processing_status,
+      created_at: memory.created_at,
+      jobId,
+      message: jobId 
+        ? 'Memory created and queued for processing'
+        : validatedData.auto_process
+        ? 'Memory created (processing queue unavailable)'
+        : 'Memory created (manual processing)',
+    }, 201); // 201 Created for POST
   } catch (error) {
-    console.error('Memory creation API error:', error)
-
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { 
-          error: 'Validation failed',
-          details: error.issues.map(err => ({
-            field: err.path.join('.'),
-            message: err.message
-          }))
-        },
-        { status: 400 }
-      )
-    }
-
-    // Handle other errors
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
-}
-
-// GET endpoint for fetching memory creation metadata
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const familyId = searchParams.get('family_id')
-
-    if (!familyId) {
-      return NextResponse.json(
-        { error: 'family_id parameter required' },
-        { status: 400 }
-      )
-    }
-
-    const adminClient = createAdminClient()
-
-    // Get family children for the selector
-    const { data: children, error: childrenError } = await adminClient
-      .from('children')
-      .select('id, name, birth_date, gender, profile_image_url')
-      .eq('family_id', familyId)
-      .order('birth_date', { ascending: true })
-
-    if (childrenError) {
-      console.error('Error fetching children:', childrenError)
-      return NextResponse.json(
-        { error: 'Failed to fetch family data' },
-        { status: 500 }
-      )
-    }
-
-    // Get popular tags for suggestions (mock implementation)
-    const popularTags = [
-      'first-steps', 'bedtime-story', 'playground', 'art-time', 
-      'cooking-together', 'nature-walk', 'reading-time'
-    ]
-
-    return NextResponse.json({
-      children: children || [],
-      popularTags,
-      categories: [
-        { value: 'milestone', label: '🏆 Milestone' },
-        { value: 'daily_life', label: '🏠 Daily Life' },
-        { value: 'celebration', label: '🎉 Celebration' },
-        { value: 'learning', label: '📚 Learning' },
-        { value: 'social', label: '👥 Social' },
-        { value: 'creative', label: '🎨 Creative' },
-        { value: 'outdoor', label: '🌳 Outdoor' },
-        { value: 'family_time', label: '❤️ Family Time' },
-        { value: 'other', label: '📝 Other' }
-      ]
-    })
-
-  } catch (error) {
-    console.error('Memory metadata API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return err(error);
   }
 }

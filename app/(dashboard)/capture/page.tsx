@@ -204,7 +204,7 @@ export default function CapturePage() {
 
       {/* Bottom Input - fixed to viewport bottom (accounts for iPhone safe area / browser chrome) */}
       <div
-        className="fixed left-0 right-0 z-40"
+        className="fixed left-0 right-0 z-20"
         style={{
           // place above the bottom safe area (home indicator)
           bottom: "env(safe-area-inset-bottom, 0px)",

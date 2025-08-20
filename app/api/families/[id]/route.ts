@@ -27,11 +27,12 @@ type FamilyUpdate = z.infer<typeof familyUpdateSchema>;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireUser(request);
-    const familyId = params.id;
+    const resolvedParams = await params;
+    const familyId = resolvedParams.id;
     
     // Verify user has access to this family
     await requireFamilyAccess(user.id, familyId);
@@ -65,11 +66,12 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireUser(request);
-    const familyId = params.id;
+    const resolvedParams = await params;
+    const familyId = resolvedParams.id;
     
     // Rate limit updates
     await checkRateLimit(`${user.id}:family-update`);
@@ -118,7 +120,7 @@ export async function PATCH(
 
 export async function PUT(
   request: NextRequest,
-  ctx: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   return PATCH(request, ctx);
 }
@@ -131,11 +133,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireUser(request);
-    const familyId = params.id;
+    const resolvedParams = await params;
+    const familyId = resolvedParams.id;
     
     // Rate limit deletes
     await checkRateLimit(`${user.id}:family-delete`);

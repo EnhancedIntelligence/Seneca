@@ -15,6 +15,7 @@ import {
   createErrorResponse,
   handleError
 } from './errors'
+import { requireUser } from './server/auth'
 
 // Types
 export interface AuthenticatedUser {
@@ -310,12 +311,19 @@ export function withApiHandler<T extends any[], R>(
     const monitor = new PerformanceMonitor()
     
     try {
-      // Check rate limit
-      const clientIp = request.headers.get('x-forwarded-for') || 
-                      request.headers.get('x-real-ip') || 
-                      'unknown'
+      // Check rate limit - derive user from auth; fallback to IP
+      const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || request.headers.get('x-real-ip')
+        || 'unknown';
+      let rateLimitKey = clientIp;
+      try {
+        const user = await requireUser(request);
+        rateLimitKey = user?.id ?? clientIp;
+      } catch (_) {
+        // unauthenticated; keep IP-based key
+      }
       
-      if (!checkRateLimit(clientIp)) {
+      if (!checkRateLimit(rateLimitKey)) {
         throw new SenecaError('RATE_LIMIT_EXCEEDED', 'Rate limit exceeded', 429)
       }
 

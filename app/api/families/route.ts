@@ -5,13 +5,19 @@
  */
 
 import { NextRequest } from 'next/server';
-import { ok, err, readJson, paginatedResponse } from '@/lib/server/api';
+import { ok, err, readJson } from '@/lib/server/api';
 import { requireUser, getUserFamilyIds } from '@/lib/server/auth';
 import { ValidationError, ServerError } from '@/lib/server/errors';
 import { checkRateLimit } from '@/lib/server/middleware/rate-limit';
+import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/lib/server-only/admin-client';
 import { z } from 'zod';
 import type { Database } from '@/lib/types';
+
+// Force Node.js runtime to avoid Edge + Supabase issues
+export const runtime = 'nodejs';
+// Force dynamic rendering for live data
+export const dynamic = 'force-dynamic';
 
 // Validation schema for family creation
 const familyCreationSchema = z.object({
@@ -57,52 +63,91 @@ type FamilyCreation = z.infer<typeof familyCreationSchema>;
 
 /**
  * GET /api/families
- * List all families the user has access to
+ * List all families the user has access to with proper pagination and count
  */
 export async function GET(request: NextRequest) {
   try {
     const user = await requireUser(request);
     
     const { searchParams } = new URL(request.url);
-    const limitParam = parseInt(searchParams.get('limit') || '50', 10);
+    const limitParam = parseInt(searchParams.get('limit') || '20', 10);
     const limit = Number.isFinite(limitParam)
-      ? Math.min(Math.max(limitParam, 1), 50)
-      : 50;
+      ? Math.min(Math.max(limitParam, 1), 100)
+      : 20;
+    const offsetParam = parseInt(searchParams.get('offset') || '0', 10);
+    const offset = Number.isFinite(offsetParam) ? Math.max(offsetParam, 0) : 0;
     
-    const adminClient = createAdminClient();
+    // Use user-scoped client with RLS for secure access
+    const supabase = await createClient();
     
-    // Get all families the user is a member of
-    const { data: memberships, error: membershipError } = await adminClient
+    // Step 1: Get memberships with count (clean types)
+    const { data: memberships, error: membershipError, count } = await supabase
       .from('family_memberships')
-      .select(`
-        family_id,
-        role,
-        joined_at,
-        families ( id, name, description, created_by, created_at, updated_at )
-      `)
+      .select('family_id, role, joined_at', { count: 'exact' })
       .eq('user_id', user.id)
-      .limit(limit);
+      .order('joined_at', { ascending: false })
+      .range(offset, offset + limit - 1);
     
     if (membershipError) {
       console.error('Families list error:', membershipError);
       throw new ServerError('Failed to fetch families');
     }
     
-    // Transform the data to include role information
-    const families = (memberships || []).map((m) => ({
-      id: m.families?.id || '',
-      name: m.families?.name || '',
-      description: m.families?.description || null,
-      created_by: m.families?.created_by || '',
-      created_at: m.families?.created_at || '',
-      updated_at: m.families?.updated_at || '',
-      role: m.role,
-      joined_at: m.joined_at || '',
-    }));
+    // Step 2: Get unique family IDs and fetch details
+    const familyIds = [...new Set((memberships ?? []).map(m => m.family_id))];
+    
+    // Skip family fetch if no memberships
+    if (familyIds.length === 0) {
+      return ok({
+        items: [],
+        nextCursor: null,
+        total: 0,
+      });
+    }
+    
+    const { data: families, error: familiesError } = await supabase
+      .from('families')
+      .select('id, name, description, created_by, created_at, updated_at')
+      .in('id', familyIds);
+    
+    if (familiesError) {
+      console.error('Families fetch error:', familiesError);
+      throw new ServerError('Failed to fetch family details');
+    }
+    
+    // Step 3: Create lookup map for O(1) access (avoid O(n²) complexity)
+    const familyMap = new Map(
+      (families ?? []).map(f => [f.id, f])
+    );
+    
+    // Step 4: Combine memberships with family data efficiently
+    const items = (memberships ?? []).map(membership => {
+      const family = familyMap.get(membership.family_id);
+      if (!family) {
+        // This shouldn't happen with RLS, but handle gracefully
+        throw new ServerError(`Family ${membership.family_id} not found`);
+      }
+      
+      return {
+        id: family.id,
+        name: family.name,
+        description: family.description,
+        created_by: family.created_by,
+        created_at: family.created_at,
+        updated_at: family.updated_at,
+        role: membership.role,
+        joined_at: membership.joined_at,
+      };
+    });
+    
+    // Calculate next cursor for pagination
+    const hasMore = offset + items.length < (count ?? 0);
+    const nextCursor = hasMore ? String(offset + items.length) : null;
     
     return ok({
-      families,
-      count: families.length
+      items,
+      nextCursor,
+      total: count ?? undefined,
     });
   } catch (error) {
     return err(error);

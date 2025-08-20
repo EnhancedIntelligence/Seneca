@@ -12,6 +12,20 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
+    ignores: [
+      '.next/**',
+      'node_modules/**',
+      'supabase/.temp/**',
+      '**/*.gen.ts',
+      '**/*.d.ts',
+      'test/**',
+      'e2e/**',
+      '.ai/**',
+      'coverage/**',
+      'dist/**'
+    ]
+  },
+  {
     files: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
     rules: {
       // Enforce camelCase in UI layer

@@ -58,6 +58,22 @@ export async function GET(request: NextRequest) {
 }
 ```
 
+### List Response Envelopes
+
+All list endpoints return a standardized envelope format:
+
+```json
+{
+  "items": [...],      // Array of items
+  "nextCursor": "...", // String cursor for next page, or null if no more pages
+}
+```
+
+**Examples:**
+- `GET /api/families` → `{ items: [families], nextCursor: null }`
+- `GET /api/children?family_id=X` → `{ items: [children], nextCursor: null }`
+- `GET /api/memories?family_id=X` → `{ items: [memories], nextCursor: "offset:20" }`
+
 ### Error Response
 ```json
 {
@@ -81,6 +97,24 @@ export async function GET(request: NextRequest) {
 | **422** | Validation failed (with details) |
 | **429** | Rate limit exceeded |
 | **500** | Internal server error |
+
+## Migration Notes
+
+### Deprecated Endpoints
+
+#### `/api/memories/create` → `/api/memories`
+- **Old**: `POST /api/memories/create`
+- **New**: `POST /api/memories`
+- **Sunset Date**: October 1, 2025
+- **Migration**: The old endpoint returns deprecation headers. Update clients to use the new endpoint.
+- **Changes**: Same request/response format, just different URL path.
+
+**Response Headers on Deprecated Endpoint:**
+```
+Deprecation: true
+Sunset: Wed, 01 Oct 2025 00:00:00 GMT
+Link: </api/memories>; rel="successor-version"
+```
 
 ## Authentication
 

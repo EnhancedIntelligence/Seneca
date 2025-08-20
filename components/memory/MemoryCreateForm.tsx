@@ -55,6 +55,7 @@ import { TagSelector } from './shared/TagSelector'
 import { ChildSelector } from './shared/ChildSelector'
 import { supabase } from '@/lib/supabase'
 import type { UIChild, Family } from '@/lib/types'
+import { useAuth } from '@/components/auth/AuthProvider'
 
 // Memory Creation Schema - UI layer uses camelCase
 export const memoryCreateSchema = z.object({
@@ -91,7 +92,7 @@ export type MemoryFormValues = z.infer<typeof memoryCreateSchema>
 
 interface MemoryCreateFormProps {
   family: Family
-  children: UIChild[]
+  childProfiles: UIChild[]
   onSuccess?: (memory: any) => void
   onCancel?: () => void
   className?: string
@@ -108,7 +109,7 @@ interface MemoryCreateFormProps {
 
 export function MemoryCreateForm({
   family,
-  children,
+  childProfiles,
   onSuccess,
   onCancel,
   className,
@@ -116,6 +117,7 @@ export function MemoryCreateForm({
   agentSuggestions
 }: MemoryCreateFormProps) {
   const { toast } = useToast()
+  const { apiFetch } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [aiProcessingEstimate, setAiProcessingEstimate] = useState<number | null>(null)
@@ -233,19 +235,11 @@ export function MemoryCreateForm({
         }
       }
 
-      // Create memory via API
-      const { data: authData } = await supabase.auth.getSession()
-      const token = authData.session?.access_token
-
-      if (!token) {
-        throw new Error('Authentication required')
-      }
-
-      const response = await fetch('/api/memories/create', {
+      // Create memory via API (using new endpoint)
+      const response = await apiFetch('/api/memories', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(apiData)
       })
@@ -346,7 +340,7 @@ export function MemoryCreateForm({
                     <FormLabel>Child (Optional)</FormLabel>
                     <FormControl>
                       <ChildSelector
-                        children={children}
+                        childProfiles={childProfiles}
                         value={field.value}
                         onValueChange={field.onChange}
                       />
@@ -722,7 +716,7 @@ export function MemoryCreateForm({
                   <div>
                     <h4 className="font-semibold text-sm">Child</h4>
                     <p className="text-sm text-muted-foreground">
-                      {values.childId ? children.find(c => c.id === values.childId)?.name : 'Family memory'}
+                      {values.childId ? childProfiles.find(c => c.id === values.childId)?.name : 'Family memory'}
                     </p>
                   </div>
                 </div>

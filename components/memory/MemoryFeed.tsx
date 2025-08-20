@@ -16,6 +16,7 @@ import {
 import type { UIMemory, UIChild } from '@/lib/types'
 import { dbToUiMemory } from '@/lib/adapters/memory'
 import { apiChildToUi } from '@/lib/adapters/api'
+import { useAuth } from '@/components/auth/AuthProvider'
 
 interface MemoryFeedProps {
   familyId: string
@@ -30,6 +31,7 @@ export function MemoryFeed({
   onMemoryClick,
   className = ''
 }: MemoryFeedProps) {
+  const { apiFetch } = useAuth()
   const [memories, setMemories] = useState<UIMemory[]>([])
   const [children, setChildren] = useState<UIChild[]>([])
   const [loading, setLoading] = useState(false)
@@ -54,14 +56,14 @@ export function MemoryFeed({
         params.append('search', searchTerm)
       }
       
-      const response = await fetch(`/api/memories?${params}`)
+      const response = await apiFetch(`/api/memories?${params}`)
       
       if (!response.ok) {
         throw new Error('Failed to load memories')
       }
       
-      const data = await response.json()
-      const uiMemories = (data.memories || []).map(dbToUiMemory)
+      const { items } = await response.json()
+      const uiMemories = (items || []).map(dbToUiMemory)
       setMemories(uiMemories)
       
     } catch (error) {
@@ -74,14 +76,14 @@ export function MemoryFeed({
   
   const loadChildren = async () => {
     try {
-      const response = await fetch(`/api/memories/create?family_id=${familyId}`)
+      const response = await apiFetch(`/api/children?family_id=${familyId}`)
       
       if (!response.ok) {
         throw new Error('Failed to load children')
       }
       
-      const data = await response.json()
-      const uiChildren = (data.children || []).map(apiChildToUi)
+      const { items } = await response.json()
+      const uiChildren = (items || []).map(apiChildToUi)
       setChildren(uiChildren)
       
     } catch (error) {

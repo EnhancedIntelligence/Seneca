@@ -11,9 +11,10 @@ import { ZodError } from 'zod';
  * Success response wrapper
  * @param data - The data to return
  * @param status - HTTP status code (default 200)
+ * @param headers - Optional headers to include in the response
  */
-export function ok<T>(data: T, status = 200) {
-  return NextResponse.json({ data }, { status });
+export function ok<T>(data: T, status = 200, headers?: HeadersInit) {
+  return NextResponse.json({ data }, { status, headers });
 }
 
 /**
@@ -84,6 +85,7 @@ export async function readJson<T = unknown>(req: Request): Promise<T> {
 
 /**
  * Pagination helper for list responses
+ * Returns standardized envelope with items and nextCursor
  */
 export function paginatedResponse<T>(
   items: T[],
@@ -91,11 +93,12 @@ export function paginatedResponse<T>(
   limit: number,
   offset: number
 ) {
-  return ok({
+  // Calculate next cursor - null if no more items
+  const nextOffset = offset + items.length;
+  const nextCursor = nextOffset < total ? String(nextOffset) : null;
+  
+  return NextResponse.json({
     items,
-    total,
-    limit,
-    offset,
-    hasMore: items.length === limit
+    nextCursor
   });
 }

@@ -33,17 +33,18 @@ type MemoryUpdate = z.infer<typeof memoryUpdateSchema>;
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireUser(req);
     const adminClient = createAdminClient();
+    const resolvedParams = await params;
     
     // Fetch memory
     const { data: memory, error } = await adminClient
       .from('memory_entries')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .single();
     
     if (error || !memory) {
@@ -75,10 +76,11 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireUser(req);
+    const resolvedParams = await params;
     
     // Rate limit updates
     await checkRateLimit(`${user.id}:memory-update`);
@@ -93,7 +95,7 @@ export async function PATCH(
     const { data: existing, error: fetchError } = await adminClient
       .from('memory_entries')
       .select('id, family_id')
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .single();
     
     if (fetchError || !existing || !existing.family_id) {
@@ -109,7 +111,7 @@ export async function PATCH(
         ...validatedData,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .select()
       .single();
     
@@ -130,7 +132,7 @@ export async function PATCH(
  */
 export async function PUT(
   req: NextRequest,
-  ctx: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   return PATCH(req, ctx);
 }
@@ -141,10 +143,11 @@ export async function PUT(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireUser(req);
+    const resolvedParams = await params;
     
     // Rate limit deletes to prevent abuse
     await checkRateLimit(`${user.id}:memory-delete`);
@@ -155,7 +158,7 @@ export async function DELETE(
     const { data: existing, error: fetchErr } = await adminClient
       .from('memory_entries')
       .select('id, family_id, app_context')
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .single();
     
     if (fetchErr || !existing || !existing.family_id) {
@@ -178,7 +181,7 @@ export async function DELETE(
         app_context: newContext, 
         updated_at: new Date().toISOString() 
       })
-      .eq('id', params.id);
+      .eq('id', resolvedParams.id);
     
     if (updateError) {
       console.error('Memory soft delete error:', updateError);
@@ -186,7 +189,7 @@ export async function DELETE(
     }
     
     return ok({ 
-      id: params.id, 
+      id: resolvedParams.id, 
       deleted: true,
       message: 'Memory hidden for this user' 
     });

@@ -194,10 +194,26 @@ This will ensure Claude has the proper context and approach for helping with the
 <!-- AI-DOCS:BEGIN -->
 ## AI Documentation Locations
 
-- Session handovers: `.ai/sessions/`
-- Build log: `.ai/docs/BUILD_LOG.md`
-- Architecture: `.ai/docs/DATA_FLOW_ARCHITECTURE.md`
-- Implementation strategy: `.ai/docs/IMPLEMENTATION_STRATEGY.md`
-- AI-generated tests: `.ai/tests/` (reference only, not CI-enforced)
-- Build artifacts: `.ai/artifacts/`
+### Core Documentation
+- **Build Log**: `.ai/docs/BUILD_LOG.md` - Complete build history and technical decisions
+- **Latest Session**: `.ai/sessions/SESSION_017_2025-08-20.md` - Authentication hardening complete
+- **Session Archive**: `.ai/sessions/` - All session handdowns
+
+### Technical Guides
+- **Authentication**: `docs/AUTH_HARDENING_COMPLETE.md` - Production-ready auth checklist
+- **SMTP Setup**: `docs/AUTH_SMTP.md` - SMTP and magic link configuration
+- **Testing**: `docs/TESTING.md` - Test strategy and setup
+- **API Reference**: `docs/API.md` - Endpoint documentation and patterns
+
+### Implementation Details
+- **AI Processor**: `lib/ai-processor.ts` - Memory AI analysis implementation
+- **Auth Provider**: `components/auth/DashboardAuthProviderV2.tsx` - No-flicker auth provider
+- **Auth Callback**: `app/auth/callback/route.ts` - Universal Supabase support
+- **Database Migrations**: `supabase/migrations/` - Schema changes with RLS
+
+### Status
+- **Last Updated**: 2025-08-20
+- **Version**: 0.3.0
+- **Production Ready**: Yes (pending SMTP configuration)
+- **Auth System**: Hardened and optimized
 <!-- AI-DOCS:END -->

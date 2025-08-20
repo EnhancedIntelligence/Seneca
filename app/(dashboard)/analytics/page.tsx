@@ -1,17 +1,16 @@
-'use client';
+"use client";
 
 /**
  * Analytics View
  * Detailed analytics and insights
  */
 
-import { useState, useEffect } from 'react';
-import { useFamily, useMemoryData } from '@/lib/stores/useAppStore';
-import { useApi } from '@/lib/services/mockApi';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BarChart,
   Bar,
@@ -26,39 +25,84 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
-import { TrendingUp, Brain, Heart, Activity } from 'lucide-react';
+} from "recharts";
+import { TrendingUp, Brain, Heart, Activity } from "lucide-react";
 
 export default function AnalyticsPage() {
-  const { children } = useFamily();
-  const { memories, milestones } = useMemoryData(); // already UIMemory[]
-  interface AnalyticsData {
-    totalMemories: number;
-    totalMilestones: number;
-    activeChildren: number;
-    processingHealth: number;
-  }
-
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  // Local state replaces useFamily/useMemoryData
+  const [children, setChildren] = useState<any[]>([]);
+  const [memories, setMemories] = useState<any[]>([]);
+  const [familyId, setFamilyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const api = useApi();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadAnalytics = async () => {
+    const loadData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        // TODO: Replace with actual API call when backend is ready
-        const data = await api.getAnalytics();
-        setAnalytics(data);
-      } catch (error) {
-        console.error('Error loading analytics:', error);
+        // Get current user
+        const { data: userData, error: authError } =
+          await supabase.auth.getUser();
+        if (authError || !userData.user) {
+          setError("Authentication required");
+          setIsLoading(false);
+          return;
+        }
+
+        // Get a family for this user (pick the first membership)
+        const { data: memberships, error: mErr } = await supabase
+          .from("family_memberships")
+          .select("family_id")
+          .eq("user_id", userData.user.id)
+          .limit(1);
+
+        if (mErr) {
+          throw mErr;
+        }
+
+        const famId = memberships?.[0]?.family_id || null;
+        setFamilyId(famId);
+
+        if (!famId) {
+          // No family yet; nothing to load
+          setChildren([]);
+          setMemories([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Load children
+        const { data: childrenData, error: cErr } = await supabase
+          .from("children")
+          .select("id,name,birth_date,gender,profile_image_url")
+          .eq("family_id", famId)
+          .order("birth_date", { ascending: true });
+        if (cErr) throw cErr;
+
+        // Load recent memories (up to 50)
+        const { data: memoriesData, error: memErr } = await supabase
+          .from("memory_entries")
+          .select(
+            "id,child_id,family_id,created_at,memory_date,category,tags,image_urls,video_urls,milestone_detected"
+          )
+          .eq("family_id", famId)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (memErr) throw memErr;
+
+        setChildren(childrenData || []);
+        setMemories(memoriesData || []);
+      } catch (e) {
+        console.error("Error loading analytics data:", e);
+        setError("Failed to load analytics data");
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadAnalytics();
-  }, [api]);
+    loadData();
+  }, []);
 
   if (isLoading) {
     return (
@@ -73,38 +117,111 @@ export default function AnalyticsPage() {
     );
   }
 
-  // Prepare chart data - using UI types now
+  if (error) {
+    return (
+      <div className="p-4 space-y-4">
+        <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+        <p className="text-red-400">{error}</p>
+      </div>
+    );
+  }
+
+  // Derive milestones from memories
+  const milestones = (memories || [])
+    .filter((m) => m.milestone_detected)
+    .map((m) => ({
+      childId: m.child_id,
+      achievedAt: m.memory_date || m.created_at,
+    }));
+
+  // Helper to infer UI memory type
+  const inferType = (
+    m: any
+  ): "voice" | "text" | "photo" | "video" | "event" => {
+    if (Array.isArray(m.video_urls) && m.video_urls.length > 0) return "video";
+    if (Array.isArray(m.image_urls) && m.image_urls.length > 0) return "photo";
+    if (m.category === "event" || m.category === "milestone") return "event";
+    // voice not tracked explicitly; fall back to text
+    return "text";
+  };
+
+  // Prepare chart data - adapted to DB shapes
   const memoryTypeData = [
-    { name: 'Voice', value: memories.filter(m => m.type === 'voice').length, color: '#8b5cf6' },
-    { name: 'Text', value: memories.filter(m => m.type === 'text').length, color: '#3b82f6' },
-    { name: 'Photo', value: memories.filter(m => m.type === 'photo').length, color: '#10b981' },
-    { name: 'Video', value: memories.filter(m => m.type === 'video').length, color: '#ef4444' },
-    { name: 'Event', value: memories.filter(m => m.type === 'event').length, color: '#f59e0b' },
+    {
+      name: "Voice",
+      value: memories.filter((m) => inferType(m) === "voice").length,
+      color: "#8b5cf6",
+    },
+    {
+      name: "Text",
+      value: memories.filter((m) => inferType(m) === "text").length,
+      color: "#3b82f6",
+    },
+    {
+      name: "Photo",
+      value: memories.filter((m) => inferType(m) === "photo").length,
+      color: "#10b981",
+    },
+    {
+      name: "Video",
+      value: memories.filter((m) => inferType(m) === "video").length,
+      color: "#ef4444",
+    },
+    {
+      name: "Event",
+      value: memories.filter((m) => inferType(m) === "event").length,
+      color: "#f59e0b",
+    },
   ];
 
   const weeklyData = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
-    const dayMemories = memories.filter(m => {
-      const memDate = new Date(m.timestamp); // UI type has timestamp
-      return memDate.toDateString() === date.toDateString();
+    const dayStr = date.toDateString();
+    const dayMemories = memories.filter((m) => {
+      const memDate = new Date(m.memory_date || m.created_at);
+      return memDate.toDateString() === dayStr;
     });
     return {
-      day: date.toLocaleDateString('en', { weekday: 'short' }),
+      day: date.toLocaleDateString("en", { weekday: "short" }),
       memories: dayMemories.length,
-      milestones: milestones.filter(m => {
-        const mDate = new Date(m.achievedAt);
-        return mDate.toDateString() === date.toDateString();
-      }).length,
+      milestones: milestones.filter(
+        (mm) => new Date(mm.achievedAt).toDateString() === dayStr
+      ).length,
     };
   });
 
   const tagDistribution = [
-    { tag: 'Physical', count: memories.filter(m => m.tags.some(t => t.label === 'physical')).length },
-    { tag: 'Language', count: memories.filter(m => m.tags.some(t => t.label === 'language')).length },
-    { tag: 'Cognitive', count: memories.filter(m => m.tags.some(t => t.label === 'cognitive')).length },
-    { tag: 'Social', count: memories.filter(m => m.tags.some(t => t.label === 'social')).length },
-    { tag: 'Emotional', count: memories.filter(m => m.tags.some(t => t.label === 'emotional')).length },
+    {
+      tag: "Physical",
+      count: memories.filter((m) =>
+        (m.tags || []).some((t: string) => t.toLowerCase() === "physical")
+      ).length,
+    },
+    {
+      tag: "Language",
+      count: memories.filter((m) =>
+        (m.tags || []).some((t: string) => t.toLowerCase() === "language")
+      ).length,
+    },
+    {
+      tag: "Cognitive",
+      count: memories.filter((m) =>
+        (m.tags || []).some((t: string) => t.toLowerCase() === "cognitive")
+      ).length,
+    },
+    {
+      tag: "Social",
+      count: memories.filter((m) =>
+        (m.tags || []).some((t: string) => t.toLowerCase() === "social")
+      ).length,
+    },
+    {
+      tag: "Emotional",
+      count: memories.filter((m) =>
+        (m.tags || []).some((t: string) => t.toLowerCase() === "emotional")
+      ).length,
+    },
   ];
 
   return (
@@ -114,7 +231,9 @@ export default function AnalyticsPage() {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
           Analytics Dashboard
         </h1>
-        <p className="text-gray-400 mt-1">Deep insights into your family{`'`}s development</p>
+        <p className="text-gray-400 mt-1">
+          Deep insights into your family{"'"}s development
+        </p>
       </div>
 
       {/* Summary Cards */}
@@ -170,24 +289,27 @@ export default function AnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis dataKey="day" stroke="#999" />
                 <YAxis stroke="#999" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #333' }}
-                  labelStyle={{ color: '#fff' }}
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#18181b",
+                    border: "1px solid #333",
+                  }}
+                  labelStyle={{ color: "#fff" }}
                 />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="memories" 
-                  stroke="#8b5cf6" 
+                <Line
+                  type="monotone"
+                  dataKey="memories"
+                  stroke="#8b5cf6"
                   strokeWidth={2}
-                  dot={{ fill: '#8b5cf6' }}
+                  dot={{ fill: "#8b5cf6" }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="milestones" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="milestones"
+                  stroke="#3b82f6"
                   strokeWidth={2}
-                  dot={{ fill: '#3b82f6' }}
+                  dot={{ fill: "#3b82f6" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -196,7 +318,9 @@ export default function AnalyticsPage() {
 
         <TabsContent value="types" className="space-y-4">
           <Card className="bg-white/5 border-white/10 p-6">
-            <h3 className="text-lg font-semibold mb-4">Memory Type Distribution</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              Memory Type Distribution
+            </h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -213,8 +337,11 @@ export default function AnalyticsPage() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #333' }}
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#18181b",
+                    border: "1px solid #333",
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -229,9 +356,12 @@ export default function AnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis dataKey="tag" stroke="#999" />
                 <YAxis stroke="#999" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #333' }}
-                  labelStyle={{ color: '#fff' }}
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#18181b",
+                    border: "1px solid #333",
+                  }}
+                  labelStyle={{ color: "#fff" }}
                 />
                 <Bar dataKey="count" fill="#8b5cf6" />
               </BarChart>
@@ -242,37 +372,48 @@ export default function AnalyticsPage() {
         <TabsContent value="children" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {children.map((child) => {
-              const childMemories = memories.filter(m => m.childId === child.id);
-              const childMilestones = milestones.filter(m => m.childId === child.id);
-              
+              const childMemories = memories.filter(
+                (m) => m.child_id === child.id
+              );
+              const childMilestones = milestones.filter(
+                (m) => m.childId === child.id
+              );
+
+              const memPct =
+                memories.length > 0
+                  ? (childMemories.length / memories.length) * 100
+                  : 0;
+              const milePct =
+                milestones.length > 0
+                  ? (childMilestones.length / milestones.length) * 100
+                  : 0;
+
               return (
                 <Card key={child.id} className="bg-white/5 border-white/10 p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="text-3xl p-2 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500">
-                      {child.name.substring(0, 1).toUpperCase()}
+                      {String(child.name).substring(0, 1).toUpperCase()}
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold">{child.name}</h3>
-                      <p className="text-sm text-gray-400">
-                        Child profile
-                      </p>
+                      <p className="text-sm text-gray-400">Child profile</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span>Memories</span>
                         <span>{childMemories.length}</span>
                       </div>
-                      <Progress value={(childMemories.length / memories.length) * 100} className="h-2" />
+                      <Progress value={memPct} className="h-2" />
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span>Milestones</span>
                         <span>{childMilestones.length}</span>
                       </div>
-                      <Progress value={(childMilestones.length / milestones.length) * 100} className="h-2" />
+                      <Progress value={milePct} className="h-2" />
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-1">
@@ -298,17 +439,23 @@ export default function AnalyticsPage() {
         <div className="space-y-3">
           <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg">
             <p className="text-sm">
-              <strong>Language Development:</strong> Emma shows a 40% increase in vocabulary usage this month. Peak learning times are between 10-11 AM.
+              <strong>Language Development:</strong> Emma shows a 40% increase
+              in vocabulary usage this month. Peak learning times are between
+              10-11 AM.
             </p>
           </div>
           <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <p className="text-sm">
-              <strong>Physical Milestones:</strong> Lucas is progressing well with gross motor skills. Consider documenting more balance and coordination activities.
+              <strong>Physical Milestones:</strong> Lucas is progressing well
+              with gross motor skills. Consider documenting more balance and
+              coordination activities.
             </p>
           </div>
           <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
             <p className="text-sm">
-              <strong>Social Interactions:</strong> Both children show positive social development. More playtime documentation could provide valuable insights.
+              <strong>Social Interactions:</strong> Both children show positive
+              social development. More playtime documentation could provide
+              valuable insights.
             </p>
           </div>
         </div>

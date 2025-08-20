@@ -209,7 +209,7 @@ export default function CapturePage() {
           // place above the bottom safe area (home indicator)
           bottom: "env(safe-area-inset-bottom, 0px)",
           // add extra padding so the input isn't flush against the inset / browser UI
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
+          // paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
           paddingTop: "0.5rem",
         }}
       >

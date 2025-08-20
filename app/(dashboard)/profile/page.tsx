@@ -5,9 +5,7 @@
  * View and manage user profile
  */
 
-import { useEffect } from 'react';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { useFamily, useMemoryData } from '@/lib/stores/useAppStore';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
@@ -24,19 +22,48 @@ import {
   Edit
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import { formatTimestamp } from '@/lib/stores/mockData';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuthContext();
-  const { children } = useFamily();
-  const { memories, milestones } = useMemoryData();
+  const [user, setUser] = useState<{ id: string; email: string | null; name?: string; created_at?: string } | null>(null);
+  const [children, setChildren] = useState<Array<{ id: string; name: string; emoji?: string }>>([]);
+  const [memories, setMemories] = useState<Array<{ id: string; child_id: string | null; content?: string; created_at: string }>>([]);
+  const [milestones, setMilestones] = useState<Array<{ id: string; child_id: string | null; achievedAt: string }>>([]);
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
-    }
-  }, [user, router]);
+    const load = async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) {
+        router.push('/login');
+        return;
+      }
+      const currentUser = { id: u.user.id, email: u.user.email ?? null, name: (u.user.user_metadata as any)?.full_name, created_at: u.user.created_at };
+      setUser(currentUser);
+
+      // Pick first family
+      const { data: memberships } = await supabase
+        .from('family_memberships')
+        .select('family_id')
+        .eq('user_id', u.user.id)
+        .limit(1);
+      const familyId = memberships?.[0]?.family_id as string | undefined;
+      if (!familyId) {
+        setChildren([]); setMemories([]); setMilestones([]);
+        return;
+      }
+
+      const [{ data: kids }, { data: mems }] = await Promise.all([
+        supabase.from('children').select('id,name,profile_image_url').eq('family_id', familyId).order('birth_date', { ascending: true }),
+        supabase.from('memory_entries').select('id,child_id,content,created_at,milestone_detected,memory_date').eq('family_id', familyId).order('created_at', { ascending: false }).limit(200),
+      ]);
+      setChildren((kids || []).map(k => ({ id: k.id, name: k.name })));
+      setMemories((mems || []).map(m => ({ id: m.id, child_id: m.child_id, content: m.content || '', created_at: m.created_at })));
+      setMilestones((mems || []).filter(m => m.milestone_detected).map(m => ({ id: m.id, child_id: m.child_id, achievedAt: m.memory_date || m.created_at })));
+    };
+    load();
+  }, [router]);
 
   if (!user) {
     return null;
@@ -46,21 +73,21 @@ export default function ProfilePage() {
   const totalMemories = memories.length;
   const totalMilestones = milestones.length;
   const totalChildren = children.length;
-  const memberSince = new Date(user.createdAt).toLocaleDateString('en', {
+  const memberSince = new Date(user.created_at || Date.now()).toLocaleDateString('en', {
     month: 'long',
     year: 'numeric',
   });
 
   // Calculate activity
   const thisWeek = memories.filter(m => {
-    const date = new Date(m.timestamp);
+    const date = new Date(m.created_at);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     return date > weekAgo;
   }).length;
 
   const thisMonth = memories.filter(m => {
-    const date = new Date(m.timestamp);
+    const date = new Date(m.created_at);
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
     return date > monthAgo;
@@ -82,17 +109,16 @@ export default function ProfilePage() {
           <div className="flex gap-4">
             <Avatar className="w-20 h-20 bg-gradient-to-r from-violet-600 to-blue-600">
               <div className="flex items-center justify-center w-full h-full text-2xl font-bold">
-                {user.name.charAt(0).toUpperCase()}
+                {(user.name || user.email || 'U').charAt(0).toUpperCase()}
               </div>
             </Avatar>
             <div>
-              <h2 className="text-2xl font-semibold">{user.name}</h2>
+              <h2 className="text-2xl font-semibold">{user.name || user.email}</h2>
               <div className="flex items-center gap-2 text-gray-400 mt-1">
-                <Mail className="w-4 h-4" />
+                {/* Mail icon is imported above */}
                 <span>{user.email}</span>
               </div>
               <div className="flex items-center gap-2 text-gray-400 mt-1">
-                <Calendar className="w-4 h-4" />
                 <span>Member since {memberSince}</span>
               </div>
               <div className="flex gap-2 mt-3">
@@ -167,16 +193,16 @@ export default function ProfilePage() {
         <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
         <div className="space-y-3">
           {memories.slice(0, 5).map((memory) => {
-            const child = children.find(c => c.id === memory.childId);
+            const child = children.find(c => c.id === memory.child_id);
             return (
               <div key={memory.id} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                <div className="text-2xl">{child?.emoji || '👶'}</div>
+                <div className="text-2xl">{child ? '👶' : '👧'}</div>
                 <div className="flex-1">
-                  <p className="text-sm">{memory.content}</p>
+                  <p className="text-sm">{memory.content || 'Memory'}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-400">{child?.name}</span>
+                    <span className="text-xs text-gray-400">{child?.name || 'Family'}</span>
                     <span className="text-xs text-gray-500">•</span>
-                    <span className="text-xs text-gray-400">{formatTimestamp(memory.timestamp)}</span>
+                    <span className="text-xs text-gray-400">{new Date(memory.created_at).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -216,7 +242,10 @@ export default function ProfilePage() {
           <Button
             variant="outline"
             className="bg-white/5 border-white/10 text-red-400 hover:text-red-300"
-            onClick={logout}
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.push('/login');
+            }}
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out

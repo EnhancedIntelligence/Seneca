@@ -17,9 +17,7 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
   // Async initialization for Upstash
   const initRateLimit = async (): Promise<RateLimitFunction> => {
     try {
-      // @ts-expect-error - Dynamic import, may not be installed
       const { Ratelimit } = await import('@upstash/ratelimit');
-      // @ts-expect-error - Dynamic import, may not be installed
       const { Redis } = await import('@upstash/redis');
       
       const ratelimit = new Ratelimit({

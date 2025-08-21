@@ -39,21 +39,50 @@ export async function GET(req: NextRequest) {
   
   const safe = sanitizeNext(decodedNext, req);
   
-  const supabase = await createClient();
-  
-  // Support both Supabase signatures: with code param or no-arg
+  // Handle provider errors (OAuth denials, etc.)
+  const providerError = url.searchParams.get('error') || url.searchParams.get('error_description');
   const code = url.searchParams.get('code') ?? '';
-  const fn: any = supabase.auth.exchangeCodeForSession;
   
-  // Check function signature to support different Supabase versions
-  const { error } = fn.length > 0 
-    ? await fn(code) 
-    : await fn();
-  
-  if (error) {
-    const msg = encodeURIComponent(error.message || 'Auth exchange failed');
-    return NextResponse.redirect(new URL(`/login?error=${msg}`, req.url));
+  if (!code && providerError) {
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(providerError)}`, req.url));
   }
   
-  return NextResponse.redirect(new URL(safe, req.url));
+  if (!code && !providerError) {
+    return NextResponse.redirect(new URL('/login?error=No%20code%20provided', req.url));
+  }
+  
+  try {
+    const supabase = await createClient();
+    
+    // Keep method binding; support both signatures
+    const auth = supabase.auth as { 
+      exchangeCodeForSession: ((code: string) => Promise<{ error: Error | null }>) | 
+                              (() => Promise<{ error: Error | null }>)
+    };
+    const takesArg = typeof auth.exchangeCodeForSession === 'function'
+                  && auth.exchangeCodeForSession.length > 0;
+    
+    const { error } = takesArg
+      ? await auth.exchangeCodeForSession(code)
+      : await auth.exchangeCodeForSession();
+    
+    if (error) {
+      console.error('Auth callback error:', error);
+      const msg = encodeURIComponent(error.message || 'Authentication failed');
+      return NextResponse.redirect(new URL(`/login?error=${msg}`, req.url));
+    }
+    
+    // Verify session was created
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('No session after code exchange');
+      return NextResponse.redirect(new URL('/login?error=Session%20creation%20failed', req.url));
+    }
+    
+    return NextResponse.redirect(new URL(safe, req.url));
+  } catch (err) {
+    // Guard against unexpected throws
+    console.error('Unexpected error in auth callback:', err);
+    return NextResponse.redirect(new URL('/login?error=An%20unexpected%20error%20occurred', req.url));
+  }
 }

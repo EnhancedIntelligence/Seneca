@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { LoginForm } from './LoginForm';
 import { Sparkles } from 'lucide-react';
 
@@ -14,7 +15,11 @@ export default function LoginPage() {
           </div>
         </div>
         
-        <LoginForm />
+        <Suspense fallback={
+          <div className="w-full h-[400px] bg-card rounded-lg animate-pulse" />
+        }>
+          <LoginForm />
+        </Suspense>
         
         <div className="mt-8 text-center text-sm text-muted-foreground">
           <p>Capture moments. Preserve memories. Cherish forever.</p>

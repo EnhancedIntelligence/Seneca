@@ -55,16 +55,14 @@ export async function GET(req: NextRequest) {
     const supabase = await createClient();
     
     // Keep method binding; support both signatures
-    const auth = supabase.auth as { 
-      exchangeCodeForSession: ((code: string) => Promise<{ error: Error | null }>) | 
-                              (() => Promise<{ error: Error | null }>)
-    };
-    const takesArg = typeof auth.exchangeCodeForSession === 'function'
-                  && auth.exchangeCodeForSession.length > 0;
+    const auth = supabase.auth;
+    const exchangeFn = auth.exchangeCodeForSession.bind(auth);
+    const takesArg = exchangeFn.length > 0;
     
+    // Call with or without code based on function signature
     const { error } = takesArg
-      ? await auth.exchangeCodeForSession(code)
-      : await auth.exchangeCodeForSession();
+      ? await exchangeFn(code)
+      : await (exchangeFn as any)();
     
     if (error) {
       console.error('Auth callback error:', error);

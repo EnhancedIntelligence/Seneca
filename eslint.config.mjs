@@ -25,6 +25,7 @@ const eslintConfig = [
       'dist/**'
     ]
   },
+  // Client-side files cannot import server modules
   {
     files: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
     rules: {
@@ -57,6 +58,14 @@ const eslintConfig = [
             {
               group: ['.ai/*', '**/.ai/*'],
               message: 'AI artifacts are reference-only; do not import.'
+            },
+            {
+              group: ['@/lib/server/*', '**/lib/server/*'],
+              message: 'Client components cannot import server-only modules. Use lib/public/env.public.ts instead.'
+            },
+            {
+              group: ['@/lib/env', '**/lib/env.ts'],
+              message: 'Use lib/public/env.public.ts for client components or lib/server/env.server.ts for server code.'
             }
           ]
         }
@@ -87,7 +96,19 @@ const eslintConfig = [
         }
       ]
     }
-
+  },
+  // Server-side files (actions, API routes, layouts) can import server modules
+  {
+    files: [
+      'app/**/actions.{ts,tsx}',
+      'app/**/route.{ts,tsx}', 
+      'app/**/layout.{ts,tsx}',
+      'app/(dashboard)/home/page.tsx' // Server component that needs server imports
+    ],
+    rules: {
+      // Override the client restriction for server files
+      'no-restricted-imports': 'off'
+    }
   }
 ];
 

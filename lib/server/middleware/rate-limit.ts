@@ -1,44 +1,60 @@
 /**
  * Rate Limiting Middleware
  * Production-only rate limiting using Upstash Redis
- * No-op in development for faster iteration
+ * Gracefully falls back to no-op when not configured
  */
 
 import { RateLimitError } from '../errors';
 
-// Type definitions for when packages aren't installed
-type RateLimitResult = {
-  success: boolean;
-  limit: number;
-  reset: number;
-  remaining: number;
-};
+// Type for rate limit function
+type RateLimitFunction = (key: string) => Promise<{ success: boolean; limit?: number; remaining?: number; reset?: number }>;
 
-// Dynamic imports to avoid errors when Upstash isn't configured
-let ratelimit: any = null;
+// Rate limit function - will be assigned based on configuration
+let checkRateLimitImpl: RateLimitFunction;
 
-// Only enable rate limiting in production with valid credentials
-const initRateLimit = async () => {
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+// Check if Upstash is configured
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  // Async initialization for Upstash
+  const initRateLimit = async (): Promise<RateLimitFunction> => {
     try {
-      // @ts-ignore - Dynamic import, may not be installed
       const { Ratelimit } = await import('@upstash/ratelimit');
-      // @ts-ignore - Dynamic import, may not be installed
       const { Redis } = await import('@upstash/redis');
       
-      ratelimit = new Ratelimit({
-        redis: Redis.fromEnv(),
-        limiter: Ratelimit.slidingWindow(10, '10 s'),
+      const ratelimit = new Ratelimit({
+        redis: new Redis({
+          url: process.env.UPSTASH_REDIS_REST_URL!,
+          token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+        }),
+        limiter: Ratelimit.slidingWindow(60, '1 m'), // 60 requests per minute
         analytics: true,
       });
-    } catch (err: any) {
-      console.log('Rate limiting disabled - Upstash not configured');
+      
+      return (key: string) => ratelimit.limit(key);
+    } catch (error) {
+      console.warn('Failed to initialize rate limiting:', error);
+      // Return no-op if initialization fails
+      return async () => ({ success: true });
     }
+  };
+  
+  // Lazy initialization - only initialize when first used
+  let rateLimitPromise: Promise<RateLimitFunction> | null = null;
+  
+  checkRateLimitImpl = async (key: string) => {
+    if (!rateLimitPromise) {
+      rateLimitPromise = initRateLimit();
+    }
+    const fn = await rateLimitPromise;
+    return fn(key);
+  };
+} else {
+  // No-op implementation when Upstash is not configured
+  checkRateLimitImpl = async () => ({ success: true });
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Rate Limit] Disabled - Upstash not configured');
   }
-};
-
-// Initialize on module load
-initRateLimit();
+}
 
 /**
  * Check rate limit for a given identifier
@@ -46,84 +62,23 @@ initRateLimit();
  * @throws RateLimitError if limit exceeded
  */
 export async function checkRateLimit(identifier: string): Promise<void> {
-  if (!ratelimit) {
-    // Skip rate limiting in development or when not configured
-    return;
-  }
+  const result = await checkRateLimitImpl(identifier);
   
-  try {
-    const { success, limit, reset, remaining } = await ratelimit.limit(identifier);
-    
-    if (!success) {
-      throw new RateLimitError(
-        'Rate limit exceeded. Please try again later.',
-        {
-          limit,
-          remaining,
-          reset: new Date(reset).toISOString()
-        }
-      );
-    }
-  } catch (error) {
-    if (error instanceof RateLimitError) throw error;
-    
-    // Log but don't block on rate limit errors
-    console.error('Rate limit check failed:', error);
-    // Allow request to proceed if rate limiting fails
+  if (!result.success) {
+    throw new RateLimitError(
+      `Rate limit exceeded. Please try again in ${Math.ceil((result.reset || Date.now() + 60000) / 1000 - Date.now() / 1000)} seconds.`,
+      result.reset
+    );
   }
 }
 
 /**
- * Rate limit configuration for different endpoint types
+ * Get rate limit info without throwing
+ * Useful for headers and debugging
  */
-export const RateLimits = {
-  // Strict limits for expensive operations
-  AI_PROCESSING: { requests: 5, window: '60 s' },
-  FILE_UPLOAD: { requests: 10, window: '60 s' },
-  
-  // Standard limits for mutations
-  CREATE: { requests: 20, window: '60 s' },
-  UPDATE: { requests: 30, window: '60 s' },
-  DELETE: { requests: 10, window: '60 s' },
-  
-  // Relaxed limits for reads
-  READ: { requests: 100, window: '60 s' },
-  SEARCH: { requests: 50, window: '60 s' },
-} as const;
-
-/**
- * Get rate limiter with custom configuration
- * For use when different endpoints need different limits
- */
-export async function checkRateLimitWithConfig(
-  identifier: string,
-  config: { requests: number; window: string }
-): Promise<void> {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return; // Skip if not configured
-  }
-  
-  try {
-    // @ts-ignore - Dynamic import, may not be installed
-    const { Ratelimit } = await import('@upstash/ratelimit');
-    // @ts-ignore - Dynamic import, may not be installed
-    const { Redis } = await import('@upstash/redis');
-    
-    const customLimiter = new Ratelimit({
-      redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(config.requests, config.window),
-    });
-    
-    const { success } = await customLimiter.limit(identifier);
-    
-    if (!success) {
-      throw new RateLimitError(
-        `Rate limit exceeded (${config.requests} requests per ${config.window})`
-      );
-    }
-  } catch (error) {
-    if (error instanceof RateLimitError) throw error;
-    // Silently fail if packages aren't installed
-    console.log('Rate limiting skipped - packages not available');
-  }
+export async function getRateLimitInfo(identifier: string) {
+  return checkRateLimitImpl(identifier);
 }
+
+// Export for testing
+export { checkRateLimitImpl as _checkRateLimitImpl };

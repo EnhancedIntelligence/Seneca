@@ -81,7 +81,7 @@ class MockApiService {
 
   /**
    * Create a new memory
-   * TODO: Replace with actual API call to /api/memories/create
+   * TODO: Replace with actual POST to /api/memories
    */
   async createMemory(memory: Omit<Memory, 'id' | 'timestamp'>): Promise<Memory> {
     await delay(500);

@@ -13,14 +13,14 @@ import type { UIChild } from '@/lib/types'
 import { useFamily } from '@/lib/stores/useAppStore'
 
 interface ChildSelectorProps {
-  children?: UIChild[]
+  childProfiles?: UIChild[]
   value?: string
   onValueChange?: (childId?: string) => void
   className?: string
 }
 
 export function ChildSelector({
-  children: propChildren,
+  childProfiles: propChildProfiles,
   value: propValue,
   onValueChange: propOnValueChange,
   className
@@ -28,13 +28,13 @@ export function ChildSelector({
   // Use store values if props not provided
   const { children: storeChildren, activeChildId, switchChild } = useFamily()
   
-  const children = propChildren ?? storeChildren
+  const childProfiles = propChildProfiles ?? storeChildren
   const value = propValue ?? activeChildId
   const onValueChange = propOnValueChange ?? ((childId?: string) => {
     if (childId) switchChild(childId)
   })
   
-  const selectedChild = value ? children.find(child => child.id === value) : undefined
+  const selectedChild = value ? childProfiles.find(child => child.id === value) : undefined
 
   const calculateAge = (birthDate: string | null): string => {
     if (!birthDate) return 'Unknown age'
@@ -94,7 +94,7 @@ export function ChildSelector({
         </Button>
 
         {/* Separator */}
-        {children.length > 0 && (
+        {childProfiles.length > 0 && (
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
@@ -108,9 +108,9 @@ export function ChildSelector({
         )}
 
         {/* Children Options */}
-        {children.length > 0 ? (
+        {childProfiles.length > 0 ? (
           <div className="space-y-2">
-            {children.map(child => (
+            {childProfiles.map(child => (
               <Button
                 key={child.id}
                 type="button"

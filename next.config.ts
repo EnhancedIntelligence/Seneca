@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  eslint: {
+    // Strict in CI, relaxed locally
+    ignoreDuringBuilds: process.env.CI ? false : true,
+  },
 };
 
 export default nextConfig;

@@ -6,7 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { ok, err, readJson, paginatedResponse } from '@/lib/server/api';
-import { requireUser, requireFamilyAccess } from '@/lib/server/auth';
+import { requireUser, requireFamilyAccess, requireSubscription } from '@/lib/server/auth';
 import { ValidationError, ForbiddenError } from '@/lib/server/errors';
 import { checkRateLimit } from '@/lib/server/middleware/rate-limit';
 import { createAdminClient } from '@/lib/server-only/admin-client';
@@ -22,7 +22,7 @@ import type { Database } from '@/lib/types';
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireUser(request);
+    const user = await requireSubscription(request);
     
     const { searchParams } = new URL(request.url);
     const familyId = searchParams.get('family_id');
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireUser(request);
+    const user = await requireSubscription(request);
     
     // Rate limit memory creation
     await checkRateLimit(`${user.id}:memory-create`);

@@ -35,9 +35,10 @@ export type QueueJobUpdate = DatabaseUpdate<'queue_jobs'>
 
 // Enum types from database
 export type ProcessingStatus = Database['public']['Enums']['processing_status_enum']
+export type QueueStatus = Database['public']['Enums']['queue_status_enum']
 export type FamilyRole = Database['public']['Enums']['family_role_enum']
 
 // Legacy aliases for backward compatibility
-export type JobStatus = ProcessingStatus
+export type JobStatus = QueueStatus
 export type JobType = 'process_memory' | 'ai_processing' | 'embedding_generation'
 export type MembershipRole = FamilyRole

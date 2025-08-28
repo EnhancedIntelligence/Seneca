@@ -7,6 +7,9 @@
 import { createAdminClient } from './server-only/admin-client'
 import type { Database } from './database.generated'
 
+// Feature flag for queue functionality - defaults to enabled
+const QUEUE_ENABLED = process.env.ENABLE_QUEUE !== 'false'
+
 // Enum translation utilities
 export const StatusCompat = {
   // Map legacy status values to new enum values
@@ -70,66 +73,60 @@ export class RPCCompat {
 
   // Queue Management Functions
   
-  // Get next job and lock it atomically
+  // Get next job and lock it atomically - uses atomic RPC
   static async getNextJobAndLock(params: { worker_id: string }) {
     try {
-      const { data, error } = await this.adminClient
-        .from('queue_jobs')
-        .select('*')
-        .eq('status', 'queued')
-        .is('locked_by', null)
-        .order('created_at', { ascending: true })
-        .limit(1)
-
-      if (error) throw error
-      if (!data || data.length === 0) return []
-
-      const job = data[0]
-      
-      // Lock the job by updating it
-      const { error: lockError } = await this.adminClient
-        .from('queue_jobs')
-        .update({
-          status: 'processing',
-          locked_by: params.worker_id,
-          locked_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', job.id)
-        .eq('status', 'queued') // Double-check it's still available
-
-      if (lockError) {
-        console.warn('Failed to lock job, may have been taken by another worker')
+      if (!QUEUE_ENABLED) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Queue disabled via ENABLE_QUEUE env var')
+        }
         return []
       }
 
-      return [ColumnCompat.mapQueueJob(job)]
+      const { data, error } = await this.adminClient
+        .rpc('get_next_job_and_lock', { p_worker_id: params.worker_id })
+
+      if (error) {
+        // Handle function not found gracefully (code 42883)
+        if (error.code === '42883' || /function .* does not exist/i.test(String(error?.message ?? error))) {
+          console.warn('Queue RPC not found - migration may not be applied')
+          return []
+        }
+        throw error
+      }
+      
+      // Maintain return shape contract with mapping
+      return (data ?? []).map(ColumnCompat.mapQueueJob)
     } catch (error) {
-      console.warn('Get next job and lock fallback failed:', error)
+      console.warn('Get next job and lock failed:', error)
       return []
     }
   }
 
-  // Retry a failed job
+  // Retry a failed job - requeues without resetting attempts
   static async retryFailedJob(params: { job_id: string }) {
     try {
+      if (!QUEUE_ENABLED) return false
+      
+      // Direct update that preserves attempt count
       const { data, error } = await this.adminClient
         .from('queue_jobs')
         .update({
-          status: 'queued',
+          status: 'queued' as Database['public']['Enums']['queue_status_enum'],
           locked_by: null,
           locked_at: null,
           error_message: null,
+          // Don't reset attempts - let it continue counting
           updated_at: new Date().toISOString()
         })
         .eq('id', params.job_id)
-        .eq('status', 'failed')
-        .select()
+        .eq('status', 'failed' as Database['public']['Enums']['queue_status_enum'])
+        .select('id') // Critical: ensure data is returned
 
       if (error) throw error
-      return data && data.length > 0
+      return (data?.length ?? 0) > 0
     } catch (error) {
-      console.warn('Retry failed job fallback failed:', error)
+      console.warn('Retry failed job failed:', error)
       return false
     }
   }
@@ -137,43 +134,44 @@ export class RPCCompat {
   // Get failed jobs
   static async getFailedJobs(params: { limit_count: number }) {
     try {
+      if (!QUEUE_ENABLED) return []
+      
       const { data, error } = await this.adminClient
         .from('queue_jobs')
         .select('*')
-        .eq('status', 'failed')
+        .eq('status', 'failed' as Database['public']['Enums']['queue_status_enum'])
         .order('updated_at', { ascending: false })
         .limit(params.limit_count)
 
       if (error) throw error
+      // Maintain return shape contract
       return (data || []).map(ColumnCompat.mapQueueJob)
     } catch (error) {
-      console.warn('Get failed jobs fallback failed:', error)
+      console.warn('Get failed jobs failed:', error)
       return []
     }
   }
 
-  // Cleanup stuck jobs (jobs that have been processing too long)
+  // Cleanup stuck jobs - uses atomic RPC
   static async cleanupStuckJobs() {
     try {
-      const stuckThreshold = new Date(Date.now() - 30 * 60 * 1000).toISOString() // 30 minutes ago
+      if (!QUEUE_ENABLED) return 0
       
       const { data, error } = await this.adminClient
-        .from('queue_jobs')
-        .update({
-          status: 'failed',
-          error_message: 'Job stuck - cleanup by compatibility layer',
-          locked_by: null,
-          locked_at: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('status', 'processing')
-        .lt('locked_at', stuckThreshold)
-        .select()
+        .rpc('cleanup_stuck_jobs', { p_timeout: '30 minutes' })
 
-      if (error) throw error
-      return data ? data.length : 0
+      if (error) {
+        // Handle function not found gracefully (code 42883)
+        if (error.code === '42883' || /function .* does not exist/i.test(String(error?.message ?? error))) {
+          console.warn('Cleanup RPC not found - migration may not be applied')
+          return 0
+        }
+        throw error
+      }
+      
+      return data ?? 0
     } catch (error) {
-      console.warn('Cleanup stuck jobs fallback failed:', error)
+      console.warn('Cleanup stuck jobs failed:', error)
       return 0
     }
   }

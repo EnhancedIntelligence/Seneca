@@ -8,7 +8,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Award, Calendar, Filter, TrendingUp, Baby, Brain, MessageCircle, Users, Heart } from 'lucide-react';
-import type { MilestoneCategory } from '@/lib/stores/mockData';
+
+// Define milestone category type locally
+type MilestoneCategory = 'physical' | 'cognitive' | 'social' | 'language' | 'emotional';
 
 export default function MilestonesPage() {
   const { children, activeChildId } = useFamily();
@@ -96,9 +98,10 @@ export default function MilestonesPage() {
   const stats = useMemo(() => {
     const total = filteredMilestones.length;
     const byCategory = filteredMilestones.reduce((acc, m) => {
-      acc[m.category] = (acc[m.category] || 0) + 1;
+      const category = m.category as MilestoneCategory;
+      acc[category] = (acc[category] || 0) + 1;
       return acc;
-    }, {} as Record<MilestoneCategory, number>);
+    }, {} as Partial<Record<MilestoneCategory, number>>);
     
     const thisMonth = filteredMilestones.filter(m => {
       const date = new Date(m.achievedAt);

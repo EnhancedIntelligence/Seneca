@@ -6,7 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { ok, err, readJson } from '@/lib/server/api';
-import { requireUser, getUserFamilyIds } from '@/lib/server/auth';
+import { requireUser, getUserFamilyIds, requireSubscription } from '@/lib/server/auth';
 import { ValidationError, ServerError } from '@/lib/server/errors';
 import { checkRateLimit } from '@/lib/server/middleware/rate-limit';
 import { createClient } from '@/utils/supabase/server';
@@ -67,7 +67,7 @@ type FamilyCreation = z.infer<typeof familyCreationSchema>;
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireUser(request);
+    const user = await requireSubscription(request);
     
     const { searchParams } = new URL(request.url);
     const limitParam = parseInt(searchParams.get('limit') || '20', 10);
@@ -93,8 +93,10 @@ export async function GET(request: NextRequest) {
       throw new ServerError('Failed to fetch families');
     }
     
-    // Step 2: Get unique family IDs and fetch details
-    const familyIds = [...new Set((memberships ?? []).map(m => m.family_id))];
+    // Step 2: Get unique family IDs and fetch details (filter out nulls)
+    const familyIds = [...new Set((memberships ?? [])
+      .map(m => m.family_id)
+      .filter((id): id is string => id !== null))];
     
     // Skip family fetch if no memberships
     if (familyIds.length === 0) {
@@ -121,8 +123,10 @@ export async function GET(request: NextRequest) {
     );
     
     // Step 4: Combine memberships with family data efficiently
-    const items = (memberships ?? []).map(membership => {
-      const family = familyMap.get(membership.family_id);
+    const items = (memberships ?? [])
+      .filter(membership => membership.family_id !== null)
+      .map(membership => {
+      const family = familyMap.get(membership.family_id!);
       if (!family) {
         // This shouldn't happen with RLS, but handle gracefully
         throw new ServerError(`Family ${membership.family_id} not found`);
@@ -160,7 +164,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireUser(request);
+    const user = await requireSubscription(request);
     
     // Rate limit family creation
     await checkRateLimit(`${user.id}:family-create`);

@@ -38,7 +38,7 @@ export function dbToUiMemory(m: DbMemory): UIMemory {
     tags: toTags(m.tags), // Never null, always array
     category: m.category,
     needsReview: m.needs_review ?? false,
-    processingStatus: m.processing_status,
+    processingStatus: m.processing_status ?? 'queued',
     // Required fields with sensible defaults
     imageUrls: m.image_urls || [],
     videoUrls: m.video_urls || [],

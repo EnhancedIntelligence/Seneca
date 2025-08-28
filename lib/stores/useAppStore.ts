@@ -8,13 +8,6 @@ import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type { UIChild, UIMemory, UITag, UIMemoryType, DbChild, DbMemory } from '@/lib/types';
-import type { Milestone } from './mockData';
-import {
-  mockChildren as rawMockChildren,
-  mockMemories as rawMockMemories,
-  mockMilestones,
-} from './mockData';
-import { mockChildToDbChild, mockMemoryToDbMemory } from './mockDataAdapter';
 import { dbToUiChild } from '@/lib/adapters/child';
 import { dbToUiMemory } from '@/lib/adapters/memory';
 
@@ -22,7 +15,25 @@ import { dbToUiMemory } from '@/lib/adapters/memory';
 export type ViewType = 'capture' | 'overview' | 'memories' | 'children' | 'analytics' | 'settings';
 export type CaptureMode = 'voice' | 'text' | 'manual';
 
+export interface Milestone {
+  id: string;
+  childId: string;
+  title: string;
+  description: string;
+  achievedAt: string;
+  category: string;
+  verifiedBy: string;
+}
+
 // ===== Store Interfaces =====
+interface AuthState {
+  currentUserId: string | null;
+  currentFamilyId: string | null;
+  setAuthContext: (ctx: { currentUserId: string | null; currentFamilyId: string | null }) => void;
+  clearAll: () => void;
+  clearFamilyScopedData: () => void;
+}
+
 interface NavigationState {
   currentView: ViewType;
   isMenuOpen: boolean;
@@ -84,6 +95,7 @@ interface HydrationState {
 // ===== Combined Store Interface =====
 export interface AppStore extends 
   HydrationState,
+  AuthState,
   NavigationState, 
   CaptureState, 
   FamilyState, 
@@ -108,16 +120,16 @@ const withinDateRange = (iso: string, start: string | null, end: string | null):
   return date >= startTime && date <= endTime;
 };
 
-// Convert mock data to UI types via DB types
-const mockDbChildren = rawMockChildren.map(mockChildToDbChild);
-const mockDbMemories = rawMockMemories.map(mockMemoryToDbMemory);
-const mockChildren = mockDbChildren.map(dbToUiChild);
-const mockMemories = mockDbMemories.map(dbToUiMemory);
+// Store will be hydrated from auth/API data, not mock data
 
 // ===== Initial State =====
 const initialState = {
   // Hydration state - false until persist middleware completes
   hasHydrated: false,
+  
+  // Auth context
+  currentUserId: null,
+  currentFamilyId: null,
   
   // Navigation
   currentView: 'capture' as ViewType,
@@ -132,12 +144,12 @@ const initialState = {
   isManualPanelOpen: false,
   
   // Family
-  children: mockChildren, // Now UI Child[] type
-  activeChildId: mockChildren[0]?.id || null,
+  children: [] as UIChild[], // Will be loaded from API
+  activeChildId: null,
   
   // Memory
-  memories: mockMemories, // Now UI Memory[] type
-  milestones: mockMilestones,
+  memories: [] as UIMemory[], // Will be loaded from API
+  milestones: [] as Milestone[],
   pendingMemoryIds: [] as string[],
   error: null,
   
@@ -156,6 +168,31 @@ export const useAppStore = create<AppStore>()(
         
         // Hydration action
         setHasHydrated: (value: boolean) => set({ hasHydrated: value }),
+        
+        // Auth Actions
+        setAuthContext: (ctx) => set(() => ({ 
+          currentUserId: ctx.currentUserId, 
+          currentFamilyId: ctx.currentFamilyId 
+        })),
+        
+        clearAll: () => {
+          const { recordingIntervalId } = get();
+          if (recordingIntervalId) {
+            clearInterval(recordingIntervalId);
+          }
+          set(() => ({
+            ...initialState,
+            hasHydrated: true, // Keep hydration state
+          }));
+        },
+        
+        clearFamilyScopedData: () => set(() => ({
+          children: [],
+          memories: [],
+          milestones: [],
+          activeChildId: null,
+          pendingMemoryIds: [],
+        })),
         
         // Navigation Actions
         navigate: (view) => set({ 
@@ -259,6 +296,11 @@ export const useAppStore = create<AppStore>()(
             return;
           }
           
+          if (!state.currentUserId) {
+            set({ error: 'User not authenticated' });
+            return;
+          }
+          
           // Clear previous error
           set({ error: null });
           
@@ -268,8 +310,8 @@ export const useAppStore = create<AppStore>()(
           const optimisticMemory: UIMemory = {
             id: tempId,
             childId: activeChild.id,
-            familyId: 'mock-family-1',
-            createdBy: 'mock-user-1',
+            familyId: activeChild.familyId, // Use actual family from child
+            createdBy: state.currentUserId, // Use current authenticated user
             title: null,
             content,
             timestamp,

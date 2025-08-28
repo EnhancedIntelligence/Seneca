@@ -9,15 +9,36 @@ Seneca Protocol is a production-ready family memory capture platform with AI pro
 
 ### Current Status
 - ✅ **Authentication System**: Complete with dual-mode (magic link/password)
+- ✅ **Subscription System**: Implemented with tier-based gating (free/basic/premium)
 - ✅ **API Architecture**: RESTful patterns with proper structure
-- ✅ **Database Schema**: Optimized with RLS and soft-delete
-- ✅ **Security**: Multi-layer protection with auth guards
-- ⏳ **SMTP Configuration**: Pending (password auth works)
+- ✅ **Database Schema**: Optimized with RLS, soft-delete, and subscription fields
+- ✅ **Security**: Multi-layer protection with auth guards and subscription checks
+- ⏳ **API Endpoints**: /api/auth/status and /api/auth/dev-subscribe pending
 - ⏳ **Production Deployment**: Ready pending SMTP
 
 ---
 
 ## Build Timeline
+
+### Phase 5: Subscription System Implementation (2025-08-27)
+**Duration:** ~3 hours  
+**Developer:** Senior Full-Stack Engineer
+
+#### Components Implemented:
+- **Database Migration**: Added subscription fields to members table
+- **Subscription Helper**: Server-side protectRoute() and requireAuth() functions
+- **Dashboard Gating**: Layout-level subscription enforcement
+- **Billing Page**: Three-tier pricing UI with Shadcn components
+- **Type Safety**: Full TypeScript coverage with proper error types
+
+#### Key Files Created/Modified:
+```
+/supabase/migrations/20250827023037_members_subscription.sql
+/lib/server/subscription.ts       # Core subscription logic
+/app/(dashboard)/layout.tsx       # Protected route wrapper
+/app/(root)/billing/page.tsx      # Billing/pricing page
+/lib/server/errors.ts             # AuthError/ForbiddenError types
+```
 
 ### Phase 4: Authentication Hardening (2025-08-19)
 **Duration:** ~6 hours  
@@ -141,6 +162,13 @@ families
 family_memberships
   family_id, user_id, role, joined_at
 
+-- Members (subscription enabled)
+members
+  id, email, created_at, updated_at
+  active_subscription (boolean), subscription_tier (free/basic/premium)
+  subscription_expires_at (timestamp), stripe_customer_id
+  stripe_subscription_id, subscription_created_at
+
 -- Children (soft-delete enabled)
 children
   id, family_id, name, birth_date (nullable), gender
@@ -154,6 +182,7 @@ memory_entries
 -- Indexes
 idx_children_family_active (partial for performance)
 idx_children_deleted_at (soft-delete queries)
+idx_members_stripe_customer_id (payment lookups)
 ```
 
 #### RLS Policies Applied

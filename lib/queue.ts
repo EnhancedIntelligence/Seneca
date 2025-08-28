@@ -1,6 +1,7 @@
-import { supabase } from './supabase'
 import { createAdminClient } from './server-only/admin-client'
-import type { QueueJob, QueueJobInsert, Json, ProcessingStatus } from './types'
+import type { QueueJob, QueueJobInsert, Json } from './types'
+import type { Database } from './database.generated'
+import type { JobStatus } from './database'
 import { 
   DatabaseError, 
   ProcessingError, 
@@ -8,9 +9,6 @@ import {
   handleError
 } from './errors'
 import { callRPCWithFallback, StatusCompat } from './database-compatibility'
-
-// Type aliases for backward compatibility
-export type JobStatus = ProcessingStatus
 export type JobType = string
 
 // Priority helper functions
@@ -91,7 +89,7 @@ export class MemoryQueue {
           max_attempts: 3,
           priority: priorityValue
         })
-        .select()
+        .select('id')
         .single()
 
       if (error) {
@@ -142,7 +140,7 @@ export class MemoryQueue {
     const { error } = await this.adminClient
       .from('queue_jobs')
       .update({ 
-        status: 'completed',
+        status: 'completed' as JobStatus,
         completed_at: new Date().toISOString(),
         locked_at: null,
         locked_by: null
@@ -159,8 +157,8 @@ export class MemoryQueue {
     try {
       const { error } = await this.adminClient
         .rpc('handle_job_failure', { 
-          job_id: jobId, 
-          error_message: errorMessage 
+          p_job_id: jobId, 
+          p_error: errorMessage 
         })
 
       if (error) {
@@ -184,7 +182,7 @@ export class MemoryQueue {
   }
 
   async getJobStatus(jobId: string): Promise<QueueJob | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.adminClient
       .from('queue_jobs')
       .select('*')
       .eq('id', jobId)
@@ -195,22 +193,7 @@ export class MemoryQueue {
       return null
     }
 
-    return {
-      id: data.id,
-      type: data.type,
-      payload: data.payload,
-      status: data.status,
-      attempts: data.attempts,
-      max_attempts: data.max_attempts,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-      scheduled_for: data.scheduled_for,
-      completed_at: data.completed_at,
-      error_message: data.error_message,
-      priority: data.priority,
-      locked_at: data.locked_at,
-      locked_by: data.locked_by
-    }
+    return data
   }
 
   async getQueueStats(): Promise<QueueStats> {
@@ -231,13 +214,22 @@ export class MemoryQueue {
         }
       }
 
-      const stats = data[0] || { 
-        total_jobs: 0, 
-        pending_jobs: 0, 
-        processing_jobs: 0, 
-        completed_jobs: 0, 
-        failed_jobs: 0,
-        avg_processing_time: null 
+      const rawStats = data?.[0] || { 
+        pending: 0, 
+        processing: 0, 
+        completed: 0, 
+        failed: 0,
+        delayed: 0 
+      }
+
+      // Map RPC response to QueueStats interface
+      const stats = {
+        total_jobs: rawStats.pending + rawStats.processing + rawStats.completed + rawStats.failed + rawStats.delayed,
+        pending_jobs: rawStats.pending,
+        processing_jobs: rawStats.processing,
+        completed_jobs: rawStats.completed,
+        failed_jobs: rawStats.failed,
+        avg_processing_time: null // Not provided by the RPC
       }
 
       return {

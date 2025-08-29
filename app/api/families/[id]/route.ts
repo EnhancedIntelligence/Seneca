@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
 /**
  * Family Individual Route Handler
  * Handles operations on specific families

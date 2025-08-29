@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
 /**
  * Memories Collection Route Handler
  * Handles listing and creating memories with proper auth and rate limiting

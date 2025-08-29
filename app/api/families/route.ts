@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
 /**
  * Families Collection Route Handler
  * Handles listing and creating families

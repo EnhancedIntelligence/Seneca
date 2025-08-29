@@ -7,6 +7,7 @@
  * - Subscription status verification
  * - Automatic redirect to login if not authenticated
  * - Automatic redirect to billing if not subscribed
+ * - Session verification without middleware
  * - Real-time session monitoring
  */
 
@@ -47,7 +48,6 @@ export default async function DashboardLayout({
     console.error('[DASHBOARD_GATE] Unexpected error:', err);
     return redirect('/login');
   }
-
   // User has valid session AND active subscription
   // Render dashboard with client-side auth provider
   // The DashboardAuthProvider will:

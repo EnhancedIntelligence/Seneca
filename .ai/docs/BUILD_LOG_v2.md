@@ -14,6 +14,7 @@ Seneca Protocol is a production-ready family memory capture platform with AI pro
 - ✅ **Database Schema**: Optimized with RLS, soft-delete, and subscription fields
 - ✅ **Security**: Multi-layer protection with auth guards and subscription checks
 - ⏳ **API Endpoints**: /api/auth/status and /api/auth/dev-subscribe pending
+- ⏳ **SMTP Configuration**: Pending (password auth works)
 - ⏳ **Production Deployment**: Ready pending SMTP
 
 ---

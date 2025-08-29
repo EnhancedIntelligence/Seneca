@@ -97,7 +97,6 @@ export async function GET(request: NextRequest) {
     const familyIds = [...new Set((memberships ?? [])
       .map(m => m.family_id)
       .filter((id): id is string => id !== null))];
-    
     // Skip family fetch if no memberships
     if (familyIds.length === 0) {
       return ok({

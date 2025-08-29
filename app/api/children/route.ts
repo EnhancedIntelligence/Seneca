@@ -31,7 +31,6 @@ type ChildCreate = z.infer<typeof childCreateSchema>;
 export async function GET(request: NextRequest) {
   try {
     const user = await requireSubscription(request);
-    
     const { searchParams } = new URL(request.url);
     const familyId = searchParams.get('family_id');
     const limitParam = parseInt(searchParams.get('limit') || '50', 10);

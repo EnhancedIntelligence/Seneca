@@ -28,15 +28,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20 with npm cache
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies with native rebuild
+        uses: ./.github/actions/setup-deps
+        with:
+          module: 'lightningcss/node/index.js'
+          rebuild: 'lightningcss'
+          optional: 'true'
+          audit: 'false'
 
       - name: Generate Supabase types (safe)
         env:
@@ -84,15 +89,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20 with npm cache
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies with native rebuild
+        uses: ./.github/actions/setup-deps
+        with:
+          module: 'lightningcss/node/index.js'
+          rebuild: 'lightningcss'
+          optional: 'true'
+          audit: 'false'
 
       - name: Build (prod)
         env:
@@ -150,15 +160,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20 with npm cache
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies with native rebuild
+        uses: ./.github/actions/setup-deps
+        with:
+          module: 'lightningcss/node/index.js'
+          rebuild: 'lightningcss'
+          optional: 'true'
+          audit: 'false'
 
       - name: Run security audit (non-blocking)
         run: npm audit --audit-level=critical

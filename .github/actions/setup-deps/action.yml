@@ -1,0 +1,124 @@
+# Requires: actions/setup-node@v4 (node-version must be installed before using this action)
+# Platform: Linux/macOS only (Windows runners will skip with warning)
+name: 'Setup Dependencies'
+description: 'Clean install with native module rebuild for CI - optimized for Linux/macOS'
+
+inputs:
+  module:
+    description: 'Module path to sanity-check (require.resolve path)'
+    required: false
+    default: 'lightningcss/node/index.js'
+  rebuild:
+    description: 'Package to npm rebuild'
+    required: false
+    default: 'lightningcss'
+  optional:
+    description: 'Install optional dependencies'
+    required: false
+    default: 'true'
+  audit:
+    description: 'Run npm audit and fund checks'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check platform compatibility
+      shell: bash
+      run: |
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          echo "::warning::This action is optimized for Linux/macOS. Skipping on Windows."
+          echo "::notice::Consider using native Windows npm commands in your workflow."
+          exit 0
+        fi
+    
+    - name: Print environment
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        echo "::group::Environment Info"
+        echo "Node version: $(node -v)"
+        echo "NPM version: $(npm -v)"
+        echo "Platform: $(node -p 'process.platform + " " + process.arch')"
+        echo "Runner OS: ${{ runner.os }}"
+        echo "Libc version:"
+        ldd --version 2>/dev/null | head -1 || echo "ldd not available"
+        echo "Working directory: $(pwd)"
+        echo "::endgroup::"
+        
+    - name: Verify glibc vs musl
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        if ldd --version 2>&1 | grep -qi musl; then
+          echo "⚠️  Running on musl (Alpine) - may need ${{ inputs.rebuild }}-linux-x64-musl"
+          echo "::warning::Alpine/musl detected - ensure musl variant of native modules is available"
+        else
+          echo "✓ Running on glibc (standard Linux)"
+        fi
+    
+    - name: Clean install with native rebuild
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        NPM_CONFIG_OPTIONAL: ${{ inputs.optional }}
+        HUSKY: "0"  # Disable git hooks in CI
+        CI: "true"  # Ensure CI mode is set
+      run: |
+        echo "::group::Dependency Installation"
+        
+        # Clean slate for native modules
+        echo "Cleaning node_modules for fresh install..."
+        rm -rf node_modules
+        
+        # Build npm ci flags based on inputs
+        NPM_FLAGS="--foreground-scripts"
+        if [[ "${{ inputs.audit }}" != "true" ]]; then
+          NPM_FLAGS="$NPM_FLAGS --no-audit --no-fund"
+        fi
+        
+        echo "Installing dependencies with: npm ci $NPM_FLAGS"
+        npm ci $NPM_FLAGS
+        
+        # Check if the module exists before attempting rebuild
+        MODULE_PATH="${{ inputs.module }}"
+        REBUILD_PKG="${{ inputs.rebuild }}"
+        
+        if node -e "try { require.resolve('$MODULE_PATH'); process.exit(0); } catch { process.exit(1); }" 2>/dev/null; then
+          echo "::group::Native Module Rebuild"
+          echo "Found $MODULE_PATH - rebuilding $REBUILD_PKG native bindings..."
+          
+          if npm rebuild "$REBUILD_PKG"; then
+            echo "✓ Successfully rebuilt $REBUILD_PKG"
+          else
+            echo "::error::Failed to rebuild $REBUILD_PKG native bindings"
+            exit 1
+          fi
+          echo "::endgroup::"
+        else
+          echo "ℹ️  Module $MODULE_PATH not found in dependencies - skipping rebuild"
+        fi
+        
+        # Sanity check: fail fast if binding is missing when it should exist
+        if node -e "try { require.resolve('$MODULE_PATH'); process.exit(0); } catch { process.exit(1); }" 2>/dev/null; then
+          node -e "
+            const fs = require('fs');
+            const path = '$MODULE_PATH';
+            try {
+              const resolved = require.resolve(path);
+              fs.accessSync(resolved, fs.constants.R_OK);
+              console.log('✓ Native binding verified: ' + path);
+              console.log('  Resolved to: ' + resolved);
+            } catch (e) {
+              console.error('✗ Native binding check failed for: ' + path);
+              console.error('  Error: ' + String(e && e.message || e));
+              process.exit(1);
+            }
+          "
+        else
+          echo "ℹ️  Skipping native binding check (module not in dependencies)"
+        fi
+        
+        echo "::endgroup::"
+        echo "✅ Dependencies installed successfully"

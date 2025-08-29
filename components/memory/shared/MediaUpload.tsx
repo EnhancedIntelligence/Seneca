@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Upload,
   X,
-  Image,
   Video,
   FileImage,
   Loader2,
@@ -139,7 +138,7 @@ export function MediaUpload({
       const filename = `memories/${timestamp}-${randomId}.${extension}`;
 
       // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("media")
         .upload(filename, file, {
           cacheControl: "3600",

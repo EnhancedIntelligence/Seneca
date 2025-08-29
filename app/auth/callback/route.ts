@@ -4,6 +4,23 @@ import { createClient } from "@/utils/supabase/server";
 // Force Node.js runtime to avoid Edge + Supabase issues
 export const runtime = "nodejs";
 
+// Type definitions for Supabase version compatibility
+type AuthErrorLike = { 
+  message: string; 
+  name?: string; 
+  status?: number;
+};
+
+type ExchangeResult = { 
+  error: AuthErrorLike | null;
+  data?: { session?: unknown };
+};
+
+// Support multiple Supabase auth signatures
+type ExchangeWithString = (code: string) => Promise<ExchangeResult>;
+type ExchangeWithObject = (params: { code: string }) => Promise<ExchangeResult>;
+type ExchangeNoArg = () => Promise<ExchangeResult>;
+
 /**
  * Sanitizes redirect paths to prevent open redirects
  * Only allows same-origin relative paths
@@ -59,15 +76,42 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Keep method binding; support both signatures
+    // Robust version compatibility with try/fallback pattern
     const auth = supabase.auth;
-    const exchangeFn = auth.exchangeCodeForSession.bind(auth);
-    const takesArg = exchangeFn.length > 0;
+    const exchange = auth.exchangeCodeForSession.bind(auth) as unknown;
+    
+    async function exchangeCodeForSessionCompat(authCode: string): Promise<ExchangeResult> {
+      // Try common Supabase signatures in order of likelihood
+      
+      // 1. Try with string argument (most common)
+      try {
+        return await (exchange as ExchangeWithString)(authCode);
+      } catch {
+        // Continue to next signature
+      }
+      
+      // 2. Try with object argument (some versions)
+      try {
+        return await (exchange as ExchangeWithObject)({ code: authCode });
+      } catch {
+        // Continue to next signature
+      }
+      
+      // 3. Try with no argument (reads from URL internally)
+      try {
+        return await (exchange as ExchangeNoArg)();
+      } catch (_e) {
+        // All signatures failed - return normalized error
+        return {
+          error: {
+            message: _e instanceof Error ? _e.message : "Failed to exchange code for session",
+            name: "ExchangeError"
+          }
+        };
+      }
+    }
 
-    // Call with or without code based on function signature
-    const { error } = takesArg
-      ? await exchangeFn(code)
-      : await (exchangeFn as any)();
+    const { error } = await exchangeCodeForSessionCompat(code);
 
     if (error) {
       console.error("Auth callback error:", error);

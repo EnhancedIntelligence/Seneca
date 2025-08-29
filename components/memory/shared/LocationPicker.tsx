@@ -78,8 +78,8 @@ export function LocationPicker({
         const results: LocationSuggestion[] = await response.json();
         setSuggestions(results);
         setShowSuggestions(true);
-      } catch (error) {
-        console.error("Location search error:", error);
+      } catch (_error) {
+        console.error("Location search error:", _error);
         toast({
           title: "Search failed",
           description: "Unable to search for locations. Please try again.",
@@ -186,7 +186,7 @@ export function LocationPicker({
           } else {
             throw new Error("Reverse geocoding failed");
           }
-        } catch (error) {
+        } catch {
           // Fallback to coordinates only
           const location: Location = {
             name: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,

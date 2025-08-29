@@ -29,35 +29,48 @@ import {
 } from "recharts";
 import { TrendingUp, Brain, Heart, Activity } from "lucide-react";
 
+// UI type (camelCase)
+type AnalyticsData = {
+  totalMemories: number;
+  totalMilestones: number;
+  activeChildren: number;
+  processingHealth: number; // 0-100
+};
+
 export default function AnalyticsPage() {
   const { children } = useFamily();
   const { memories, milestones } = useMemoryData(); // already UIMemory[]
-  interface AnalyticsData {
-    totalMemories: number;
-    totalMilestones: number;
-    activeChildren: number;
-    processingHealth: number;
-  }
 
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const api = useApi();
 
   useEffect(() => {
+    let aborted = false;
     const loadAnalytics = async () => {
-      setIsLoading(true);
       try {
-        // TODO: Replace with actual API call when backend is ready
+        // Fetch analytics from API (already in UI format)
         const data = await api.getAnalytics();
-        setAnalytics(data);
+        if (!aborted) {
+          // API returns camelCase, not snake_case - use directly
+          setAnalytics({
+            totalMemories: data.totalMemories,
+            totalMilestones: data.totalMilestones,
+            activeChildren: data.activeChildren,
+            processingHealth: data.processingHealth,
+          });
+        }
       } catch (error) {
         console.error("Error loading analytics:", error);
       } finally {
-        setIsLoading(false);
+        if (!aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadAnalytics();
+    return () => { aborted = true; };
   }, [api]);
 
   if (isLoading) {
@@ -159,14 +172,14 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Using actual analytics data with fallbacks */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-white/5 border-white/10 p-4">
           <div className="flex items-center justify-between mb-2">
             <TrendingUp className="w-5 h-5 text-violet-400" />
             <span className="text-sm text-green-400">+12%</span>
           </div>
-          <div className="text-2xl font-bold">{memories.length}</div>
+          <div className="text-2xl font-bold">{analytics?.totalMemories ?? memories.length}</div>
           <div className="text-sm text-gray-400">Total Memories</div>
         </Card>
         <Card className="bg-white/5 border-white/10 p-4">
@@ -174,21 +187,23 @@ export default function AnalyticsPage() {
             <Brain className="w-5 h-5 text-blue-400" />
             <span className="text-sm text-green-400">+8%</span>
           </div>
-          <div className="text-2xl font-bold">{milestones.length}</div>
+          <div className="text-2xl font-bold">{analytics?.totalMilestones ?? milestones.length}</div>
           <div className="text-sm text-gray-400">Milestones</div>
         </Card>
         <Card className="bg-white/5 border-white/10 p-4">
           <div className="flex items-center justify-between mb-2">
             <Heart className="w-5 h-5 text-red-400" />
-            <span className="text-sm text-yellow-400">95%</span>
+            <span className="text-sm text-yellow-400">{analytics?.activeChildren ?? children.length}</span>
           </div>
-          <div className="text-2xl font-bold">High</div>
-          <div className="text-sm text-gray-400">Engagement</div>
+          <div className="text-2xl font-bold">{analytics?.activeChildren ?? children.length}</div>
+          <div className="text-sm text-gray-400">Active Children</div>
         </Card>
         <Card className="bg-white/5 border-white/10 p-4">
           <div className="flex items-center justify-between mb-2">
             <Activity className="w-5 h-5 text-green-400" />
-            <span className="text-sm text-green-400">99.7%</span>
+            <span className="text-sm text-green-400">
+              {(analytics?.processingHealth ?? 99.7).toFixed(1)}%
+            </span>
           </div>
           <div className="text-2xl font-bold">Healthy</div>
           <div className="text-sm text-gray-400">AI Processing</div>

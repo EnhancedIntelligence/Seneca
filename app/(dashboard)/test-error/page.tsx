@@ -18,7 +18,7 @@ import {
 import { AlertTriangle, Database, Server, Zap } from "lucide-react";
 
 export default function TestErrorPage() {
-  const [errorType, setErrorType] = useState<string>("");
+  const [, setErrorType] = useState<string>("");
 
   // Only show in development
   if (process.env.NODE_ENV !== "development") {

@@ -12,8 +12,6 @@ import {
   useFilters,
   useFamily,
 } from "@/lib/stores/useAppStore";
-import type { UIMemory } from "@/lib/types";
-import { useApi } from "@/lib/services/mockApi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,8 +55,7 @@ export default function MemoriesPage() {
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [isLoading, setIsLoading] = useState(false);
-  const api = useApi();
+  const isLoading = false; // Will add real loading when API is connected
 
   const activeChild = children.find((c) => c.id === activeChildId);
 

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
-import { useForm, Controller } from "react-hook-form";
+import React, { useState, useCallback } from "react";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -34,17 +34,12 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Upload,
   MapPin,
   Sparkles,
-  User,
-  Calendar,
-  Tag,
   Image,
   FileText,
   Loader2,
   CheckCircle,
-  AlertCircle,
   Brain,
   Zap,
 } from "lucide-react";
@@ -53,9 +48,23 @@ import { MediaUpload } from "./shared/MediaUpload";
 import { LocationPicker } from "./shared/LocationPicker";
 import { TagSelector } from "./shared/TagSelector";
 import { ChildSelector } from "./shared/ChildSelector";
-import { supabase } from "@/lib/supabase";
 import type { UIChild, Family } from "@/lib/types";
 import { useAuth } from "@/components/auth/AuthProvider";
+
+// Category enum - single source of truth
+const MEMORY_CATEGORIES = [
+  "social",
+  "language",
+  "cognitive",
+  "physical",
+  "emotional",
+  "creative",
+  "eating",
+  "sleep",
+  "play",
+] as const;
+
+type MemoryCategory = typeof MEMORY_CATEGORIES[number];
 
 // Memory Creation Schema - UI layer uses camelCase
 export const memoryCreateSchema = z
@@ -67,19 +76,7 @@ export const memoryCreateSchema = z
     tags: z.array(z.string()),
     imageUrls: z.array(z.string()),
     videoUrls: z.array(z.string()),
-    category: z
-      .enum([
-        "social",
-        "language",
-        "cognitive",
-        "physical",
-        "emotional",
-        "creative",
-        "eating",
-        "sleep",
-        "play",
-      ])
-      .optional(),
+    category: z.enum(MEMORY_CATEGORIES).optional(),
     locationName: z.string().optional(),
     locationLat: z.number().min(-90).max(90).optional(),
     locationLng: z.number().min(-180).max(180).optional(),
@@ -108,21 +105,65 @@ export const memoryCreateSchema = z
 
 export type MemoryFormValues = z.infer<typeof memoryCreateSchema>;
 
+// Type guards - defined at file scope for stability
+function isValidCategory(value: string): value is MemoryCategory {
+  return (MEMORY_CATEGORIES as readonly string[]).includes(value);
+}
+
+// API response adapter - snake_case to camelCase
+interface MemoryEntryDTO {
+  id: string;
+  title: string | null;
+  content: string;
+  child_id: string | null;
+  family_id: string;
+  created_at: string;
+  processing_status?: string | null;
+  tags?: string[];
+}
+
+interface UICreatedMemory {
+  id: string;
+  title: string | null;
+  content: string;
+  childId: string | null;
+  familyId: string;
+  createdAt: string;
+  processingStatus?: string;
+  tags: string[];
+}
+
+function adaptMemoryToUI(dto: MemoryEntryDTO): UICreatedMemory {
+  return {
+    id: dto.id,
+    title: dto.title,
+    content: dto.content,
+    childId: dto.child_id,
+    familyId: dto.family_id,
+    createdAt: dto.created_at,
+    processingStatus: dto.processing_status ?? undefined,
+    tags: dto.tags ?? [],
+  };
+}
+
+// AI suggestions type
+interface AgentSuggestions {
+  title?: string;
+  content?: string;
+  tags?: string[];
+  category?: MemoryCategory;
+  confidence?: number;
+}
+
 interface MemoryCreateFormProps {
   family: Family;
   childProfiles: UIChild[];
-  onSuccess?: (memory: any) => void;
+  onSuccess?: (memory: UICreatedMemory) => void;
   onCancel?: () => void;
   className?: string;
   // AI Agent Integration
   initialData?: Partial<MemoryFormValues>;
-  agentSuggestions?: {
-    title?: string;
-    content?: string;
-    tags?: string[];
-    category?: string;
-    confidence?: number;
-  };
+  agentSuggestions?: AgentSuggestions;
 }
 
 export function MemoryCreateForm({
@@ -220,8 +261,8 @@ export function MemoryCreateForm({
       );
     }
 
-    if (agentSuggestions.category) {
-      setValue("category", agentSuggestions.category as any);
+    if (agentSuggestions.category && isValidCategory(agentSuggestions.category)) {
+      setValue("category", agentSuggestions.category, { shouldValidate: true });
       improvements.push("Applied AI-suggested category");
     }
 
@@ -284,6 +325,7 @@ export function MemoryCreateForm({
       }
 
       const result = await response.json();
+      const memoryDTO = result.memory as MemoryEntryDTO;
 
       toast({
         title: "🎉 Memory Created Successfully!",
@@ -292,7 +334,7 @@ export function MemoryCreateForm({
           : "Your memory has been saved and is ready to view.",
       });
 
-      onSuccess?.(result.memory);
+      onSuccess?.(adaptMemoryToUI(memoryDTO));
     } catch (error) {
       console.error("Memory creation error:", error);
       toast({

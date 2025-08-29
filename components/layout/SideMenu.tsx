@@ -111,11 +111,12 @@ const MENU_SECTIONS: MenuSection[] = [
 export function SideMenu({
   currentView,
   onNavigate,
-  isOpen = false,
+  isOpen: _isOpen = false,
   onClose,
   user,
   className,
 }: SideMenuProps) {
+  void _isOpen; // Prop interface requirement - may be used in future
   const handleNavigate = (view: NavigationView) => {
     onNavigate(view);
     onClose?.();

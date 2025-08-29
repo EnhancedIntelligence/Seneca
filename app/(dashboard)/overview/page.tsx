@@ -6,52 +6,108 @@
  */
 
 import { useState, useEffect } from "react";
+import { z } from "zod";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { InsightCard } from "@/components/dashboard/InsightCard";
 import { ChildCard } from "@/components/dashboard/ChildCard";
 import { MilestoneTimeline } from "@/components/dashboard/MilestoneTimeline";
 import { useFamily, useMemoryData } from "@/lib/stores/useAppStore";
-import type { UIMemory, UIChild } from "@/lib/types";
 import { useApi } from "@/lib/services/mockApi";
-import { BookOpen, TrendingUp, Award, Activity, Zap } from "lucide-react";
+import { BookOpen, Award, Activity, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// API wire format validation (snake_case from backend)
+const ApiInsightSchema = z.object({
+  id: z.string(),
+  type: z.string(), // Backend sends various types as strings
+  severity: z.string(), // Backend sends severity levels as strings
+  title: z.string(),
+  description: z.string(),
+  childId: z.string().nullable().optional(), // Some APIs use childId, some child_id
+  child_id: z.string().nullable().optional(), // Handle both cases
+  timestamp: z.string(),
+});
+
+const ApiInsightListSchema = z.array(ApiInsightSchema);
+
+// UI types (camelCase, strict enums)
+interface AnalyticsData {
+  totalMemories: number;
+  totalMilestones: number;
+  activeChildren: number;
+  processingHealth: number;
+  lastWeekGrowth?: {
+    memories: number;
+    milestones: number;
+  };
+  monthlyUsage?: {
+    cost: number;
+    tokens: number;
+    processingTime: number;
+    errorRate: number;
+  };
+}
+
+type InsightType =
+  | "prediction"
+  | "pattern"
+  | "recommendation"
+  | "comparison"
+  | "milestone"
+  | "alert";
+
+type InsightSeverity = "info" | "success" | "warning" | "error";
+
+interface InsightData {
+  id: string;
+  type: InsightType;
+  severity: InsightSeverity;
+  title: string;
+  description: string;
+  childId: string | null;
+  timestamp: string;
+}
+
+// Adapter: wire format -> UI model
+function adaptInsightsToUI(rawData: unknown): InsightData[] {
+  const validated = ApiInsightListSchema.parse(rawData);
+  
+  return validated.map((raw) => ({
+    id: raw.id,
+    type: normalizeInsightType(raw.type),
+    severity: normalizeInsightSeverity(raw.severity),
+    title: raw.title,
+    description: raw.description,
+    childId: raw.child_id ?? raw.childId ?? null,
+    timestamp: raw.timestamp,
+  }));
+}
+
+function normalizeInsightType(type: string): InsightType {
+  const validTypes: InsightType[] = [
+    "prediction",
+    "pattern",
+    "recommendation",
+    "comparison",
+    "milestone",
+    "alert",
+  ];
+  return validTypes.includes(type as InsightType)
+    ? (type as InsightType)
+    : "pattern"; // Safe default
+}
+
+function normalizeInsightSeverity(severity: string): InsightSeverity {
+  const validSeverities: InsightSeverity[] = ["info", "success", "warning", "error"];
+  return validSeverities.includes(severity as InsightSeverity)
+    ? (severity as InsightSeverity)
+    : "info"; // Safe default
+}
 
 export default function OverviewPage() {
   const { children } = useFamily();
   const { memories, milestones } = useMemoryData();
-  interface AnalyticsData {
-    totalMemories: number;
-    totalMilestones: number;
-    activeChildren: number;
-    processingHealth: number;
-    lastWeekGrowth?: {
-      memories: number;
-      milestones: number;
-    };
-    monthlyUsage?: {
-      cost: number;
-      tokens: number;
-      processingTime: number;
-      errorRate: number;
-    };
-  }
-
-  interface InsightData {
-    id: string;
-    type:
-      | "prediction"
-      | "pattern"
-      | "recommendation"
-      | "comparison"
-      | "milestone"
-      | "alert";
-    severity: "info" | "success" | "warning" | "error";
-    title: string;
-    description: string; // API returns description, not content
-    childId: string | null;
-    timestamp: string;
-  }
 
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [insights, setInsights] = useState<InsightData[]>([]);
@@ -68,37 +124,17 @@ export default function OverviewPage() {
           api.getInsights(),
         ]);
 
-        // Use actual analytics data from API, don't compute fake metrics
+        // Use actual analytics data from API
         setAnalytics(analyticsData);
 
-        // Safely coerce insight types
-        const toInsightType = (s: string): InsightData["type"] => {
-          if (
-            [
-              "prediction",
-              "pattern",
-              "recommendation",
-              "comparison",
-              "milestone",
-              "alert",
-            ].includes(s)
-          ) {
-            return s as InsightData["type"];
-          }
-          return "pattern";
-        };
-
-        setInsights(
-          insightsData.map((i: any) => ({
-            id: i.id,
-            type: toInsightType(i.type),
-            severity: i.severity as InsightData["severity"],
-            title: i.title,
-            description: i.description,
-            childId: i.childId ?? null,
-            timestamp: i.timestamp,
-          })),
-        );
+        // Parse and adapt insights with validation
+        try {
+          const adaptedInsights = adaptInsightsToUI(insightsData);
+          setInsights(adaptedInsights);
+        } catch (error) {
+          console.error("Failed to parse insights:", error);
+          setInsights([]); // Graceful fallback
+        }
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {

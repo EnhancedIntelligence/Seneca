@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { MemoryCreateForm } from "@/components/memory/MemoryCreateForm";
 import { MemoryFeed } from "@/components/memory/MemoryFeed";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus,
   Users,
-  Calendar,
   BarChart3,
   Settings,
   Bell,
-  Search,
   Heart,
   Sparkles,
 } from "lucide-react";
 import type { Family, Child } from "@/lib/types";
 import { apiChildToUi } from "@/lib/adapters/api";
-import { useAuth } from "@/components/auth/AuthProvider";
 
 interface FetchedFamily extends Family {
   role: string;
@@ -35,30 +32,23 @@ interface HomeClientProps {
 }
 
 export default function HomeClient({ families }: HomeClientProps) {
-  const { user } = useAuth();
   const [selectedFamily, setSelectedFamily] = useState<FetchedFamily | null>(
-    families.length > 0 ? families[0] : null,
+    () => families[0] ?? null
   );
   const [currentView, setCurrentView] = useState<DashboardView>(
-    families.length > 0 ? "memories" : "setup",
+    () => (families.length > 0 ? "memories" : "setup")
   );
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const { toast } = useToast();
 
   // Handle navigation between views
-  const handleViewChange = (view: DashboardView) => {
+  const handleViewChange = useCallback((view: DashboardView) => {
     setCurrentView(view);
-    if (view === "create") {
-      setShowCreateForm(true);
-    } else {
-      setShowCreateForm(false);
-    }
-  };
+  }, []);
 
-  const handleFamilySwitch = (family: FetchedFamily) => {
+  const handleFamilySwitch = useCallback((family: FetchedFamily) => {
     setSelectedFamily(family);
     // Potentially reload data for new family
-  };
+  }, []);
 
   if (families.length === 0) {
     return (
@@ -206,7 +196,7 @@ export default function HomeClient({ families }: HomeClientProps) {
           <MemoryCreateForm
             family={selectedFamily}
             childProfiles={(selectedFamily.children || []).map(apiChildToUi)}
-            onSuccess={(memory) => {
+            onSuccess={() => {
               toast({
                 title: "Memory Created",
                 description: "Your memory has been successfully saved.",

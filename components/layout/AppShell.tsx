@@ -1,12 +1,13 @@
 "use client";
 
-import React, { ReactNode, useEffect } from "react";
+import React, { ReactNode, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   useHasHydrated,
   useNavigation,
   useAppStore,
 } from "@/lib/stores/useAppStore";
+import { route, isStoreView, type RouteKey, type StoreView } from "@/lib/navigation";
 import { TopBar } from "./TopBar";
 import { SideMenu } from "./SideMenu";
 
@@ -44,31 +45,25 @@ function HydratedShell({ children, className }: AppShellProps) {
   const { isMenuOpen, toggleMenu, closeAllMenus, currentView, navigate } =
     useNavigation();
 
-  // Handle navigation with actual routing
-  const handleNavigate = (view: string) => {
-    navigate(view as any);
+  // Type-safe navigation handler with proper memoization
+  const handleNavigate = useCallback(
+    (view: RouteKey) => {
+      // Update store only for store-managed views (type guard narrows automatically)
+      if (isStoreView(view)) {
+        navigate(view); // No cast needed - TypeScript knows view is StoreView here
+      }
 
-    // Map views to routes
-    const routes: Record<string, string> = {
-      capture: "/capture",
-      overview: "/overview",
-      memories: "/memories",
-      children: "/children",
-      milestones: "/milestones",
-      analytics: "/analytics",
-      insights: "/insights",
-      settings: "/settings",
-      profile: "/profile",
-      help: "/help",
-    };
+      // Always sync URL
+      router.push(route(view));
+      closeAllMenus();
+    },
+    [navigate, router, closeAllMenus]
+  );
 
-    const route = routes[view];
-    if (route) {
-      router.push(route);
-    }
-
-    closeAllMenus();
-  };
+  // Ensure currentView is always a valid StoreView (with fallback)
+  const safeCurrentView: StoreView = isStoreView(currentView) 
+    ? currentView 
+    : 'overview';
 
   return (
     <div
@@ -88,8 +83,8 @@ function HydratedShell({ children, className }: AppShellProps) {
       >
         <SideMenu
           isOpen={isMenuOpen}
-          currentView={currentView as any}
-          onNavigate={(view) => handleNavigate(view as string)}
+          currentView={safeCurrentView}
+          onNavigate={handleNavigate}
           onClose={closeAllMenus}
         />
       </div>

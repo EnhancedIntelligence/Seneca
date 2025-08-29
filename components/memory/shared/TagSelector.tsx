@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { X, Plus, Tag, Sparkles, Check } from "lucide-react";
+import { X, Plus, Tag, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface TagSelectorProps {

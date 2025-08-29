@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Camera, Video, MapPin, Calendar, Clock } from "lucide-react";
+import { X, Camera, Video, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**

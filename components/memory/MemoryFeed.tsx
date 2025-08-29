@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { MemoryCard } from "./MemoryCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Search, Plus, RefreshCw, Grid, List, Loader2 } from "lucide-react";
 import type { UIMemory, UIChild } from "@/lib/types";
 import { dbToUiMemory } from "@/lib/adapters/memory";

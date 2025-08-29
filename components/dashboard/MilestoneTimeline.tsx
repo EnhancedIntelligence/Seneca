@@ -7,7 +7,6 @@ import {
   AlertCircle,
   Calendar,
   User,
-  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -169,7 +168,7 @@ export function MilestoneTimeline({
             )}
 
             <div className="space-y-4">
-              {dateMilestones.map((milestone, index) => (
+              {dateMilestones.map((milestone) => (
                 <div
                   key={milestone.id}
                   className={cn(

@@ -18,7 +18,6 @@ import {
   Target,
   ChartLine,
   AlertCircle,
-  CheckCircle2,
 } from "lucide-react";
 
 type InsightType = "prediction" | "pattern" | "recommendation" | "comparison";
@@ -153,7 +152,7 @@ const generateMockInsights = (): Insight[] => {
 };
 
 export default function InsightsPage() {
-  const { children, activeChildId } = useFamily();
+  const { activeChildId } = useFamily();
   const [insights, setInsights] = useState<Insight[]>(generateMockInsights());
   const [selectedType, setSelectedType] = useState<InsightType | "all">("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -229,22 +228,6 @@ export default function InsightsPage() {
     comparison: BarChart3,
   };
 
-  const typeColors: Record<InsightType, string> = {
-    prediction: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    pattern: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    recommendation: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    comparison: "bg-green-500/20 text-green-400 border-green-500/30",
-  };
-
-  const severityIcons: Record<InsightSeverity, React.ElementType> = {
-    info: AlertCircle,
-    success: CheckCircle2,
-    warning: AlertCircle,
-    critical: AlertCircle,
-  };
-
-  const getActiveChild = () => children.find((c) => c.id === activeChildId);
-  const activeChild = getActiveChild();
 
   // Calculate statistics
   const stats = useMemo(() => {

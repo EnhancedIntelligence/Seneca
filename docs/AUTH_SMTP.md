@@ -17,6 +17,7 @@ This guide covers configuring SMTP for Supabase Auth to send magic link emails i
 3. Get API key and SMTP credentials
 
 **SMTP Settings:**
+
 - Host: `smtp.resend.com`
 - Port: `465` (SSL) or `587` (TLS)
 - Username: `resend`
@@ -29,6 +30,7 @@ This guide covers configuring SMTP for Supabase Auth to send magic link emails i
 3. Create SMTP credentials
 
 **SMTP Settings:**
+
 - Host: `email-smtp.[region].amazonaws.com`
 - Port: `465` (SSL) or `587` (TLS)
 - Username: Your SMTP username
@@ -41,6 +43,7 @@ This guide covers configuring SMTP for Supabase Auth to send magic link emails i
 3. Generate API key
 
 **SMTP Settings:**
+
 - Host: `smtp.sendgrid.net`
 - Port: `465` (SSL) or `587` (TLS)
 - Username: `apikey`
@@ -64,6 +67,7 @@ SMTP Sender Name: Seneca Protocol
 3. Configure email templates (optional):
 
 ### Magic Link Template
+
 ```html
 <h2>Sign in to Seneca Protocol</h2>
 <p>Hi there,</p>
@@ -76,19 +80,24 @@ SMTP Sender Name: Seneca Protocol
 ## Step 3: DNS Configuration
 
 ### SPF Record
+
 Add TXT record to your domain:
+
 ```
 v=spf1 include:_spf.resend.com ~all
 ```
 
 ### DKIM Records
+
 Add the DKIM records provided by your SMTP service:
+
 ```
 resend._domainkey.yourdomain.com CNAME sendgrid1._domainkey.resend.com
 resend2._domainkey.yourdomain.com CNAME sendgrid2._domainkey.resend.com
 ```
 
 ### DMARC (Optional but recommended)
+
 ```
 _dmarc.yourdomain.com TXT "v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com"
 ```
@@ -123,21 +132,25 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=xxxxx
 ## Troubleshooting
 
 ### Emails Going to Spam
+
 - Verify SPF and DKIM records are properly configured
 - Use a dedicated subdomain for transactional emails (e.g., mail.yourdomain.com)
 - Ensure sender email matches verified domain
 - Add DMARC policy
 
 ### Emails Not Sending
+
 1. Check SMTP credentials are correct
 2. Verify port isn't blocked (try both 465 and 587)
 3. Check Supabase Auth logs for specific error messages
 4. Test SMTP connection using telnet or openssl:
+
 ```bash
 openssl s_client -connect smtp.resend.com:587 -starttls smtp
 ```
 
 ### Rate Limiting
+
 - Resend: 100 emails/day (free), 10,000/month (paid)
 - SendGrid: 100 emails/day (free)
 - AWS SES: Starts at 200 emails/day, increases with reputation

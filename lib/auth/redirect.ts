@@ -9,8 +9,8 @@
  * @returns Safe redirect path (defaults to '/')
  */
 export function sanitizeNextPath(nextParam: string | null | undefined): string {
-  const next = nextParam ?? '/';
+  const next = nextParam ?? "/";
   // Only allow paths starting with '/' (same-origin)
   // Reject protocol-relative URLs (//), absolute URLs, and javascript:
-  return next.startsWith('/') && !next.startsWith('//') ? next : '/';
+  return next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }

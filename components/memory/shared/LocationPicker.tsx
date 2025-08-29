@@ -1,129 +1,131 @@
-'use client'
+"use client";
 
-import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  MapPin, 
-  Search, 
-  Navigation, 
-  X,
-  Check,
-  Loader2
-} from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Search, Navigation, X, Check, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Location {
-  name: string
-  lat?: number
-  lng?: number
+  name: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface LocationPickerProps {
-  value: Location
-  onChange: (location: Location) => void
-  className?: string
+  value: Location;
+  onChange: (location: Location) => void;
+  className?: string;
 }
 
 interface LocationSuggestion {
-  name: string
-  display_name: string
-  lat: string
-  lon: string
-  type: string
+  name: string;
+  display_name: string;
+  lat: string;
+  lon: string;
+  type: string;
 }
 
 export function LocationPicker({
   value,
   onChange,
-  className
+  className,
 }: LocationPickerProps) {
-  const { toast } = useToast()
-  const [isSearching, setIsSearching] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [isGettingLocation, setIsGettingLocation] = useState(false)
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast();
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Initialize search query with current value
   useEffect(() => {
     if (value.name && !searchQuery) {
-      setSearchQuery(value.name)
+      setSearchQuery(value.name);
     }
-  }, [value.name, searchQuery])
+  }, [value.name, searchQuery]);
 
   // Debounced search function
-  const searchLocations = useCallback(async (query: string) => {
-    if (!query.trim() || query.length < 3) {
-      setSuggestions([])
-      setShowSuggestions(false)
-      return
-    }
-
-    setIsSearching(true)
-    
-    try {
-      // Using OpenStreetMap Nominatim API (free geocoding service)
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
-        {
-          headers: {
-            'User-Agent': 'FamilyMemoryApp/1.0'
-          }
-        }
-      )
-      
-      if (!response.ok) {
-        throw new Error('Search failed')
+  const searchLocations = useCallback(
+    async (query: string) => {
+      if (!query.trim() || query.length < 3) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
       }
-      
-      const results: LocationSuggestion[] = await response.json()
-      setSuggestions(results)
-      setShowSuggestions(true)
-    } catch (error) {
-      console.error('Location search error:', error)
-      toast({
-        title: "Search failed",
-        description: "Unable to search for locations. Please try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setIsSearching(false)
-    }
-  }, [toast])
+
+      setIsSearching(true);
+
+      try {
+        // Using OpenStreetMap Nominatim API (free geocoding service)
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
+          {
+            headers: {
+              "User-Agent": "FamilyMemoryApp/1.0",
+            },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error("Search failed");
+        }
+
+        const results: LocationSuggestion[] = await response.json();
+        setSuggestions(results);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error("Location search error:", error);
+        toast({
+          title: "Search failed",
+          description: "Unable to search for locations. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [toast],
+  );
 
   // Handle search input changes with debouncing
-  const handleSearchChange = useCallback((query: string) => {
-    setSearchQuery(query)
-    
-    // Clear existing timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current)
-    }
-    
-    // Set new timeout for search
-    searchTimeoutRef.current = setTimeout(() => {
-      searchLocations(query)
-    }, 300)
-  }, [searchLocations])
+  const handleSearchChange = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+
+      // Clear existing timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      // Set new timeout for search
+      searchTimeoutRef.current = setTimeout(() => {
+        searchLocations(query);
+      }, 300);
+    },
+    [searchLocations],
+  );
 
   // Handle location selection from suggestions
-  const selectLocation = useCallback((suggestion: LocationSuggestion) => {
-    const location: Location = {
-      name: suggestion.display_name,
-      lat: parseFloat(suggestion.lat),
-      lng: parseFloat(suggestion.lon)
-    }
-    
-    onChange(location)
-    setSearchQuery(suggestion.display_name)
-    setShowSuggestions(false)
-    setSuggestions([])
-  }, [onChange])
+  const selectLocation = useCallback(
+    (suggestion: LocationSuggestion) => {
+      const location: Location = {
+        name: suggestion.display_name,
+        lat: parseFloat(suggestion.lat),
+        lng: parseFloat(suggestion.lon),
+      };
+
+      onChange(location);
+      setSearchQuery(suggestion.display_name);
+      setShowSuggestions(false);
+      setSuggestions([]);
+    },
+    [onChange],
+  );
 
   // Handle manual location entry
   const handleManualEntry = useCallback(() => {
@@ -131,12 +133,12 @@ export function LocationPicker({
       onChange({
         name: searchQuery.trim(),
         lat: undefined,
-        lng: undefined
-      })
-      setShowSuggestions(false)
-      setSuggestions([])
+        lng: undefined,
+      });
+      setShowSuggestions(false);
+      setSuggestions([]);
     }
-  }, [searchQuery, onChange])
+  }, [searchQuery, onChange]);
 
   // Get current location using browser geolocation
   const getCurrentLocation = useCallback(() => {
@@ -144,108 +146,108 @@ export function LocationPicker({
       toast({
         title: "Location not supported",
         description: "Your browser doesn't support location services.",
-        variant: "destructive"
-      })
-      return
+        variant: "destructive",
+      });
+      return;
     }
 
-    setIsGettingLocation(true)
+    setIsGettingLocation(true);
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const { latitude, longitude } = position.coords
-        
+        const { latitude, longitude } = position.coords;
+
         try {
           // Reverse geocode to get address
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
             {
               headers: {
-                'User-Agent': 'FamilyMemoryApp/1.0'
-              }
-            }
-          )
-          
+                "User-Agent": "FamilyMemoryApp/1.0",
+              },
+            },
+          );
+
           if (response.ok) {
-            const result = await response.json()
+            const result = await response.json();
             const location: Location = {
-              name: result.display_name || 'Current Location',
+              name: result.display_name || "Current Location",
               lat: latitude,
-              lng: longitude
-            }
-            
-            onChange(location)
-            setSearchQuery(location.name)
-            
+              lng: longitude,
+            };
+
+            onChange(location);
+            setSearchQuery(location.name);
+
             toast({
               title: "Location found",
-              description: "Current location has been set."
-            })
+              description: "Current location has been set.",
+            });
           } else {
-            throw new Error('Reverse geocoding failed')
+            throw new Error("Reverse geocoding failed");
           }
         } catch (error) {
           // Fallback to coordinates only
           const location: Location = {
             name: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
             lat: latitude,
-            lng: longitude
-          }
-          
-          onChange(location)
-          setSearchQuery(location.name)
-          
+            lng: longitude,
+          };
+
+          onChange(location);
+          setSearchQuery(location.name);
+
           toast({
             title: "Location set",
-            description: "Using coordinates as location name."
-          })
+            description: "Using coordinates as location name.",
+          });
         } finally {
-          setIsGettingLocation(false)
+          setIsGettingLocation(false);
         }
       },
       (error) => {
-        setIsGettingLocation(false)
-        
-        let message = "Unable to get your location."
+        setIsGettingLocation(false);
+
+        let message = "Unable to get your location.";
         if (error.code === error.PERMISSION_DENIED) {
-          message = "Location access denied. Please enable location services."
+          message = "Location access denied. Please enable location services.";
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          message = "Location information is unavailable."
+          message = "Location information is unavailable.";
         } else if (error.code === error.TIMEOUT) {
-          message = "Location request timed out."
+          message = "Location request timed out.";
         }
-        
+
         toast({
           title: "Location error",
           description: message,
-          variant: "destructive"
-        })
+          variant: "destructive",
+        });
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 300000 // 5 minutes
-      }
-    )
-  }, [onChange, toast])
+        maximumAge: 300000, // 5 minutes
+      },
+    );
+  }, [onChange, toast]);
 
   // Clear location
   const clearLocation = useCallback(() => {
-    onChange({ name: '', lat: undefined, lng: undefined })
-    setSearchQuery('')
-    setShowSuggestions(false)
-    setSuggestions([])
-    inputRef.current?.focus()
-  }, [onChange])
+    onChange({ name: "", lat: undefined, lng: undefined });
+    setSearchQuery("");
+    setShowSuggestions(false);
+    setSuggestions([]);
+    inputRef.current?.focus();
+  }, [onChange]);
 
   // Format display name for suggestions
   const formatDisplayName = (displayName: string): string => {
-    const parts = displayName.split(',')
+    const parts = displayName.split(",");
     if (parts.length > 3) {
-      return parts.slice(0, 3).join(',') + '...'
+      return parts.slice(0, 3).join(",") + "...";
     }
-    return displayName
-  }
+    return displayName;
+  };
 
   return (
     <div className={className}>
@@ -261,12 +263,12 @@ export function LocationPicker({
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleManualEntry()
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleManualEntry();
                 }
-                if (e.key === 'Escape') {
-                  setShowSuggestions(false)
+                if (e.key === "Escape") {
+                  setShowSuggestions(false);
                 }
               }}
               className="pl-10 pr-20"
@@ -304,7 +306,7 @@ export function LocationPicker({
               )}
               Use Current Location
             </Button>
-            
+
             {searchQuery && (
               <Button
                 type="button"
@@ -313,7 +315,8 @@ export function LocationPicker({
                 onClick={handleManualEntry}
               >
                 <Check className="h-4 w-4 mr-2" />
-                Use "{searchQuery.substring(0, 20)}{searchQuery.length > 20 ? '...' : ''}"
+                Use "{searchQuery.substring(0, 20)}
+                {searchQuery.length > 20 ? "..." : ""}"
               </Button>
             )}
           </div>
@@ -338,7 +341,8 @@ export function LocationPicker({
                           {formatDisplayName(suggestion.display_name)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {suggestion.type.charAt(0).toUpperCase() + suggestion.type.slice(1)}
+                          {suggestion.type.charAt(0).toUpperCase() +
+                            suggestion.type.slice(1)}
                         </p>
                       </div>
                     </div>
@@ -363,5 +367,5 @@ export function LocationPicker({
         )}
       </div>
     </div>
-  )
-} 
+  );
+}

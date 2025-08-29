@@ -127,7 +127,7 @@ export function SideMenu({
         "w-80 h-full bg-zinc-900/98  z-50 backdrop-blur-xl",
         "shadow-2xl border-r border-white/10",
         "flex flex-col",
-        className
+        className,
       )}
     >
       {/* Header */}
@@ -182,19 +182,19 @@ export function SideMenu({
                       "hover:bg-white/5",
                       "focus:outline-none focus-visible:bg-white/5",
                       isActive &&
-                        "bg-violet-600/10 border-l-3 border-violet-600"
+                        "bg-violet-600/10 border-l-3 border-violet-600",
                     )}
                   >
                     <Icon
                       className={cn(
                         "w-5 h-5",
-                        isActive ? "text-violet-400" : "text-white/60"
+                        isActive ? "text-violet-400" : "text-white/60",
                       )}
                     />
                     <span
                       className={cn(
                         "flex-1 font-medium",
-                        isActive ? "text-violet-400" : "text-white/90"
+                        isActive ? "text-violet-400" : "text-white/90",
                       )}
                     >
                       {item.label}

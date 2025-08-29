@@ -4,22 +4,31 @@
  * Total functions - no nullable leaks
  */
 
-import type { DbMemory, UIMemory, UIMemoryType, UITag, ProcessingStatus, MemoryEntryInsert, MemoryEntryUpdate } from '@/lib/types';
+import type {
+  DbMemory,
+  UIMemory,
+  UIMemoryType,
+  UITag,
+  ProcessingStatus,
+  MemoryEntryInsert,
+  MemoryEntryUpdate,
+} from "@/lib/types";
 
 const deriveType = (m: DbMemory): UIMemoryType => {
-  const c = (m.category ?? '').toLowerCase();
-  if (['audio', 'voice', 'mic', 'recording'].includes(c)) return 'voice';
-  if (['image', 'photo', 'picture', 'pic'].includes(c)) return 'photo';
-  if (['video', 'clip'].includes(c)) return 'video';
-  if (['event', 'milestone'].includes(c)) return 'event';
-  return 'text';
+  const c = (m.category ?? "").toLowerCase();
+  if (["audio", "voice", "mic", "recording"].includes(c)) return "voice";
+  if (["image", "photo", "picture", "pic"].includes(c)) return "photo";
+  if (["video", "clip"].includes(c)) return "video";
+  if (["event", "milestone"].includes(c)) return "event";
+  return "text";
 };
 
 const toTags = (arr: string[] | null | undefined): UITag[] =>
   (arr ?? []).map((label) => ({ id: label, label }));
 
 // Helper to check if value is defined (not null or undefined)
-const has = <T>(v: T | null | undefined): v is T => v !== null && v !== undefined;
+const has = <T>(v: T | null | undefined): v is T =>
+  v !== null && v !== undefined;
 
 /**
  * Convert DB MemoryEntry to UI-friendly format
@@ -38,7 +47,7 @@ export function dbToUiMemory(m: DbMemory): UIMemory {
     tags: toTags(m.tags), // Never null, always array
     category: m.category,
     needsReview: m.needs_review ?? false,
-    processingStatus: m.processing_status ?? 'queued',
+    processingStatus: m.processing_status ?? "queued",
     // Required fields with sensible defaults
     imageUrls: m.image_urls || [],
     videoUrls: m.video_urls || [],
@@ -46,9 +55,13 @@ export function dbToUiMemory(m: DbMemory): UIMemory {
     ...(has(m.location_name) ? { locationName: m.location_name } : {}),
     ...(has(m.location_lat) ? { locationLat: m.location_lat } : {}),
     ...(has(m.location_lng) ? { locationLng: m.location_lng } : {}),
-    ...(has(m.milestone_detected) ? { milestoneDetected: m.milestone_detected } : {}),
+    ...(has(m.milestone_detected)
+      ? { milestoneDetected: m.milestone_detected }
+      : {}),
     ...(has(m.milestone_type) ? { milestoneType: m.milestone_type } : {}),
-    ...(has(m.milestone_confidence) ? { milestoneConfidence: m.milestone_confidence } : {}),
+    ...(has(m.milestone_confidence)
+      ? { milestoneConfidence: m.milestone_confidence }
+      : {}),
     ...(has(m.memory_date) ? { memoryDate: m.memory_date } : {}),
   };
 }
@@ -56,7 +69,7 @@ export function dbToUiMemory(m: DbMemory): UIMemory {
 /**
  * Convert UI memory to DB MemoryEntry Insert format
  */
-export function uiToDbMemoryInsert(m: Omit<UIMemory, 'id'>): MemoryEntryInsert {
+export function uiToDbMemoryInsert(m: Omit<UIMemory, "id">): MemoryEntryInsert {
   return {
     child_id: m.childId,
     family_id: m.familyId,
@@ -67,7 +80,7 @@ export function uiToDbMemoryInsert(m: Omit<UIMemory, 'id'>): MemoryEntryInsert {
     category: m.category ?? m.type, // Pragmatic mapping
     tags: m.tags.map((t) => t.label),
     processing_status: m.processingStatus,
-    milestone_detected: m.tags.some(t => t.label === 'milestone'),
+    milestone_detected: m.tags.some((t) => t.label === "milestone"),
     needs_review: m.needsReview,
     // created_at/updated_at are DB defaults
   };
@@ -90,7 +103,7 @@ export function uiToDbMemory(m: UIMemory): DbMemory {
     tags: m.tags.map((t) => t.label),
     processing_status: m.processingStatus,
     classification_confidence: null,
-    milestone_detected: m.tags.some(t => t.label === 'milestone'),
+    milestone_detected: m.tags.some((t) => t.label === "milestone"),
     milestone_type: null,
     milestone_confidence: null,
     image_urls: null,
@@ -113,13 +126,16 @@ export function uiToDbMemory(m: UIMemory): DbMemory {
  */
 export function uiUpdateToDb(updates: Partial<UIMemory>): MemoryEntryUpdate {
   const dbUpdate: MemoryEntryUpdate = {};
-  
+
   if (updates.content !== undefined) dbUpdate.content = updates.content;
-  if (updates.tags !== undefined) dbUpdate.tags = updates.tags.map(t => t.label);
+  if (updates.tags !== undefined)
+    dbUpdate.tags = updates.tags.map((t) => t.label);
   if (updates.category !== undefined) dbUpdate.category = updates.category;
-  if (updates.processingStatus !== undefined) dbUpdate.processing_status = updates.processingStatus;
-  if (updates.needsReview !== undefined) dbUpdate.needs_review = updates.needsReview;
-  
+  if (updates.processingStatus !== undefined)
+    dbUpdate.processing_status = updates.processingStatus;
+  if (updates.needsReview !== undefined)
+    dbUpdate.needs_review = updates.needsReview;
+
   // updated_at handled by DB trigger
   return dbUpdate;
 }

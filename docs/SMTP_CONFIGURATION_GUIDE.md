@@ -29,6 +29,7 @@
    - Navigate to: **Settings** → **Auth** → **SMTP Settings**
    - Enable "Custom SMTP"
    - Enter these settings:
+
    ```
    Sender email: noreply@yourdomain.com
    Sender name: Seneca Protocol
@@ -37,6 +38,7 @@
    Username: resend
    Password: [Your API key starting with re_]
    ```
+
    - Click "Save"
 
 5. **Test It**
@@ -117,22 +119,24 @@ If SMTP is blocking you, enable password auth temporarily:
 ## Testing Your Configuration
 
 ### Quick Test Script
+
 ```javascript
 // Run this in browser console on /login page
 async function testSMTP() {
-  const email = 'test@example.com'; // Use your email
-  const response = await fetch('/api/test-smtp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
+  const email = "test@example.com"; // Use your email
+  const response = await fetch("/api/test-smtp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
   });
   const result = await response.json();
-  console.log('SMTP Test Result:', result);
+  console.log("SMTP Test Result:", result);
 }
 testSMTP();
 ```
 
 ### Manual Test
+
 1. Go to `/login`
 2. Enter your email
 3. Click "Send Magic Link"
@@ -142,6 +146,7 @@ testSMTP();
 ## Required Environment Variables
 
 Make sure these are set in your `.env.local`:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
@@ -178,6 +183,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ## Screenshots/Visuals Needed from Your Supabase
 
 To help configure SMTP, take screenshots of:
+
 1. Supabase Dashboard → Settings → Auth → SMTP Settings
 2. Your SMTP provider's dashboard (hiding sensitive keys)
 3. Any error messages in Supabase Logs → Auth

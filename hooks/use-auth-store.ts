@@ -4,9 +4,9 @@
  * Solo-first: familyId may be null for users without families
  */
 
-import { useEffect, useRef } from 'react';
-import { useAppStore } from '@/lib/stores/useAppStore';
-import type { User } from '@supabase/supabase-js';
+import { useEffect, useRef } from "react";
+import { useAppStore } from "@/lib/stores/useAppStore";
+import type { User } from "@supabase/supabase-js";
 
 interface AuthStoreConfig {
   user: User | null;
@@ -49,7 +49,10 @@ export function useAuthStore({ user, familyId }: AuthStoreConfig) {
     const nextFamily = familyId ?? null;
 
     // Family changed → clear family-scoped data
-    if (prevFamilyRef.current !== undefined && prevFamilyRef.current !== nextFamily) {
+    if (
+      prevFamilyRef.current !== undefined &&
+      prevFamilyRef.current !== nextFamily
+    ) {
       clearFamilyScopedData();
     }
     prevFamilyRef.current = nextFamily;

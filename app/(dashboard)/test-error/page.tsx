@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Test Page for Error Boundary
@@ -6,48 +6,56 @@
  * DEVELOPMENT ONLY - Remove in production
  */
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Database, Server, Zap } from 'lucide-react';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AlertTriangle, Database, Server, Zap } from "lucide-react";
 
 export default function TestErrorPage() {
-  const [errorType, setErrorType] = useState<string>('');
+  const [errorType, setErrorType] = useState<string>("");
 
   // Only show in development
-  if (process.env.NODE_ENV !== 'development') {
+  if (process.env.NODE_ENV !== "development") {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">This page is only available in development mode.</p>
+        <p className="text-muted-foreground">
+          This page is only available in development mode.
+        </p>
       </div>
     );
   }
 
   const triggerError = (type: string) => {
     setErrorType(type);
-    
+
     switch (type) {
-      case 'db':
-        throw new Error('Database connection failed: ECONNREFUSED');
-      
-      case 'auth':
-        throw new Error('Authentication failed: Invalid session token');
-      
-      case 'subscription':
-        throw new Error('Subscription check failed: Member record not found');
-      
-      case 'generic':
-        throw new Error('An unexpected error occurred in the dashboard');
-      
-      case 'async':
+      case "db":
+        throw new Error("Database connection failed: ECONNREFUSED");
+
+      case "auth":
+        throw new Error("Authentication failed: Invalid session token");
+
+      case "subscription":
+        throw new Error("Subscription check failed: Member record not found");
+
+      case "generic":
+        throw new Error("An unexpected error occurred in the dashboard");
+
+      case "async":
         // Simulate async error
         setTimeout(() => {
-          throw new Error('Async operation failed after delay');
+          throw new Error("Async operation failed after delay");
         }, 100);
         break;
-      
+
       default:
-        throw new Error('Unknown error type');
+        throw new Error("Unknown error type");
     }
   };
 
@@ -60,22 +68,23 @@ export default function TestErrorPage() {
             Error Boundary Test Page
           </CardTitle>
           <CardDescription>
-            Development only - Click buttons below to simulate various error scenarios
+            Development only - Click buttons below to simulate various error
+            scenarios
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-amber-50 p-4 text-sm">
             <p className="font-medium text-amber-900">⚠️ Warning</p>
             <p className="mt-1 text-amber-700">
-              Clicking these buttons will trigger real errors and activate the error boundary.
-              The page will be replaced with the error UI.
+              Clicking these buttons will trigger real errors and activate the
+              error boundary. The page will be replaced with the error UI.
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Button
               variant="destructive"
-              onClick={() => triggerError('db')}
+              onClick={() => triggerError("db")}
               className="justify-start"
             >
               <Database className="mr-2 h-4 w-4" />
@@ -84,7 +93,7 @@ export default function TestErrorPage() {
 
             <Button
               variant="destructive"
-              onClick={() => triggerError('auth')}
+              onClick={() => triggerError("auth")}
               className="justify-start"
             >
               <Server className="mr-2 h-4 w-4" />
@@ -93,7 +102,7 @@ export default function TestErrorPage() {
 
             <Button
               variant="destructive"
-              onClick={() => triggerError('subscription')}
+              onClick={() => triggerError("subscription")}
               className="justify-start"
             >
               <Zap className="mr-2 h-4 w-4" />
@@ -102,7 +111,7 @@ export default function TestErrorPage() {
 
             <Button
               variant="destructive"
-              onClick={() => triggerError('generic')}
+              onClick={() => triggerError("generic")}
               className="justify-start"
             >
               <AlertTriangle className="mr-2 h-4 w-4" />

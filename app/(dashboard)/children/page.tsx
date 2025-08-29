@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
 /**
  * Children Profiles View
  * Manage and view child profiles
  */
 
-import { useEffect, useState } from 'react';
-import type { UIChild } from '@/lib/types';
-import { apiChildToUi } from '@/lib/adapters/api';
-import { useFamily, useMemoryData } from '@/lib/stores/useAppStore';
-import { useApi } from '@/lib/services/mockApi';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from "react";
+import type { UIChild } from "@/lib/types";
+import { apiChildToUi } from "@/lib/adapters/api";
+import { useFamily, useMemoryData } from "@/lib/stores/useAppStore";
+import { useApi } from "@/lib/services/mockApi";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -24,16 +24,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Plus, Edit2, Trash2, Baby, Calendar, Trophy, BookOpen } from 'lucide-react';
-import { formatTimestamp } from '@/lib/stores/mockData';
+} from "@/components/ui/select";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Baby,
+  Calendar,
+  Trophy,
+  BookOpen,
+} from "lucide-react";
+import { formatTimestamp } from "@/lib/stores/mockData";
 
 export default function ChildrenPage() {
   const { children, activeChildId, switchChild } = useFamily();
@@ -44,15 +52,15 @@ export default function ChildrenPage() {
     id: string;
     name: string;
     age: number;
-    ageUnit: 'years' | 'months';
+    ageUnit: "years" | "months";
     emoji: string;
   }
   const [editingChild, setEditingChild] = useState<EditChildData | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    age: '',
-    ageUnit: 'years' as 'years' | 'months',
-    emoji: '👶',
+    name: "",
+    age: "",
+    ageUnit: "years" as "years" | "months",
+    emoji: "👶",
   });
   const api = useApi();
   const { toast } = useToast();
@@ -63,21 +71,21 @@ export default function ChildrenPage() {
     setUiChildren(children);
   }, [children]);
 
-  const emojiOptions = ['👶', '👧', '👦', '👩', '👨', '🧒', '👼', '🍼'];
+  const emojiOptions = ["👶", "👧", "👦", "👩", "👨", "🧒", "👼", "🍼"];
   const gradientOptions = [
-    'bg-gradient-to-r from-pink-500 to-rose-500',
-    'bg-gradient-to-r from-blue-500 to-cyan-500',
-    'bg-gradient-to-r from-purple-500 to-indigo-500',
-    'bg-gradient-to-r from-green-500 to-emerald-500',
-    'bg-gradient-to-r from-yellow-500 to-orange-500',
+    "bg-gradient-to-r from-pink-500 to-rose-500",
+    "bg-gradient-to-r from-blue-500 to-cyan-500",
+    "bg-gradient-to-r from-purple-500 to-indigo-500",
+    "bg-gradient-to-r from-green-500 to-emerald-500",
+    "bg-gradient-to-r from-yellow-500 to-orange-500",
   ];
 
   const handleAddChild = async () => {
     if (!formData.name || !formData.age) {
       toast({
-        title: 'Missing information',
-        description: 'Please fill in all fields',
-        variant: 'destructive',
+        title: "Missing information",
+        description: "Please fill in all fields",
+        variant: "destructive",
       });
       return;
     }
@@ -90,27 +98,28 @@ export default function ChildrenPage() {
         ageUnit: formData.ageUnit,
         emoji: formData.emoji,
         theme: {
-          gradient: gradientOptions[Math.floor(Math.random() * gradientOptions.length)],
-          primary: 'bg-blue-500',
-          secondary: 'bg-blue-100',
+          gradient:
+            gradientOptions[Math.floor(Math.random() * gradientOptions.length)],
+          primary: "bg-blue-500",
+          secondary: "bg-blue-100",
         },
       });
 
       toast({
-        title: 'Child added',
+        title: "Child added",
         description: `${newChild.name} has been added to your family`,
       });
 
       setIsAddDialogOpen(false);
-      setFormData({ name: '', age: '', ageUnit: 'years', emoji: '👶' });
+      setFormData({ name: "", age: "", ageUnit: "years", emoji: "👶" });
       // Update local UI list - convert API response to UI child
       const uiChild = apiChildToUi(newChild);
       setUiChildren((prev) => [...prev, uiChild]);
     } catch {
       toast({
-        title: 'Error adding child',
-        description: 'Please try again',
-        variant: 'destructive',
+        title: "Error adding child",
+        description: "Please try again",
+        variant: "destructive",
       });
     }
   };
@@ -128,7 +137,7 @@ export default function ChildrenPage() {
       });
 
       toast({
-        title: 'Child updated',
+        title: "Child updated",
         description: `${formData.name}'s profile has been updated`,
       });
 
@@ -144,19 +153,23 @@ export default function ChildrenPage() {
             emoji: formData.emoji,
             // Keep computed properties as-is since they're computed by adapter
           };
-        })
+        }),
       );
     } catch {
       toast({
-        title: 'Error updating child',
-        description: 'Please try again',
-        variant: 'destructive',
+        title: "Error updating child",
+        description: "Please try again",
+        variant: "destructive",
       });
     }
   };
 
   const handleDeleteChild = async (childId: string, childName: string) => {
-    if (!confirm(`Are you sure you want to remove ${childName}? This will also delete all associated memories and milestones.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to remove ${childName}? This will also delete all associated memories and milestones.`,
+      )
+    ) {
       return;
     }
 
@@ -165,7 +178,7 @@ export default function ChildrenPage() {
       await api.deleteChild(childId);
 
       toast({
-        title: 'Child removed',
+        title: "Child removed",
         description: `${childName} has been removed from your family`,
       });
 
@@ -177,9 +190,9 @@ export default function ChildrenPage() {
       }
     } catch {
       toast({
-        title: 'Error removing child',
-        description: 'Please try again',
-        variant: 'destructive',
+        title: "Error removing child",
+        description: "Please try again",
+        variant: "destructive",
       });
     }
   };
@@ -189,14 +202,14 @@ export default function ChildrenPage() {
       id: child.id,
       name: child.name,
       age: 2,
-      ageUnit: 'years',
-      emoji: '👶'
+      ageUnit: "years",
+      emoji: "👶",
     });
     setFormData({
       name: child.name,
-      age: '2',
-      ageUnit: 'years',
-      emoji: '👶',
+      age: "2",
+      ageUnit: "years",
+      emoji: "👶",
     });
     setIsEditDialogOpen(true);
   };
@@ -231,7 +244,9 @@ export default function ChildrenPage() {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="Enter child's name"
                   className="bg-white/5 border-white/10"
                 />
@@ -243,7 +258,9 @@ export default function ChildrenPage() {
                     id="age"
                     type="number"
                     value={formData.age}
-                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, age: e.target.value })
+                    }
                     placeholder="2"
                     className="bg-white/5 border-white/10"
                   />
@@ -252,7 +269,7 @@ export default function ChildrenPage() {
                   <Label htmlFor="ageUnit">Unit</Label>
                   <Select
                     value={formData.ageUnit}
-                    onValueChange={(value: 'years' | 'months') => 
+                    onValueChange={(value: "years" | "months") =>
                       setFormData({ ...formData, ageUnit: value })
                     }
                   >
@@ -272,7 +289,7 @@ export default function ChildrenPage() {
                   {emojiOptions.map((emoji) => (
                     <Button
                       key={emoji}
-                      variant={formData.emoji === emoji ? 'default' : 'outline'}
+                      variant={formData.emoji === emoji ? "default" : "outline"}
                       size="sm"
                       onClick={() => setFormData({ ...formData, emoji })}
                       className="text-xl"
@@ -284,7 +301,10 @@ export default function ChildrenPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+              >
                 Cancel
               </Button>
               <Button onClick={handleAddChild}>Add Child</Button>
@@ -296,15 +316,17 @@ export default function ChildrenPage() {
       {/* Children Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {uiChildren.map((child) => {
-          const childMemories = memories.filter(m => m.childId === child.id);
-          const childMilestones = milestones.filter(m => m.childId === child.id);
+          const childMemories = memories.filter((m) => m.childId === child.id);
+          const childMilestones = milestones.filter(
+            (m) => m.childId === child.id,
+          );
           const recentMemory = childMemories[0];
-          
+
           return (
-            <Card 
-              key={child.id} 
+            <Card
+              key={child.id}
               className={`bg-white/5 border-white/10 p-6 ${
-                child.id === activeChildId ? 'ring-2 ring-violet-500' : ''
+                child.id === activeChildId ? "ring-2 ring-violet-500" : ""
               }`}
             >
               {/* Header */}
@@ -333,9 +355,7 @@ export default function ChildrenPage() {
               {/* Child Info */}
               <div className="mb-4">
                 <h3 className="text-xl font-semibold">{child.name}</h3>
-                <p className="text-gray-400">
-                  Child profile
-                </p>
+                <p className="text-gray-400">Child profile</p>
               </div>
 
               {/* Stats */}
@@ -345,14 +365,18 @@ export default function ChildrenPage() {
                     <BookOpen className="w-4 h-4" />
                     Memories
                   </div>
-                  <span className="text-sm font-medium">{childMemories.length}</span>
+                  <span className="text-sm font-medium">
+                    {childMemories.length}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-gray-400">
                     <Trophy className="w-4 h-4" />
                     Milestones
                   </div>
-                  <span className="text-sm font-medium">{childMilestones.length}</span>
+                  <span className="text-sm font-medium">
+                    {childMilestones.length}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -360,7 +384,9 @@ export default function ChildrenPage() {
                     Last Activity
                   </div>
                   <span className="text-sm font-medium">
-                    {recentMemory ? formatTimestamp(recentMemory.timestamp) : 'No activity'}
+                    {recentMemory
+                      ? formatTimestamp(recentMemory.timestamp)
+                      : "No activity"}
                   </span>
                 </div>
               </div>
@@ -368,12 +394,12 @@ export default function ChildrenPage() {
               {/* Action Buttons */}
               <div className="flex gap-2">
                 <Button
-                  variant={child.id === activeChildId ? 'default' : 'outline'}
+                  variant={child.id === activeChildId ? "default" : "outline"}
                   size="sm"
                   className="flex-1"
                   onClick={() => switchChild(child.id)}
                 >
-                  {child.id === activeChildId ? 'Active' : 'Set Active'}
+                  {child.id === activeChildId ? "Active" : "Set Active"}
                 </Button>
                 <Button
                   variant="outline"
@@ -381,7 +407,7 @@ export default function ChildrenPage() {
                   className="flex-1"
                   onClick={() => {
                     switchChild(child.id);
-                    window.location.href = '/memories';
+                    window.location.href = "/memories";
                   }}
                 >
                   View Memories
@@ -415,7 +441,8 @@ export default function ChildrenPage() {
           <DialogHeader>
             <DialogTitle>Edit Child Profile</DialogTitle>
             <DialogDescription>
-              Update {editingChild?.name}{`'`}s information
+              Update {editingChild?.name}
+              {`'`}s information
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -424,7 +451,9 @@ export default function ChildrenPage() {
               <Input
                 id="edit-name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="Enter child's name"
                 className="bg-white/5 border-white/10"
               />
@@ -436,7 +465,9 @@ export default function ChildrenPage() {
                   id="edit-age"
                   type="number"
                   value={formData.age}
-                  onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, age: e.target.value })
+                  }
                   placeholder="2"
                   className="bg-white/5 border-white/10"
                 />
@@ -445,7 +476,7 @@ export default function ChildrenPage() {
                 <Label htmlFor="edit-ageUnit">Unit</Label>
                 <Select
                   value={formData.ageUnit}
-                  onValueChange={(value: 'years' | 'months') => 
+                  onValueChange={(value: "years" | "months") =>
                     setFormData({ ...formData, ageUnit: value })
                   }
                 >
@@ -465,7 +496,7 @@ export default function ChildrenPage() {
                 {emojiOptions.map((emoji) => (
                   <Button
                     key={emoji}
-                    variant={formData.emoji === emoji ? 'default' : 'outline'}
+                    variant={formData.emoji === emoji ? "default" : "outline"}
                     size="sm"
                     onClick={() => setFormData({ ...formData, emoji })}
                     className="text-xl"
@@ -477,7 +508,10 @@ export default function ChildrenPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleEditChild}>Save Changes</Button>

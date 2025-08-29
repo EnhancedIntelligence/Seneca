@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
 /**
  * Analytics View
  * Detailed analytics and insights
  */
 
-import { useState, useEffect } from 'react';
-import { useFamily, useMemoryData } from '@/lib/stores/useAppStore';
-import { useApi } from '@/lib/services/mockApi';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useEffect } from "react";
+import { useFamily, useMemoryData } from "@/lib/stores/useAppStore";
+import { useApi } from "@/lib/services/mockApi";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BarChart,
   Bar,
@@ -26,8 +26,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
-import { TrendingUp, Brain, Heart, Activity } from 'lucide-react';
+} from "recharts";
+import { TrendingUp, Brain, Heart, Activity } from "lucide-react";
 
 export default function AnalyticsPage() {
   const { children } = useFamily();
@@ -51,7 +51,7 @@ export default function AnalyticsPage() {
         const data = await api.getAnalytics();
         setAnalytics(data);
       } catch (error) {
-        console.error('Error loading analytics:', error);
+        console.error("Error loading analytics:", error);
       } finally {
         setIsLoading(false);
       }
@@ -75,24 +75,44 @@ export default function AnalyticsPage() {
 
   // Prepare chart data - using UI types now
   const memoryTypeData = [
-    { name: 'Voice', value: memories.filter(m => m.type === 'voice').length, color: '#8b5cf6' },
-    { name: 'Text', value: memories.filter(m => m.type === 'text').length, color: '#3b82f6' },
-    { name: 'Photo', value: memories.filter(m => m.type === 'photo').length, color: '#10b981' },
-    { name: 'Video', value: memories.filter(m => m.type === 'video').length, color: '#ef4444' },
-    { name: 'Event', value: memories.filter(m => m.type === 'event').length, color: '#f59e0b' },
+    {
+      name: "Voice",
+      value: memories.filter((m) => m.type === "voice").length,
+      color: "#8b5cf6",
+    },
+    {
+      name: "Text",
+      value: memories.filter((m) => m.type === "text").length,
+      color: "#3b82f6",
+    },
+    {
+      name: "Photo",
+      value: memories.filter((m) => m.type === "photo").length,
+      color: "#10b981",
+    },
+    {
+      name: "Video",
+      value: memories.filter((m) => m.type === "video").length,
+      color: "#ef4444",
+    },
+    {
+      name: "Event",
+      value: memories.filter((m) => m.type === "event").length,
+      color: "#f59e0b",
+    },
   ];
 
   const weeklyData = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
-    const dayMemories = memories.filter(m => {
+    const dayMemories = memories.filter((m) => {
       const memDate = new Date(m.timestamp); // UI type has timestamp
       return memDate.toDateString() === date.toDateString();
     });
     return {
-      day: date.toLocaleDateString('en', { weekday: 'short' }),
+      day: date.toLocaleDateString("en", { weekday: "short" }),
       memories: dayMemories.length,
-      milestones: milestones.filter(m => {
+      milestones: milestones.filter((m) => {
         const mDate = new Date(m.achievedAt);
         return mDate.toDateString() === date.toDateString();
       }).length,
@@ -100,11 +120,31 @@ export default function AnalyticsPage() {
   });
 
   const tagDistribution = [
-    { tag: 'Physical', count: memories.filter(m => m.tags.some(t => t.label === 'physical')).length },
-    { tag: 'Language', count: memories.filter(m => m.tags.some(t => t.label === 'language')).length },
-    { tag: 'Cognitive', count: memories.filter(m => m.tags.some(t => t.label === 'cognitive')).length },
-    { tag: 'Social', count: memories.filter(m => m.tags.some(t => t.label === 'social')).length },
-    { tag: 'Emotional', count: memories.filter(m => m.tags.some(t => t.label === 'emotional')).length },
+    {
+      tag: "Physical",
+      count: memories.filter((m) => m.tags.some((t) => t.label === "physical"))
+        .length,
+    },
+    {
+      tag: "Language",
+      count: memories.filter((m) => m.tags.some((t) => t.label === "language"))
+        .length,
+    },
+    {
+      tag: "Cognitive",
+      count: memories.filter((m) => m.tags.some((t) => t.label === "cognitive"))
+        .length,
+    },
+    {
+      tag: "Social",
+      count: memories.filter((m) => m.tags.some((t) => t.label === "social"))
+        .length,
+    },
+    {
+      tag: "Emotional",
+      count: memories.filter((m) => m.tags.some((t) => t.label === "emotional"))
+        .length,
+    },
   ];
 
   return (
@@ -114,7 +154,9 @@ export default function AnalyticsPage() {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
           Analytics Dashboard
         </h1>
-        <p className="text-gray-400 mt-1">Deep insights into your family{`'`}s development</p>
+        <p className="text-gray-400 mt-1">
+          Deep insights into your family{`'`}s development
+        </p>
       </div>
 
       {/* Summary Cards */}
@@ -170,24 +212,27 @@ export default function AnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis dataKey="day" stroke="#999" />
                 <YAxis stroke="#999" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #333' }}
-                  labelStyle={{ color: '#fff' }}
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#18181b",
+                    border: "1px solid #333",
+                  }}
+                  labelStyle={{ color: "#fff" }}
                 />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="memories" 
-                  stroke="#8b5cf6" 
+                <Line
+                  type="monotone"
+                  dataKey="memories"
+                  stroke="#8b5cf6"
                   strokeWidth={2}
-                  dot={{ fill: '#8b5cf6' }}
+                  dot={{ fill: "#8b5cf6" }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="milestones" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="milestones"
+                  stroke="#3b82f6"
                   strokeWidth={2}
-                  dot={{ fill: '#3b82f6' }}
+                  dot={{ fill: "#3b82f6" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -196,7 +241,9 @@ export default function AnalyticsPage() {
 
         <TabsContent value="types" className="space-y-4">
           <Card className="bg-white/5 border-white/10 p-6">
-            <h3 className="text-lg font-semibold mb-4">Memory Type Distribution</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              Memory Type Distribution
+            </h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -213,8 +260,11 @@ export default function AnalyticsPage() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #333' }}
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#18181b",
+                    border: "1px solid #333",
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -229,9 +279,12 @@ export default function AnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis dataKey="tag" stroke="#999" />
                 <YAxis stroke="#999" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #333' }}
-                  labelStyle={{ color: '#fff' }}
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#18181b",
+                    border: "1px solid #333",
+                  }}
+                  labelStyle={{ color: "#fff" }}
                 />
                 <Bar dataKey="count" fill="#8b5cf6" />
               </BarChart>
@@ -242,9 +295,13 @@ export default function AnalyticsPage() {
         <TabsContent value="children" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {children.map((child) => {
-              const childMemories = memories.filter(m => m.childId === child.id);
-              const childMilestones = milestones.filter(m => m.childId === child.id);
-              
+              const childMemories = memories.filter(
+                (m) => m.childId === child.id,
+              );
+              const childMilestones = milestones.filter(
+                (m) => m.childId === child.id,
+              );
+
               return (
                 <Card key={child.id} className="bg-white/5 border-white/10 p-6">
                   <div className="flex items-center gap-3 mb-4">
@@ -253,26 +310,32 @@ export default function AnalyticsPage() {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold">{child.name}</h3>
-                      <p className="text-sm text-gray-400">
-                        Child profile
-                      </p>
+                      <p className="text-sm text-gray-400">Child profile</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span>Memories</span>
                         <span>{childMemories.length}</span>
                       </div>
-                      <Progress value={(childMemories.length / memories.length) * 100} className="h-2" />
+                      <Progress
+                        value={(childMemories.length / memories.length) * 100}
+                        className="h-2"
+                      />
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span>Milestones</span>
                         <span>{childMilestones.length}</span>
                       </div>
-                      <Progress value={(childMilestones.length / milestones.length) * 100} className="h-2" />
+                      <Progress
+                        value={
+                          (childMilestones.length / milestones.length) * 100
+                        }
+                        className="h-2"
+                      />
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-1">
@@ -298,17 +361,23 @@ export default function AnalyticsPage() {
         <div className="space-y-3">
           <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg">
             <p className="text-sm">
-              <strong>Language Development:</strong> Emma shows a 40% increase in vocabulary usage this month. Peak learning times are between 10-11 AM.
+              <strong>Language Development:</strong> Emma shows a 40% increase
+              in vocabulary usage this month. Peak learning times are between
+              10-11 AM.
             </p>
           </div>
           <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <p className="text-sm">
-              <strong>Physical Milestones:</strong> Lucas is progressing well with gross motor skills. Consider documenting more balance and coordination activities.
+              <strong>Physical Milestones:</strong> Lucas is progressing well
+              with gross motor skills. Consider documenting more balance and
+              coordination activities.
             </p>
           </div>
           <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
             <p className="text-sm">
-              <strong>Social Interactions:</strong> Both children show positive social development. More playtime documentation could provide valuable insights.
+              <strong>Social Interactions:</strong> Both children show positive
+              social development. More playtime documentation could provide
+              valuable insights.
             </p>
           </div>
         </div>

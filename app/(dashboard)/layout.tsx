@@ -1,6 +1,6 @@
 /**
  * Dashboard Layout
- * 
+ *
  * Wraps all dashboard routes with authentication AND subscription protection.
  * Uses server-side initial check + client-side auth provider for:
  * - Session verification without middleware
@@ -11,16 +11,16 @@
  * - Real-time session monitoring
  */
 
-import { redirect } from 'next/navigation';
-import { protectRoute } from '@/lib/server/subscription';
-import { AuthError, ForbiddenError } from '@/lib/server/errors';
-import { AppShell } from '@/components/layout/AppShell';
-import { DashboardAuthProvider } from '@/components/auth/DashboardAuthProviderV2';
+import { redirect } from "next/navigation";
+import { protectRoute } from "@/lib/server/subscription";
+import { AuthError, ForbiddenError } from "@/lib/server/errors";
+import { AppShell } from "@/components/layout/AppShell";
+import { DashboardAuthProvider } from "@/components/auth/DashboardAuthProviderV2";
 
 // Force Node.js runtime to avoid Edge + Supabase issues
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 // Force dynamic rendering to avoid caching issues with auth
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 // Prevent caching of subscription state
 export const revalidate = 0;
 
@@ -39,14 +39,14 @@ export default async function DashboardLayout({
   } catch (err: unknown) {
     // Use instanceof for type-safe error checking
     if (err instanceof AuthError) {
-      return redirect('/login');
+      return redirect("/login");
     }
     if (err instanceof ForbiddenError) {
-      return redirect('/billing');
+      return redirect("/billing");
     }
     // Unknown error -> safe fallback to login
-    console.error('[DASHBOARD_GATE] Unexpected error:', err);
-    return redirect('/login');
+    console.error("[DASHBOARD_GATE] Unexpected error:", err);
+    return redirect("/login");
   }
   // User has valid session AND active subscription
   // Render dashboard with client-side auth provider

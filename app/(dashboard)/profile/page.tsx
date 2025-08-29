@@ -1,30 +1,30 @@
-'use client';
+"use client";
 
 /**
  * User Profile Page
  * View and manage user profile
  */
 
-import { useEffect } from 'react';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { useFamily, useMemoryData } from '@/lib/stores/useAppStore';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Mail, 
+import { useEffect } from "react";
+import { useAuthContext } from "@/lib/contexts/AuthContext";
+import { useFamily, useMemoryData } from "@/lib/stores/useAppStore";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  Mail,
   Calendar,
   Award,
   BookOpen,
   Users,
   Settings,
   LogOut,
-  Edit
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { formatTimestamp } from '@/lib/stores/mockData';
+  Edit,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { formatTimestamp } from "@/lib/stores/mockData";
 
 export default function ProfilePage() {
   const { user, logout } = useAuthContext();
@@ -34,7 +34,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [user, router]);
 
@@ -46,20 +46,20 @@ export default function ProfilePage() {
   const totalMemories = memories.length;
   const totalMilestones = milestones.length;
   const totalChildren = children.length;
-  const memberSince = new Date(user.createdAt).toLocaleDateString('en', {
-    month: 'long',
-    year: 'numeric',
+  const memberSince = new Date(user.createdAt).toLocaleDateString("en", {
+    month: "long",
+    year: "numeric",
   });
 
   // Calculate activity
-  const thisWeek = memories.filter(m => {
+  const thisWeek = memories.filter((m) => {
     const date = new Date(m.timestamp);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     return date > weekAgo;
   }).length;
 
-  const thisMonth = memories.filter(m => {
+  const thisMonth = memories.filter((m) => {
     const date = new Date(m.timestamp);
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
@@ -73,7 +73,9 @@ export default function ProfilePage() {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
           Profile
         </h1>
-        <p className="text-gray-400 mt-1">Your account information and statistics</p>
+        <p className="text-gray-400 mt-1">
+          Your account information and statistics
+        </p>
       </div>
 
       {/* Profile Card */}
@@ -108,7 +110,7 @@ export default function ProfilePage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push('/settings')}
+            onClick={() => router.push("/settings")}
             className="bg-white/5 border-white/10"
           >
             <Edit className="w-4 h-4 mr-2" />
@@ -127,7 +129,10 @@ export default function ProfilePage() {
               <div className="text-sm text-gray-400">Total Memories</div>
             </div>
           </div>
-          <Progress value={Math.min((totalMemories / 100) * 100, 100)} className="h-2" />
+          <Progress
+            value={Math.min((totalMemories / 100) * 100, 100)}
+            className="h-2"
+          />
           <p className="text-xs text-gray-400 mt-2">
             {thisWeek} this week • {thisMonth} this month
           </p>
@@ -141,7 +146,10 @@ export default function ProfilePage() {
               <div className="text-sm text-gray-400">Milestones</div>
             </div>
           </div>
-          <Progress value={Math.min((totalMilestones / 50) * 100, 100)} className="h-2" />
+          <Progress
+            value={Math.min((totalMilestones / 50) * 100, 100)}
+            className="h-2"
+          />
           <p className="text-xs text-gray-400 mt-2">
             Tracking development progress
           </p>
@@ -155,10 +163,11 @@ export default function ProfilePage() {
               <div className="text-sm text-gray-400">Children</div>
             </div>
           </div>
-          <Progress value={Math.min((totalChildren / 5) * 100, 100)} className="h-2" />
-          <p className="text-xs text-gray-400 mt-2">
-            Family members tracked
-          </p>
+          <Progress
+            value={Math.min((totalChildren / 5) * 100, 100)}
+            className="h-2"
+          />
+          <p className="text-xs text-gray-400 mt-2">Family members tracked</p>
         </Card>
       </div>
 
@@ -167,16 +176,21 @@ export default function ProfilePage() {
         <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
         <div className="space-y-3">
           {memories.slice(0, 5).map((memory) => {
-            const child = children.find(c => c.id === memory.childId);
+            const child = children.find((c) => c.id === memory.childId);
             return (
-              <div key={memory.id} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                <div className="text-2xl">{child?.emoji || '👶'}</div>
+              <div
+                key={memory.id}
+                className="flex items-start gap-3 p-3 bg-white/5 rounded-lg"
+              >
+                <div className="text-2xl">{child?.emoji || "👶"}</div>
                 <div className="flex-1">
                   <p className="text-sm">{memory.content}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-gray-400">{child?.name}</span>
                     <span className="text-xs text-gray-500">•</span>
-                    <span className="text-xs text-gray-400">{formatTimestamp(memory.timestamp)}</span>
+                    <span className="text-xs text-gray-400">
+                      {formatTimestamp(memory.timestamp)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -192,7 +206,7 @@ export default function ProfilePage() {
           <Button
             variant="outline"
             className="bg-white/5 border-white/10"
-            onClick={() => router.push('/capture')}
+            onClick={() => router.push("/capture")}
           >
             <BookOpen className="w-4 h-4 mr-2" />
             Add Memory
@@ -200,7 +214,7 @@ export default function ProfilePage() {
           <Button
             variant="outline"
             className="bg-white/5 border-white/10"
-            onClick={() => router.push('/children')}
+            onClick={() => router.push("/children")}
           >
             <Users className="w-4 h-4 mr-2" />
             Manage Children
@@ -208,7 +222,7 @@ export default function ProfilePage() {
           <Button
             variant="outline"
             className="bg-white/5 border-white/10"
-            onClick={() => router.push('/settings')}
+            onClick={() => router.push("/settings")}
           >
             <Settings className="w-4 h-4 mr-2" />
             Settings

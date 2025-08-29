@@ -13,103 +13,106 @@ const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     ignores: [
-      '.next/**',
-      'node_modules/**',
-      'supabase/.temp/**',
-      '**/*.gen.ts',
-      '**/*.d.ts',
-      'test/**',
-      'e2e/**',
-      '.ai/**',
-      'coverage/**',
-      'dist/**'
-    ]
+      ".next/**",
+      "node_modules/**",
+      "supabase/.temp/**",
+      "**/*.gen.ts",
+      "**/*.d.ts",
+      "test/**",
+      "e2e/**",
+      ".ai/**",
+      "coverage/**",
+      "dist/**",
+    ],
   },
   // Client-side files cannot import server modules
   {
-    files: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
+    files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
     rules: {
       // Enforce camelCase in UI layer
-      '@typescript-eslint/naming-convention': [
-        'warn',
+      "@typescript-eslint/naming-convention": [
+        "warn",
         {
-          selector: 'property',
-          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
-          filter: { regex: '^(aria-.+|data-.+|__html|_.*)', match: false }
-        }
+          selector: "property",
+          format: ["camelCase", "UPPER_CASE", "PascalCase"],
+          filter: { regex: "^(aria-.+|data-.+|__html|_.*)", match: false },
+        },
       ],
       // Block snake_case in UI components
-      'no-restricted-syntax': [
-        'warn',
+      "no-restricted-syntax": [
+        "warn",
         {
           selector: "MemberExpression[property.name=/.*_.*/]",
-          message: 'Use camelCase in app/components; convert in adapters/services.'
-        }
+          message:
+            "Use camelCase in app/components; convert in adapters/services.",
+        },
       ],
       // Block direct DB type imports in UI and AI imports
-      'no-restricted-imports': [
-        'error',
+      "no-restricted-imports": [
+        "error",
         {
           patterns: [
             {
-              group: ['**/lib/types/database*'],
-              message: 'Do not import database types directly in UI layer'
+              group: ["**/lib/types/database*"],
+              message: "Do not import database types directly in UI layer",
             },
             {
-              group: ['.ai/*', '**/.ai/*'],
-              message: 'AI artifacts are reference-only; do not import.'
+              group: [".ai/*", "**/.ai/*"],
+              message: "AI artifacts are reference-only; do not import.",
             },
             {
-              group: ['@/lib/server/*', '**/lib/server/*'],
-              message: 'Client components cannot import server-only modules. Use lib/public/env.public.ts instead.'
+              group: ["@/lib/server/*", "**/lib/server/*"],
+              message:
+                "Client components cannot import server-only modules. Use lib/public/env.public.ts instead.",
             },
             {
-              group: ['@/lib/env', '**/lib/env.ts'],
-              message: 'Use lib/public/env.public.ts for client components or lib/server/env.server.ts for server code.'
-            }
-          ]
-        }
-      ]
-    }
+              group: ["@/lib/env", "**/lib/env.ts"],
+              message:
+                "Use lib/public/env.public.ts for client components or lib/server/env.server.ts for server code.",
+            },
+          ],
+        },
+      ],
+    },
   },
   // API layer - allow snake_case for database fields
   {
-    files: ['app/api/**/*.ts'],
+    files: ["app/api/**/*.ts"],
     rules: {
-      '@typescript-eslint/naming-convention': [
-        'error',
+      "@typescript-eslint/naming-convention": [
+        "error",
         {
-          selector: 'property',
-          format: ['camelCase', 'snake_case', 'UPPER_CASE', 'PascalCase'],
-          filter: { regex: '^(aria-.+|data-.+|__html)', match: false }
-        }
+          selector: "property",
+          format: ["camelCase", "snake_case", "UPPER_CASE", "PascalCase"],
+          filter: { regex: "^(aria-.+|data-.+|__html)", match: false },
+        },
       ],
       // Disable snake_case warnings in API routes
-      'no-restricted-syntax': 'off',
+      "no-restricted-syntax": "off",
       // Allow unused _ prefixed variables (for unused params)
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        { 
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          ignoreRestSiblings: true
-        }
-      ]
-    }
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
   },
   // Server-side files (actions, API routes, layouts) can import server modules
   {
     files: [
-      'app/**/actions.{ts,tsx}',
-      'app/**/route.{ts,tsx}', 
-      'app/**/layout.{ts,tsx}',
-      'app/(dashboard)/home/page.tsx' // Server component that needs server imports
+      "app/**/actions.{ts,tsx}",
+      "app/**/route.{ts,tsx}",
+      "app/**/layout.{ts,tsx}",
+      "app/(dashboard)/home/page.tsx", // Server component that needs server imports
     ],
     rules: {
       // Override the client restriction for server files
-      'no-restricted-imports': 'off'
-    }
-  }
+      "no-restricted-imports": "off",
+    },
+  },
 ];
 
 export default eslintConfig;

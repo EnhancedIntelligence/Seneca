@@ -97,7 +97,7 @@ export default function CapturePage() {
         "eating",
         "sleep",
         "play",
-      ].includes(t)
+      ].includes(t),
     );
     const tagsUi = toTags(validTags);
 

@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
 /**
  * Dashboard Overview
  * Analytics and insights display
  */
 
-import { useState, useEffect } from 'react';
-import { MetricCard } from '@/components/dashboard/MetricCard';
-import { InsightCard } from '@/components/dashboard/InsightCard';
-import { ChildCard } from '@/components/dashboard/ChildCard';
-import { MilestoneTimeline } from '@/components/dashboard/MilestoneTimeline';
-import { useFamily, useMemoryData } from '@/lib/stores/useAppStore';
-import type { UIMemory, UIChild } from '@/lib/types';
-import { useApi } from '@/lib/services/mockApi';
-import { BookOpen, TrendingUp, Award, Activity, Zap } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useEffect } from "react";
+import { MetricCard } from "@/components/dashboard/MetricCard";
+import { InsightCard } from "@/components/dashboard/InsightCard";
+import { ChildCard } from "@/components/dashboard/ChildCard";
+import { MilestoneTimeline } from "@/components/dashboard/MilestoneTimeline";
+import { useFamily, useMemoryData } from "@/lib/stores/useAppStore";
+import type { UIMemory, UIChild } from "@/lib/types";
+import { useApi } from "@/lib/services/mockApi";
+import { BookOpen, TrendingUp, Award, Activity, Zap } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function OverviewPage() {
   const { children } = useFamily();
@@ -36,17 +36,23 @@ export default function OverviewPage() {
       errorRate: number;
     };
   }
-  
+
   interface InsightData {
     id: string;
-    type: 'prediction' | 'pattern' | 'recommendation' | 'comparison' | 'milestone' | 'alert';
-    severity: 'info' | 'success' | 'warning' | 'error';
+    type:
+      | "prediction"
+      | "pattern"
+      | "recommendation"
+      | "comparison"
+      | "milestone"
+      | "alert";
+    severity: "info" | "success" | "warning" | "error";
     title: string;
     description: string; // API returns description, not content
     childId: string | null;
     timestamp: string;
   }
-  
+
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [insights, setInsights] = useState<InsightData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,31 +67,40 @@ export default function OverviewPage() {
           api.getAnalytics(),
           api.getInsights(),
         ]);
-        
+
         // Use actual analytics data from API, don't compute fake metrics
         setAnalytics(analyticsData);
-        
+
         // Safely coerce insight types
-        const toInsightType = (s: string): InsightData['type'] => {
-          if (['prediction', 'pattern', 'recommendation', 'comparison', 'milestone', 'alert'].includes(s)) {
-            return s as InsightData['type'];
+        const toInsightType = (s: string): InsightData["type"] => {
+          if (
+            [
+              "prediction",
+              "pattern",
+              "recommendation",
+              "comparison",
+              "milestone",
+              "alert",
+            ].includes(s)
+          ) {
+            return s as InsightData["type"];
           }
-          return 'pattern';
+          return "pattern";
         };
-        
+
         setInsights(
           insightsData.map((i: any) => ({
             id: i.id,
             type: toInsightType(i.type),
-            severity: i.severity as InsightData['severity'],
+            severity: i.severity as InsightData["severity"],
             title: i.title,
             description: i.description,
             childId: i.childId ?? null,
             timestamp: i.timestamp,
-          }))
+          })),
         );
       } catch (error) {
-        console.error('Error loading dashboard data:', error);
+        console.error("Error loading dashboard data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -114,7 +129,9 @@ export default function OverviewPage() {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
           Dashboard Overview
         </h1>
-        <p className="text-gray-400 mt-1">Track your family{`'`}s developmental journey</p>
+        <p className="text-gray-400 mt-1">
+          Track your family{`'`}s developmental journey
+        </p>
       </div>
 
       {/* Key Metrics */}
@@ -124,8 +141,8 @@ export default function OverviewPage() {
           value={analytics?.totalMemories || 0}
           trend={{
             value: analytics?.lastWeekGrowth?.memories || 0,
-            direction: 'up',
-            label: 'from last week',
+            direction: "up",
+            label: "from last week",
           }}
           icon={BookOpen}
           variant="default"
@@ -135,8 +152,8 @@ export default function OverviewPage() {
           value={analytics?.totalMilestones || 0}
           trend={{
             value: analytics?.lastWeekGrowth?.milestones || 0,
-            direction: 'up',
-            label: 'this month',
+            direction: "up",
+            label: "this month",
           }}
           icon={Award}
           variant="success"
@@ -154,8 +171,8 @@ export default function OverviewPage() {
           variant="warning"
           trend={{
             value: 0.3,
-            direction: 'down',
-            label: 'error rate',
+            direction: "down",
+            label: "error rate",
           }}
         />
       </div>
@@ -165,18 +182,26 @@ export default function OverviewPage() {
         <h2 className="text-xl font-semibold mb-3">Your Children</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {children.map((child) => {
-            const childMemories = memories.filter(m => m.childId === child.id);
-            const childMilestones = milestones.filter(m => m.childId === child.id);
-            
+            const childMemories = memories.filter(
+              (m) => m.childId === child.id,
+            );
+            const childMilestones = milestones.filter(
+              (m) => m.childId === child.id,
+            );
+
             return (
               <ChildCard
                 key={child.id}
                 child={{
                   id: child.id,
                   name: child.name,
-                  age: child.age 
-                    ? { value: child.age.years, unit: 'years' as const, months: child.age.months }
-                    : { value: 0, unit: 'years' as const },
+                  age: child.age
+                    ? {
+                        value: child.age.years,
+                        unit: "years" as const,
+                        months: child.age.months,
+                      }
+                    : { value: 0, unit: "years" as const },
                   developmentScore: 85 + Math.floor(Math.random() * 15),
                   totalMemories: childMemories.length,
                   milestones: childMilestones.length,
@@ -208,15 +233,15 @@ export default function OverviewPage() {
         <h2 className="text-xl font-semibold mb-3">Recent Milestones</h2>
         <MilestoneTimeline
           milestones={milestones.slice(0, 5).map((m) => {
-            const child = children.find(c => c.id === m.childId);
+            const child = children.find((c) => c.id === m.childId);
             return {
               id: m.id,
-              child: child?.name || 'Unknown',
+              child: child?.name || "Unknown",
               title: m.title,
               date: m.achievedAt,
               category: m.category,
-              aiConfidence: m.verifiedBy === 'ai' ? 85 : 100,
-              verified: m.verifiedBy === 'parent' || m.verifiedBy === 'both',
+              aiConfidence: m.verifiedBy === "ai" ? 85 : 100,
+              verified: m.verifiedBy === "parent" || m.verifiedBy === "both",
               description: m.description,
             };
           })}
@@ -234,10 +259,10 @@ export default function OverviewPage() {
             <div className="text-2xl font-bold">
               {!analytics ? (
                 <span className="text-sm">Loading...</span>
+              ) : typeof analytics.monthlyUsage?.cost === "number" ? (
+                `$${analytics.monthlyUsage.cost.toFixed(2)}`
               ) : (
-                typeof analytics.monthlyUsage?.cost === 'number' 
-                  ? `$${analytics.monthlyUsage.cost.toFixed(2)}` 
-                  : '—'
+                "—"
               )}
             </div>
             <div className="text-sm text-gray-400">Total Cost</div>
@@ -246,10 +271,10 @@ export default function OverviewPage() {
             <div className="text-2xl font-bold">
               {!analytics ? (
                 <span className="text-sm">Loading...</span>
+              ) : typeof analytics.monthlyUsage?.tokens === "number" ? (
+                analytics.monthlyUsage.tokens.toLocaleString()
               ) : (
-                typeof analytics.monthlyUsage?.tokens === 'number'
-                  ? analytics.monthlyUsage.tokens.toLocaleString()
-                  : '—'
+                "—"
               )}
             </div>
             <div className="text-sm text-gray-400">API Tokens</div>
@@ -258,10 +283,10 @@ export default function OverviewPage() {
             <div className="text-2xl font-bold">
               {!analytics ? (
                 <span className="text-sm">Loading...</span>
+              ) : typeof analytics.monthlyUsage?.processingTime === "number" ? (
+                `${analytics.monthlyUsage.processingTime}s`
               ) : (
-                typeof analytics.monthlyUsage?.processingTime === 'number'
-                  ? `${analytics.monthlyUsage.processingTime}s`
-                  : '—'
+                "—"
               )}
             </div>
             <div className="text-sm text-gray-400">Avg Processing</div>
@@ -270,10 +295,10 @@ export default function OverviewPage() {
             <div className="text-2xl font-bold">
               {!analytics ? (
                 <span className="text-sm">Loading...</span>
+              ) : typeof analytics.monthlyUsage?.errorRate === "number" ? (
+                `${analytics.monthlyUsage.errorRate.toFixed(1)}%`
               ) : (
-                typeof analytics.monthlyUsage?.errorRate === 'number'
-                  ? `${analytics.monthlyUsage.errorRate.toFixed(1)}%`
-                  : '—'
+                "—"
               )}
             </div>
             <div className="text-sm text-gray-400">Error Rate</div>

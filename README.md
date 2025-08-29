@@ -40,6 +40,7 @@ The `.ai/` directory contains AI-related artifacts that are **reference-only** a
 - **`.ai/artifacts/`** - Build artifacts (TypeScript cache)
 
 ### Important Notes:
+
 - AI files in `.ai/` are for documentation purposes only
 - ESLint will error if you try to import from `.ai/`
 - To reorganize AI files, run: `npm run ai:migrate`

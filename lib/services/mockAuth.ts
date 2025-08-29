@@ -21,18 +21,18 @@ export interface AuthSession {
 // Mock user database
 const mockUsers: User[] = [
   {
-    id: 'user-1',
-    email: 'demo@seneca.com',
-    name: 'Demo User',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo',
-    createdAt: '2024-01-01T00:00:00Z',
+    id: "user-1",
+    email: "demo@seneca.com",
+    name: "Demo User",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=demo",
+    createdAt: "2024-01-01T00:00:00Z",
   },
   {
-    id: 'user-2',
-    email: 'parent@seneca.com',
-    name: 'Parent User',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=parent',
-    createdAt: '2024-01-15T00:00:00Z',
+    id: "user-2",
+    email: "parent@seneca.com",
+    name: "Parent User",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=parent",
+    createdAt: "2024-01-15T00:00:00Z",
   },
 ];
 
@@ -44,19 +44,21 @@ class MockAuthService {
    * Simulate login with email
    * TODO: Replace with actual Supabase signInWithOtp
    */
-  async login(email: string): Promise<{ success: boolean; message: string; session?: AuthSession }> {
+  async login(
+    email: string,
+  ): Promise<{ success: boolean; message: string; session?: AuthSession }> {
     // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     // Find or create user
-    let user = mockUsers.find(u => u.email === email);
-    
+    let user = mockUsers.find((u) => u.email === email);
+
     if (!user) {
       // Auto-create new user for demo
       user = {
         id: `user-${Date.now()}`,
         email,
-        name: email.split('@')[0],
+        name: email.split("@")[0],
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
         createdAt: new Date().toISOString(),
       };
@@ -71,15 +73,15 @@ class MockAuthService {
     };
 
     currentSession = session;
-    
+
     // Store in localStorage for persistence
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('seneca-mock-session', JSON.stringify(session));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("seneca-mock-session", JSON.stringify(session));
     }
 
     return {
       success: true,
-      message: 'Login successful! Redirecting...',
+      message: "Login successful! Redirecting...",
       session,
     };
   }
@@ -90,12 +92,12 @@ class MockAuthService {
    */
   async logout(): Promise<void> {
     // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
     currentSession = null;
-    
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('seneca-mock-session');
+
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("seneca-mock-session");
     }
   }
 
@@ -113,8 +115,8 @@ class MockAuthService {
     }
 
     // Check localStorage
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('seneca-mock-session');
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("seneca-mock-session");
       if (stored) {
         try {
           const session = JSON.parse(stored) as AuthSession;
@@ -124,10 +126,10 @@ class MockAuthService {
             return session;
           } else {
             // Clean up expired session
-            localStorage.removeItem('seneca-mock-session');
+            localStorage.removeItem("seneca-mock-session");
           }
         } catch (e) {
-          console.error('Failed to parse session:', e);
+          console.error("Failed to parse session:", e);
         }
       }
     }
@@ -155,15 +157,18 @@ class MockAuthService {
    * Simulate user registration
    * TODO: Replace with actual Supabase signUp
    */
-  async register(email: string, name: string): Promise<{ success: boolean; message: string }> {
+  async register(
+    email: string,
+    name: string,
+  ): Promise<{ success: boolean; message: string }> {
     // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Check if user exists
-    if (mockUsers.find(u => u.email === email)) {
+    if (mockUsers.find((u) => u.email === email)) {
       return {
         success: false,
-        message: 'User already exists with this email',
+        message: "User already exists with this email",
       };
     }
 
@@ -183,7 +188,7 @@ class MockAuthService {
 
     return {
       success: true,
-      message: 'Registration successful! Logging you in...',
+      message: "Registration successful! Logging you in...",
     };
   }
 
@@ -191,9 +196,11 @@ class MockAuthService {
    * Update user profile
    * TODO: Replace with actual Supabase updateUser
    */
-  async updateProfile(updates: Partial<User>): Promise<{ success: boolean; user?: User }> {
+  async updateProfile(
+    updates: Partial<User>,
+  ): Promise<{ success: boolean; user?: User }> {
     // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const session = await this.getSession();
     if (!session) {
@@ -201,16 +208,16 @@ class MockAuthService {
     }
 
     // Find and update user
-    const userIndex = mockUsers.findIndex(u => u.id === session.user.id);
+    const userIndex = mockUsers.findIndex((u) => u.id === session.user.id);
     if (userIndex > -1) {
       mockUsers[userIndex] = { ...mockUsers[userIndex], ...updates };
-      
+
       // Update session
       session.user = mockUsers[userIndex];
       currentSession = session;
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('seneca-mock-session', JSON.stringify(session));
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("seneca-mock-session", JSON.stringify(session));
       }
 
       return { success: true, user: mockUsers[userIndex] };

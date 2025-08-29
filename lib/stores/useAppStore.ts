@@ -4,16 +4,29 @@
  * SSR-safe with persistence and optimized selectors
  */
 
-import { create } from 'zustand';
-import { devtools, persist, createJSONStorage } from 'zustand/middleware';
-import { useShallow } from 'zustand/react/shallow';
-import type { UIChild, UIMemory, UITag, UIMemoryType, DbChild, DbMemory } from '@/lib/types';
-import { dbToUiChild } from '@/lib/adapters/child';
-import { dbToUiMemory } from '@/lib/adapters/memory';
+import { create } from "zustand";
+import { devtools, persist, createJSONStorage } from "zustand/middleware";
+import { useShallow } from "zustand/react/shallow";
+import type {
+  UIChild,
+  UIMemory,
+  UITag,
+  UIMemoryType,
+  DbChild,
+  DbMemory,
+} from "@/lib/types";
+import { dbToUiChild } from "@/lib/adapters/child";
+import { dbToUiMemory } from "@/lib/adapters/memory";
 
 // ===== Type Definitions =====
-export type ViewType = 'capture' | 'overview' | 'memories' | 'children' | 'analytics' | 'settings';
-export type CaptureMode = 'voice' | 'text' | 'manual';
+export type ViewType =
+  | "capture"
+  | "overview"
+  | "memories"
+  | "children"
+  | "analytics"
+  | "settings";
+export type CaptureMode = "voice" | "text" | "manual";
 
 export interface Milestone {
   id: string;
@@ -29,7 +42,10 @@ export interface Milestone {
 interface AuthState {
   currentUserId: string | null;
   currentFamilyId: string | null;
-  setAuthContext: (ctx: { currentUserId: string | null; currentFamilyId: string | null }) => void;
+  setAuthContext: (ctx: {
+    currentUserId: string | null;
+    currentFamilyId: string | null;
+  }) => void;
   clearAll: () => void;
   clearFamilyScopedData: () => void;
 }
@@ -69,7 +85,11 @@ interface MemoryState {
   milestones: Milestone[];
   pendingMemoryIds: string[];
   error: string | null;
-  addMemory: (content: string, type?: UIMemoryType, tags?: UITag[]) => Promise<void>;
+  addMemory: (
+    content: string,
+    type?: UIMemoryType,
+    tags?: UITag[],
+  ) => Promise<void>;
   addMemoryUI: (memory: UIMemory) => void;
   ingestDbMemories: (memories: DbMemory[]) => void;
   deleteMemory: (id: string) => void;
@@ -93,14 +113,14 @@ interface HydrationState {
 }
 
 // ===== Combined Store Interface =====
-export interface AppStore extends 
-  HydrationState,
-  AuthState,
-  NavigationState, 
-  CaptureState, 
-  FamilyState, 
-  MemoryState,
-  FilterState {
+export interface AppStore
+  extends HydrationState,
+    AuthState,
+    NavigationState,
+    CaptureState,
+    FamilyState,
+    MemoryState,
+    FilterState {
   reset: () => void;
 }
 
@@ -112,7 +132,11 @@ const newId = (prefix: string): string => {
   return `${prefix}-${timestamp}-${random}`;
 };
 
-const withinDateRange = (iso: string, start: string | null, end: string | null): boolean => {
+const withinDateRange = (
+  iso: string,
+  start: string | null,
+  end: string | null,
+): boolean => {
   if (!start && !end) return true;
   const date = new Date(iso).getTime();
   const startTime = start ? new Date(start).getTime() : -Infinity;
@@ -126,35 +150,35 @@ const withinDateRange = (iso: string, start: string | null, end: string | null):
 const initialState = {
   // Hydration state - false until persist middleware completes
   hasHydrated: false,
-  
+
   // Auth context
   currentUserId: null,
   currentFamilyId: null,
-  
+
   // Navigation
-  currentView: 'capture' as ViewType,
+  currentView: "capture" as ViewType,
   isMenuOpen: false,
   isProfileMenuOpen: false,
-  
+
   // Capture
   isRecording: false,
   recordingDuration: 0,
   recordingIntervalId: null,
-  captureMode: 'voice' as CaptureMode,
+  captureMode: "voice" as CaptureMode,
   isManualPanelOpen: false,
-  
+
   // Family
   children: [] as UIChild[], // Will be loaded from API
   activeChildId: null,
-  
+
   // Memory
   memories: [] as UIMemory[], // Will be loaded from API
   milestones: [] as Milestone[],
   pendingMemoryIds: [] as string[],
   error: null,
-  
+
   // Filters
-  searchQuery: '',
+  searchQuery: "",
   selectedTags: [] as string[],
   dateRange: { start: null, end: null },
 };
@@ -165,16 +189,17 @@ export const useAppStore = create<AppStore>()(
     persist(
       (set, get) => ({
         ...initialState,
-        
+
         // Hydration action
         setHasHydrated: (value: boolean) => set({ hasHydrated: value }),
-        
+
         // Auth Actions
-        setAuthContext: (ctx) => set(() => ({ 
-          currentUserId: ctx.currentUserId, 
-          currentFamilyId: ctx.currentFamilyId 
-        })),
-        
+        setAuthContext: (ctx) =>
+          set(() => ({
+            currentUserId: ctx.currentUserId,
+            currentFamilyId: ctx.currentFamilyId,
+          })),
+
         clearAll: () => {
           const { recordingIntervalId } = get();
           if (recordingIntervalId) {
@@ -185,46 +210,51 @@ export const useAppStore = create<AppStore>()(
             hasHydrated: true, // Keep hydration state
           }));
         },
-        
-        clearFamilyScopedData: () => set(() => ({
-          children: [],
-          memories: [],
-          milestones: [],
-          activeChildId: null,
-          pendingMemoryIds: [],
-        })),
-        
+
+        clearFamilyScopedData: () =>
+          set(() => ({
+            children: [],
+            memories: [],
+            milestones: [],
+            activeChildId: null,
+            pendingMemoryIds: [],
+          })),
+
         // Navigation Actions
-        navigate: (view) => set({ 
-          currentView: view, 
-          isMenuOpen: false,
-          isProfileMenuOpen: false 
-        }),
-        
-        toggleMenu: () => set((state) => ({ 
-          isMenuOpen: !state.isMenuOpen,
-          isProfileMenuOpen: false 
-        })),
-        
-        toggleProfileMenu: () => set((state) => ({ 
-          isProfileMenuOpen: !state.isProfileMenuOpen,
-          isMenuOpen: false 
-        })),
-        
-        closeAllMenus: () => set({ 
-          isMenuOpen: false, 
-          isProfileMenuOpen: false 
-        }),
-        
+        navigate: (view) =>
+          set({
+            currentView: view,
+            isMenuOpen: false,
+            isProfileMenuOpen: false,
+          }),
+
+        toggleMenu: () =>
+          set((state) => ({
+            isMenuOpen: !state.isMenuOpen,
+            isProfileMenuOpen: false,
+          })),
+
+        toggleProfileMenu: () =>
+          set((state) => ({
+            isProfileMenuOpen: !state.isProfileMenuOpen,
+            isMenuOpen: false,
+          })),
+
+        closeAllMenus: () =>
+          set({
+            isMenuOpen: false,
+            isProfileMenuOpen: false,
+          }),
+
         // Capture Actions (with interval guard)
         startRecording: () => {
           const { isRecording, recordingIntervalId } = get();
-          
+
           // Guard against double-start
           if (isRecording || recordingIntervalId) return;
-          
+
           set({ isRecording: true, recordingDuration: 0 });
-          
+
           const id = window.setInterval(() => {
             const state = get();
             if (!state.isRecording) {
@@ -234,78 +264,80 @@ export const useAppStore = create<AppStore>()(
             }
             set({ recordingDuration: state.recordingDuration + 1 });
           }, 1000);
-          
+
           set({ recordingIntervalId: id });
         },
-        
+
         stopRecording: () => {
           const { recordingIntervalId, recordingDuration, isRecording } = get();
-          
+
           if (recordingIntervalId) {
             clearInterval(recordingIntervalId);
           }
-          
-          set({ 
-            isRecording: false, 
-            recordingDuration: 0, 
-            recordingIntervalId: null 
+
+          set({
+            isRecording: false,
+            recordingDuration: 0,
+            recordingIntervalId: null,
           });
-          
+
           // Auto-save voice memory if recording was active
           if (isRecording && recordingDuration > 0) {
             get().addMemory(
-              `Voice recording (${recordingDuration}s)`, 
-              'voice',
-              [] // Voice is a type, not a tag
+              `Voice recording (${recordingDuration}s)`,
+              "voice",
+              [], // Voice is a type, not a tag
             );
           }
         },
-        
+
         setCaptureMode: (mode) => set({ captureMode: mode }),
-        
-        toggleManualPanel: () => set((state) => ({ 
-          isManualPanelOpen: !state.isManualPanelOpen 
-        })),
-        
+
+        toggleManualPanel: () =>
+          set((state) => ({
+            isManualPanelOpen: !state.isManualPanelOpen,
+          })),
+
         // Family Actions (with validation)
-        switchChild: (childId) => set((state) => 
-          state.children.some(c => c.id === childId) 
-            ? { activeChildId: childId }
-            : state
-        ),
-        
+        switchChild: (childId) =>
+          set((state) =>
+            state.children.some((c) => c.id === childId)
+              ? { activeChildId: childId }
+              : state,
+          ),
+
         getActiveChild: () => {
           const { activeChildId, children } = get();
-          return activeChildId 
-            ? children.find(c => c.id === activeChildId) 
+          return activeChildId
+            ? children.find((c) => c.id === activeChildId)
             : undefined;
         },
-        
+
         ingestDbChildren: (dbChildren) => {
           const uiChildren = dbChildren.map(dbToUiChild);
           set({ children: uiChildren });
         },
-        
+
         // Memory Actions (optimistic updates)
-        addMemory: async (content, type = 'text', tags = []) => {
+        addMemory: async (content, type = "text", tags = []) => {
           const state = get();
           const activeChild = state.getActiveChild();
-          
+
           if (!activeChild) {
-            set({ error: 'No active child selected' });
+            set({ error: "No active child selected" });
             return;
           }
-          
+
           if (!state.currentUserId) {
-            set({ error: 'User not authenticated' });
+            set({ error: "User not authenticated" });
             return;
           }
-          
+
           // Clear previous error
           set({ error: null });
-          
+
           // Create optimistic UI memory with temp ID
-          const tempId = newId('temp');
+          const tempId = newId("temp");
           const timestamp = new Date().toISOString();
           const optimisticMemory: UIMemory = {
             id: tempId,
@@ -319,85 +351,95 @@ export const useAppStore = create<AppStore>()(
             tags,
             category: null,
             needsReview: false,
-            processingStatus: 'queued',
+            processingStatus: "queued",
             imageUrls: [],
             videoUrls: [],
           };
-          
+
           // Optimistically add memory
           set((state) => ({
             memories: [optimisticMemory, ...state.memories],
             pendingMemoryIds: [...state.pendingMemoryIds, tempId],
           }));
-          
+
           // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
           // Replace temp ID with real ID
-          const realId = newId('mem');
+          const realId = newId("mem");
           set((state) => ({
-            memories: state.memories.map(m => 
-              m.id === tempId ? { ...m, id: realId, processingStatus: 'completed' } : m
+            memories: state.memories.map((m) =>
+              m.id === tempId
+                ? { ...m, id: realId, processingStatus: "completed" }
+                : m,
             ),
-            pendingMemoryIds: state.pendingMemoryIds.filter(id => id !== tempId),
+            pendingMemoryIds: state.pendingMemoryIds.filter(
+              (id) => id !== tempId,
+            ),
           }));
-          
+
           // Check for milestone (mock AI detection)
-          if (tags.some(t => t.label === 'milestone')) {
+          if (tags.some((t) => t.label === "milestone")) {
             const newMilestone: Milestone = {
-              id: newId('milestone'),
+              id: newId("milestone"),
               childId: activeChild.id,
-              title: 'New Achievement',
+              title: "New Achievement",
               description: content,
               achievedAt: timestamp,
-              category: 'physical',
-              verifiedBy: 'ai',
+              category: "physical",
+              verifiedBy: "ai",
             };
-            
+
             set((state) => ({
               milestones: [newMilestone, ...state.milestones],
             }));
           }
         },
-        
+
         addMemoryUI: (memory) => {
           set((state) => ({
             memories: [memory, ...state.memories],
           }));
         },
-        
+
         ingestDbMemories: (dbMemories) => {
           const uiMemories = dbMemories.map(dbToUiMemory);
           set({ memories: uiMemories });
         },
-        
-        deleteMemory: (id) => set((state) => ({
-          memories: state.memories.filter(m => m.id !== id),
-          pendingMemoryIds: state.pendingMemoryIds.filter(pid => pid !== id),
-        })),
-        
+
+        deleteMemory: (id) =>
+          set((state) => ({
+            memories: state.memories.filter((m) => m.id !== id),
+            pendingMemoryIds: state.pendingMemoryIds.filter(
+              (pid) => pid !== id,
+            ),
+          })),
+
         clearError: () => set({ error: null }),
-        
+
         // Filter Actions
         setSearchQuery: (query) => set({ searchQuery: query }),
-        
-        toggleTag: (tagLabel) => set((state) => ({
-          selectedTags: state.selectedTags.includes(tagLabel)
-            ? state.selectedTags.filter(t => t !== tagLabel)
-            : [...state.selectedTags, tagLabel]
-        })),
-        
-        setDateRange: (start, end) => set({ 
-          dateRange: { start, end } 
-        }),
-        
-        clearFilters: () => set({
-          searchQuery: '',
-          selectedTags: [],
-          dateRange: { start: null, end: null },
-          error: null, // Also clear any filter errors
-        }),
-        
+
+        toggleTag: (tagLabel) =>
+          set((state) => ({
+            selectedTags: state.selectedTags.includes(tagLabel)
+              ? state.selectedTags.filter((t) => t !== tagLabel)
+              : [...state.selectedTags, tagLabel],
+          })),
+
+        setDateRange: (start, end) =>
+          set({
+            dateRange: { start, end },
+          }),
+
+        clearFilters: () =>
+          set({
+            searchQuery: "",
+            selectedTags: [],
+            dateRange: { start: null, end: null },
+            error: null, // Also clear any filter errors
+          }),
+
         // Reset (with cleanup)
         reset: () => {
           const { recordingIntervalId } = get();
@@ -408,10 +450,10 @@ export const useAppStore = create<AppStore>()(
         },
       }),
       {
-        name: 'seneca-app-store',
+        name: "seneca-app-store",
         storage: createJSONStorage(() => {
           // SSR-safe storage
-          if (typeof window === 'undefined') {
+          if (typeof window === "undefined") {
             return {
               getItem: () => null,
               setItem: () => {},
@@ -433,130 +475,139 @@ export const useAppStore = create<AppStore>()(
           // Use the state parameter to set the flag
           state?.setHasHydrated(true);
         },
-      }
+      },
     ),
     {
-      name: 'seneca-app-store-devtools',
-    }
-  )
+      name: "seneca-app-store-devtools",
+    },
+  ),
 );
 
 // ===== Hydration Selector =====
 // Tiny selector for hydration status
-export const useHasHydrated = (): boolean => useAppStore((state) => state.hasHydrated);
+export const useHasHydrated = (): boolean =>
+  useAppStore((state) => state.hasHydrated);
 
 // ===== Optimized Selectors =====
 // Using useShallow to cache object references and prevent infinite loops
 
-export const useNavigation = () => useAppStore(
-  useShallow((state) => ({
-    currentView: state.currentView,
-    isMenuOpen: state.isMenuOpen,
-    isProfileMenuOpen: state.isProfileMenuOpen,
-    navigate: state.navigate,
-    toggleMenu: state.toggleMenu,
-    toggleProfileMenu: state.toggleProfileMenu,
-    closeAllMenus: state.closeAllMenus,
-  }))
-);
+export const useNavigation = () =>
+  useAppStore(
+    useShallow((state) => ({
+      currentView: state.currentView,
+      isMenuOpen: state.isMenuOpen,
+      isProfileMenuOpen: state.isProfileMenuOpen,
+      navigate: state.navigate,
+      toggleMenu: state.toggleMenu,
+      toggleProfileMenu: state.toggleProfileMenu,
+      closeAllMenus: state.closeAllMenus,
+    })),
+  );
 
-export const useCapture = () => useAppStore(
-  useShallow((state) => ({
-    isRecording: state.isRecording,
-    recordingDuration: state.recordingDuration,
-    captureMode: state.captureMode,
-    isManualPanelOpen: state.isManualPanelOpen,
-    startRecording: state.startRecording,
-    stopRecording: state.stopRecording,
-    setCaptureMode: state.setCaptureMode,
-    toggleManualPanel: state.toggleManualPanel,
-  }))
-);
+export const useCapture = () =>
+  useAppStore(
+    useShallow((state) => ({
+      isRecording: state.isRecording,
+      recordingDuration: state.recordingDuration,
+      captureMode: state.captureMode,
+      isManualPanelOpen: state.isManualPanelOpen,
+      startRecording: state.startRecording,
+      stopRecording: state.stopRecording,
+      setCaptureMode: state.setCaptureMode,
+      toggleManualPanel: state.toggleManualPanel,
+    })),
+  );
 
-export const useFamily = () => useAppStore(
-  useShallow((state) => ({
-    children: state.children,
-    activeChildId: state.activeChildId,
-    switchChild: state.switchChild,
-  }))
-);
+export const useFamily = () =>
+  useAppStore(
+    useShallow((state) => ({
+      children: state.children,
+      activeChildId: state.activeChildId,
+      switchChild: state.switchChild,
+    })),
+  );
 
 // Raw data selectors - filter in component with useMemo
-export const useMemoryData = () => useAppStore(
-  useShallow((state) => ({
-    memories: state.memories,
-    milestones: state.milestones,
-    activeChildId: state.activeChildId,
-    pendingMemoryIds: state.pendingMemoryIds,
-    error: state.error,
-    addMemory: state.addMemory,
-    deleteMemory: state.deleteMemory,
-    clearError: state.clearError,
-  }))
-);
+export const useMemoryData = () =>
+  useAppStore(
+    useShallow((state) => ({
+      memories: state.memories,
+      milestones: state.milestones,
+      activeChildId: state.activeChildId,
+      pendingMemoryIds: state.pendingMemoryIds,
+      error: state.error,
+      addMemory: state.addMemory,
+      deleteMemory: state.deleteMemory,
+      clearError: state.clearError,
+    })),
+  );
 
-export const useFilters = () => useAppStore(
-  useShallow((state) => ({
-    searchQuery: state.searchQuery,
-    selectedTags: state.selectedTags,
-    dateRange: state.dateRange,
-    setSearchQuery: state.setSearchQuery,
-    toggleTag: state.toggleTag,
-    setDateRange: state.setDateRange,
-    clearFilters: state.clearFilters,
-  }))
-);
+export const useFilters = () =>
+  useAppStore(
+    useShallow((state) => ({
+      searchQuery: state.searchQuery,
+      selectedTags: state.selectedTags,
+      dateRange: state.dateRange,
+      setSearchQuery: state.setSearchQuery,
+      toggleTag: state.toggleTag,
+      setDateRange: state.setDateRange,
+      clearFilters: state.clearFilters,
+    })),
+  );
 
 // ===== Utility Hooks =====
 // These compose the selectors with filtering logic
 
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 export const useFilteredMemories = () => {
   const { memories, activeChildId } = useMemoryData();
   const { searchQuery, selectedTags, dateRange } = useFilters();
-  
+
   return useMemo(() => {
     // memories is already UIMemory[]
     let filtered = memories;
-    
+
     // Filter by active child - using UI field childId
     if (activeChildId) {
-      filtered = filtered.filter(m => m.childId === activeChildId);
+      filtered = filtered.filter((m) => m.childId === activeChildId);
     }
-    
+
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(m => 
-        (m.title ?? '').toLowerCase().includes(query) ||
-        m.content.toLowerCase().includes(query) ||
-        m.tags.some(t => t.label.toLowerCase().includes(query))
+      filtered = filtered.filter(
+        (m) =>
+          (m.title ?? "").toLowerCase().includes(query) ||
+          m.content.toLowerCase().includes(query) ||
+          m.tags.some((t) => t.label.toLowerCase().includes(query)),
       );
     }
-    
+
     // Filter by tags - tags are UITag[] in UI types
     if (selectedTags.length > 0) {
-      filtered = filtered.filter(m => 
-        selectedTags.some(tagLabel => m.tags.some(t => t.label === tagLabel))
+      filtered = filtered.filter((m) =>
+        selectedTags.some((tagLabel) =>
+          m.tags.some((t) => t.label === tagLabel),
+        ),
       );
     }
-    
+
     // Filter by date range - using timestamp from UI type
     if (dateRange.start || dateRange.end) {
-      filtered = filtered.filter(m => 
-        withinDateRange(m.timestamp, dateRange.start, dateRange.end)
+      filtered = filtered.filter((m) =>
+        withinDateRange(m.timestamp, dateRange.start, dateRange.end),
       );
     }
-    
+
     return filtered;
   }, [memories, activeChildId, searchQuery, selectedTags, dateRange]);
 };
 
 export const useActiveChild = () => {
   const { children, activeChildId } = useFamily();
-  return useMemo(() => 
-    children.find(c => c.id === activeChildId),
-    [children, activeChildId]
+  return useMemo(
+    () => children.find((c) => c.id === activeChildId),
+    [children, activeChildId],
   );
 };

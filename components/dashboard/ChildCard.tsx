@@ -1,23 +1,23 @@
-'use client'
+"use client";
 
-import React from 'react'
-import { 
-  Calendar, 
-  TrendingUp, 
-  BookOpen, 
-  Target, 
+import React from "react";
+import {
+  Calendar,
+  TrendingUp,
+  BookOpen,
+  Target,
   Clock,
   ChevronRight,
-  Plus
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+  Plus,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * ChildCard Component
- * 
+ *
  * Displays child profile information including stats, development score, and recent activity.
  * Can be used in grid layouts for multiple children or as a standalone profile card.
- * 
+ *
  * @component
  * @example
  * ```tsx
@@ -39,48 +39,48 @@ import { cn } from '@/lib/utils'
 
 export interface ChildData {
   /** Unique identifier */
-  id: string
+  id: string;
   /** Child's name */
-  name: string
+  name: string;
   /** Age information */
   age: {
-    value: number
-    unit: 'months' | 'years'
-    months?: number
-  }
+    value: number;
+    unit: "months" | "years";
+    months?: number;
+  };
   /** Avatar emoji or URL */
-  avatar?: string
+  avatar?: string;
   /** Avatar image URL */
-  avatarUrl?: string
+  avatarUrl?: string;
   /** Total number of memories */
-  totalMemories: number
+  totalMemories: number;
   /** Number of milestones achieved */
-  milestones: number
+  milestones: number;
   /** Time since last entry */
-  lastEntry: string
+  lastEntry: string;
   /** Overall development score (0-100) */
-  developmentScore: number
+  developmentScore: number;
   /** Average memories per week */
-  avgMemoriesPerWeek?: number
+  avgMemoriesPerWeek?: number;
   /** Recent milestone */
-  recentMilestone?: string
+  recentMilestone?: string;
 }
 
 export interface ChildCardProps {
   /** Child data to display */
-  child?: ChildData
+  child?: ChildData;
   /** Callback when view timeline is clicked */
-  onViewTimeline?: (childId: string) => void
+  onViewTimeline?: (childId: string) => void;
   /** Callback when card is clicked */
-  onClick?: (childId: string) => void
+  onClick?: (childId: string) => void;
   /** Whether this is an "add child" card */
-  isAddCard?: boolean
+  isAddCard?: boolean;
   /** Callback for add child action */
-  onAddChild?: () => void
+  onAddChild?: () => void;
   /** Additional CSS classes */
-  className?: string
+  className?: string;
   /** Card variant */
-  variant?: 'default' | 'compact'
+  variant?: "default" | "compact";
 }
 
 export function ChildCard({
@@ -90,7 +90,7 @@ export function ChildCard({
   isAddCard = false,
   onAddChild,
   className,
-  variant = 'default'
+  variant = "default",
 }: ChildCardProps) {
   // Add Child Card
   if (isAddCard) {
@@ -98,13 +98,13 @@ export function ChildCard({
       <div
         onClick={onAddChild}
         className={cn(
-          'relative overflow-hidden rounded-xl border-2 border-dashed',
-          'border-white/20 bg-white/5',
-          'min-h-[280px] flex items-center justify-center',
-          'cursor-pointer transition-all duration-200',
-          'hover:bg-white/10 hover:border-white/30',
-          'group',
-          className
+          "relative overflow-hidden rounded-xl border-2 border-dashed",
+          "border-white/20 bg-white/5",
+          "min-h-[280px] flex items-center justify-center",
+          "cursor-pointer transition-all duration-200",
+          "hover:bg-white/10 hover:border-white/30",
+          "group",
+          className,
         )}
       >
         <div className="text-center">
@@ -112,59 +112,67 @@ export function ChildCard({
             <Plus className="w-8 h-8 text-white/60" />
           </div>
           <p className="text-white/60 font-medium">Add Child</p>
-          <p className="text-white/40 text-sm mt-1">Track another child's journey</p>
+          <p className="text-white/40 text-sm mt-1">
+            Track another child's journey
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
-  if (!child) return null
+  if (!child) return null;
 
   const formatAge = () => {
-    if (child.age.unit === 'years' && child.age.months) {
-      return `${child.age.value} year${child.age.value !== 1 ? 's' : ''} ${child.age.months} month${child.age.months !== 1 ? 's' : ''}`
+    if (child.age.unit === "years" && child.age.months) {
+      return `${child.age.value} year${child.age.value !== 1 ? "s" : ""} ${child.age.months} month${child.age.months !== 1 ? "s" : ""}`;
     }
-    return `${child.age.value} ${child.age.unit}`
-  }
+    return `${child.age.value} ${child.age.unit}`;
+  };
 
   const getScoreColor = (score: number) => {
-    if (score >= 90) return 'from-green-600 to-emerald-600'
-    if (score >= 70) return 'from-blue-600 to-cyan-600'
-    if (score >= 50) return 'from-amber-600 to-yellow-600'
-    return 'from-red-600 to-orange-600'
-  }
+    if (score >= 90) return "from-green-600 to-emerald-600";
+    if (score >= 70) return "from-blue-600 to-cyan-600";
+    if (score >= 50) return "from-amber-600 to-yellow-600";
+    return "from-red-600 to-orange-600";
+  };
 
   const getAvatarGradient = () => {
     const gradients = [
-      'from-violet-600 to-purple-600',
-      'from-blue-600 to-cyan-600',
-      'from-pink-600 to-rose-600',
-      'from-green-600 to-emerald-600'
-    ]
-    return gradients[child.name.charCodeAt(0) % gradients.length]
-  }
+      "from-violet-600 to-purple-600",
+      "from-blue-600 to-cyan-600",
+      "from-pink-600 to-rose-600",
+      "from-green-600 to-emerald-600",
+    ];
+    return gradients[child.name.charCodeAt(0) % gradients.length];
+  };
 
-  if (variant === 'compact') {
+  if (variant === "compact") {
     return (
       <div
         onClick={() => onClick?.(child.id)}
         className={cn(
-          'relative overflow-hidden rounded-xl border',
-          'bg-white/5 backdrop-blur-sm border-white/10',
-          'p-4 cursor-pointer transition-all duration-200',
-          'hover:bg-white/10 hover:border-white/20',
-          className
+          "relative overflow-hidden rounded-xl border",
+          "bg-white/5 backdrop-blur-sm border-white/10",
+          "p-4 cursor-pointer transition-all duration-200",
+          "hover:bg-white/10 hover:border-white/20",
+          className,
         )}
       >
         <div className="flex items-center gap-3">
           {/* Avatar */}
-          <div className={cn(
-            'w-12 h-12 rounded-full flex items-center justify-center text-2xl',
-            'bg-gradient-to-br shadow-lg',
-            getAvatarGradient()
-          )}>
+          <div
+            className={cn(
+              "w-12 h-12 rounded-full flex items-center justify-center text-2xl",
+              "bg-gradient-to-br shadow-lg",
+              getAvatarGradient(),
+            )}
+          >
             {child.avatarUrl ? (
-              <img src={child.avatarUrl} alt={child.name} className="w-full h-full rounded-full object-cover" />
+              <img
+                src={child.avatarUrl}
+                alt={child.name}
+                className="w-full h-full rounded-full object-cover"
+              />
             ) : (
               <span>{child.avatar || child.name[0]}</span>
             )}
@@ -178,35 +186,43 @@ export function ChildCard({
 
           {/* Stats */}
           <div className="text-right">
-            <p className="text-lg font-semibold text-white">{child.totalMemories}</p>
+            <p className="text-lg font-semibold text-white">
+              {child.totalMemories}
+            </p>
             <p className="text-xs text-white/40">memories</p>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div
       onClick={() => onClick?.(child.id)}
       className={cn(
-        'relative overflow-hidden rounded-xl border',
-        'bg-white/5 backdrop-blur-sm border-white/10',
-        'p-6 cursor-pointer transition-all duration-200',
-        'hover:bg-white/10 hover:border-white/20',
-        className
+        "relative overflow-hidden rounded-xl border",
+        "bg-white/5 backdrop-blur-sm border-white/10",
+        "p-6 cursor-pointer transition-all duration-200",
+        "hover:bg-white/10 hover:border-white/20",
+        className,
       )}
     >
       {/* Header */}
       <div className="flex items-center gap-4 mb-5">
         {/* Avatar */}
-        <div className={cn(
-          'w-16 h-16 rounded-full flex items-center justify-center text-3xl',
-          'bg-gradient-to-br shadow-lg',
-          getAvatarGradient()
-        )}>
+        <div
+          className={cn(
+            "w-16 h-16 rounded-full flex items-center justify-center text-3xl",
+            "bg-gradient-to-br shadow-lg",
+            getAvatarGradient(),
+          )}
+        >
           {child.avatarUrl ? (
-            <img src={child.avatarUrl} alt={child.name} className="w-full h-full rounded-full object-cover" />
+            <img
+              src={child.avatarUrl}
+              alt={child.name}
+              className="w-full h-full rounded-full object-cover"
+            />
           ) : (
             <span>{child.avatar || child.name[0]}</span>
           )}
@@ -226,14 +242,16 @@ export function ChildCard({
       <div className="mb-5">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-white/60">Development Score</span>
-          <span className="text-sm font-semibold text-white">{child.developmentScore}%</span>
+          <span className="text-sm font-semibold text-white">
+            {child.developmentScore}%
+          </span>
         </div>
         <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
           <div
             className={cn(
-              'h-full rounded-full transition-all duration-500',
-              'bg-gradient-to-r',
-              getScoreColor(child.developmentScore)
+              "h-full rounded-full transition-all duration-500",
+              "bg-gradient-to-r",
+              getScoreColor(child.developmentScore),
             )}
             style={{ width: `${child.developmentScore}%` }}
           />
@@ -247,7 +265,9 @@ export function ChildCard({
             <BookOpen className="w-4 h-4" />
             <span className="text-xs">Total Memories</span>
           </div>
-          <p className="text-lg font-semibold text-white">{child.totalMemories}</p>
+          <p className="text-lg font-semibold text-white">
+            {child.totalMemories}
+          </p>
         </div>
 
         <div className="bg-white/5 rounded-lg p-3">
@@ -289,17 +309,17 @@ export function ChildCard({
       {onViewTimeline && (
         <button
           onClick={(e) => {
-            e.stopPropagation()
-            onViewTimeline(child.id)
+            e.stopPropagation();
+            onViewTimeline(child.id);
           }}
           className={cn(
-            'w-full py-3 rounded-lg',
-            'bg-white/10 hover:bg-white/20',
-            'border border-white/20 hover:border-white/30',
-            'text-white font-medium text-sm',
-            'flex items-center justify-center gap-2',
-            'transition-all duration-200',
-            'group'
+            "w-full py-3 rounded-lg",
+            "bg-white/10 hover:bg-white/20",
+            "border border-white/20 hover:border-white/30",
+            "text-white font-medium text-sm",
+            "flex items-center justify-center gap-2",
+            "transition-all duration-200",
+            "group",
           )}
         >
           View Timeline
@@ -307,5 +327,5 @@ export function ChildCard({
         </button>
       )}
     </div>
-  )
+  );
 }

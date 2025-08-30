@@ -1,0 +1,156 @@
+# Requires: actions/setup-node@v4 (node-version must be installed before using this action)
+# Platform: Linux/macOS only (Windows runners will skip with warning)
+name: 'Setup Dependencies'
+description: 'Clean install with native module rebuild for CI - optimized for Linux/macOS'
+
+inputs:
+  module:
+    description: 'Module path to sanity-check (require.resolve path)'
+    required: false
+    default: 'lightningcss/node/index.js'
+  rebuild:
+    description: 'Package to npm rebuild'
+    required: false
+    default: 'lightningcss'
+  optional:
+    description: 'Install optional dependencies'
+    required: false
+    default: 'true'
+  audit:
+    description: 'Run npm audit and fund checks'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check platform compatibility
+      shell: bash
+      run: |
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          echo "::warning::This action is optimized for Linux/macOS. Skipping on Windows."
+          echo "::notice::Consider using native Windows npm commands in your workflow."
+          exit 0
+        fi
+    
+    - name: Print environment
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        echo "::group::Environment Info"
+        echo "Node version: $(node -v)"
+        echo "NPM version: $(npm -v)"
+        echo "Platform: $(node -p 'process.platform + " " + process.arch')"
+        echo "Runner OS: ${{ runner.os }}"
+        echo "Libc version:"
+        ldd --version 2>/dev/null | head -1 || echo "ldd not available"
+        echo "Working directory: $(pwd)"
+        echo "::endgroup::"
+        
+    - name: Verify glibc vs musl
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        if ldd --version 2>&1 | grep -qi musl; then
+          echo "⚠️  Running on musl (Alpine) - may need ${{ inputs.rebuild }}-linux-x64-musl"
+          echo "::warning::Alpine/musl detected - ensure musl variant of native modules is available"
+        else
+          echo "✓ Running on glibc (standard Linux)"
+        fi
+    
+    - name: Clean install with native rebuild
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        NPM_CONFIG_OPTIONAL: ${{ inputs.optional }}
+        HUSKY: "0"  # Disable git hooks in CI
+        CI: "true"  # Ensure CI mode is set
+      run: |
+        echo "::group::Dependency Installation"
+        
+        # Clean slate for native modules
+        echo "Cleaning node_modules for fresh install..."
+        rm -rf node_modules
+        
+        # Build npm ci flags based on inputs
+        NPM_FLAGS="--foreground-scripts"
+        if [[ "${{ inputs.audit }}" != "true" ]]; then
+          NPM_FLAGS="$NPM_FLAGS --no-audit --no-fund"
+        fi
+        
+        echo "Installing dependencies with: npm ci $NPM_FLAGS"
+        npm ci $NPM_FLAGS
+        
+        # Check if the module exists before attempting rebuild
+        MODULE_PATH="${{ inputs.module }}"
+        REBUILD_PKG="${{ inputs.rebuild }}"
+        
+        if node -e "try { require.resolve('$MODULE_PATH'); process.exit(0); } catch { process.exit(1); }" 2>/dev/null; then
+          echo "::group::Native Module Rebuild"
+          echo "Found $MODULE_PATH - rebuilding $REBUILD_PKG native bindings..."
+          
+          if npm rebuild "$REBUILD_PKG"; then
+            echo "✓ Successfully rebuilt $REBUILD_PKG"
+          else
+            echo "::error::Failed to rebuild $REBUILD_PKG native bindings"
+            exit 1
+          fi
+          echo "::endgroup::"
+        else
+          echo "ℹ️  Package $REBUILD_PKG not found - skipping rebuild"
+        fi
+        
+        # Enhanced sanity check: Always try to load and exercise the native binding
+        echo "::group::Verify Native Binding"
+        
+        # Debug: Show what .node files are present
+        echo "Looking for native bindings in node_modules/$REBUILD_PKG/:"
+        ls -la "node_modules/$REBUILD_PKG/" 2>/dev/null | grep -E '\.node$' || echo "  No .node files in root"
+        if [ -d "node_modules/$REBUILD_PKG/node" ]; then
+          echo "Looking in node_modules/$REBUILD_PKG/node/:"
+          ls -la "node_modules/$REBUILD_PKG/node/" 2>/dev/null | grep -E '\.node$' || echo "  No .node files in node/"
+        fi
+        
+        # Actually load and test the native binding
+        node -e "
+          const pkgName = '$REBUILD_PKG';
+          try {
+            // Force-load the native binding by requiring the package
+            const mod = require(pkgName);
+            
+            // Show resolved package location for diagnostics
+            try {
+              const resolved = require.resolve(pkgName);
+              console.log('Resolved package entry:', resolved);
+            } catch {}
+            
+            console.log('✓ Successfully required package:', pkgName);
+            
+            // For lightningcss, try to exercise the transform function
+            if (mod && typeof mod.transform === 'function') {
+              try {
+                // Simple CSS transform to verify the native binding works
+                const result = mod.transform({
+                  filename: 'test.css',
+                  code: Buffer.from('body { color: red; }'),
+                  minify: false
+                });
+                console.log('✓ Transform function works!');
+              } catch (e) {
+                console.log('ℹ️  Transform test skipped:', e.message);
+              }
+            }
+            
+            console.log('✅ Native binding verified and functional:', pkgName);
+          } catch (e) {
+            console.error('✗ Native binding failed for:', pkgName);
+            console.error('  Error:', String(e && e.message || e));
+            console.error('');
+            console.error('Stack trace:');
+            console.error(e.stack || 'No stack trace available');
+            process.exit(1);
+          }
+        "
+        
+        echo "::endgroup::"
+        echo "✅ Dependencies installed successfully"

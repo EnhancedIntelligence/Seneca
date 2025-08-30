@@ -1,26 +1,23 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { MemoryCreateForm } from '@/components/memory/MemoryCreateForm';
-import { MemoryFeed } from '@/components/memory/MemoryFeed';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useCallback } from "react";
+import { MemoryCreateForm } from "@/components/memory/MemoryCreateForm";
+import { MemoryFeed } from "@/components/memory/MemoryFeed";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import {
   Plus,
   Users,
-  Calendar,
   BarChart3,
   Settings,
   Bell,
-  Search,
   Heart,
   Sparkles,
-} from 'lucide-react';
-import type { Family, Child } from '@/lib/types';
-import { apiChildToUi } from '@/lib/adapters/api';
-import { useAuth } from '@/components/auth/AuthProvider';
+} from "lucide-react";
+import type { Family, Child } from "@/lib/types";
+import { apiChildToUi } from "@/lib/adapters/api";
 
 interface FetchedFamily extends Family {
   role: string;
@@ -28,37 +25,30 @@ interface FetchedFamily extends Family {
   children?: Child[];
 }
 
-type DashboardView = 'setup' | 'memories' | 'create' | 'analytics' | 'settings';
+type DashboardView = "setup" | "memories" | "create" | "analytics" | "settings";
 
 interface HomeClientProps {
   families: FetchedFamily[];
 }
 
 export default function HomeClient({ families }: HomeClientProps) {
-  const { user } = useAuth();
   const [selectedFamily, setSelectedFamily] = useState<FetchedFamily | null>(
-    families.length > 0 ? families[0] : null
+    () => families[0] ?? null
   );
   const [currentView, setCurrentView] = useState<DashboardView>(
-    families.length > 0 ? 'memories' : 'setup'
+    () => (families.length > 0 ? "memories" : "setup")
   );
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const { toast } = useToast();
 
   // Handle navigation between views
-  const handleViewChange = (view: DashboardView) => {
+  const handleViewChange = useCallback((view: DashboardView) => {
     setCurrentView(view);
-    if (view === 'create') {
-      setShowCreateForm(true);
-    } else {
-      setShowCreateForm(false);
-    }
-  };
+  }, []);
 
-  const handleFamilySwitch = (family: FetchedFamily) => {
+  const handleFamilySwitch = useCallback((family: FetchedFamily) => {
     setSelectedFamily(family);
     // Potentially reload data for new family
-  };
+  }, []);
 
   if (families.length === 0) {
     return (
@@ -66,14 +56,17 @@ export default function HomeClient({ families }: HomeClientProps) {
         <div className="max-w-2xl mx-auto text-center py-12">
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Welcome to Seneca Protocol</CardTitle>
+              <CardTitle className="text-2xl">
+                Welcome to Seneca Protocol
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Start capturing your family&apos;s precious memories. Create your first family to get started.
+                Start capturing your family&apos;s precious memories. Create
+                your first family to get started.
               </p>
-              <Button 
-                onClick={() => handleViewChange('setup')}
+              <Button
+                onClick={() => handleViewChange("setup")}
                 size="lg"
                 className="gap-2"
               >
@@ -97,9 +90,11 @@ export default function HomeClient({ families }: HomeClientProps) {
               <h1 className="text-2xl font-bold">Family Dashboard</h1>
               {families.length > 1 && (
                 <select
-                  value={selectedFamily?.id || ''}
+                  value={selectedFamily?.id || ""}
                   onChange={(e) => {
-                    const family = families.find((f) => f.id === e.target.value);
+                    const family = families.find(
+                      (f) => f.id === e.target.value,
+                    );
                     if (family) handleFamilySwitch(family);
                   }}
                   className="px-3 py-1 border rounded-md"
@@ -112,7 +107,7 @@ export default function HomeClient({ families }: HomeClientProps) {
                 </select>
               )}
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon">
                 <Bell className="h-5 w-5" />
@@ -130,11 +125,11 @@ export default function HomeClient({ families }: HomeClientProps) {
         <div className="container mx-auto px-4">
           <nav className="flex space-x-6">
             <button
-              onClick={() => handleViewChange('memories')}
+              onClick={() => handleViewChange("memories")}
               className={`py-3 px-1 border-b-2 transition-colors ${
-                currentView === 'memories'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                currentView === "memories"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -143,11 +138,11 @@ export default function HomeClient({ families }: HomeClientProps) {
               </div>
             </button>
             <button
-              onClick={() => handleViewChange('create')}
+              onClick={() => handleViewChange("create")}
               className={`py-3 px-1 border-b-2 transition-colors ${
-                currentView === 'create'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                currentView === "create"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -156,11 +151,11 @@ export default function HomeClient({ families }: HomeClientProps) {
               </div>
             </button>
             <button
-              onClick={() => handleViewChange('analytics')}
+              onClick={() => handleViewChange("analytics")}
               className={`py-3 px-1 border-b-2 transition-colors ${
-                currentView === 'analytics'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                currentView === "analytics"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -169,11 +164,11 @@ export default function HomeClient({ families }: HomeClientProps) {
               </div>
             </button>
             <button
-              onClick={() => handleViewChange('settings')}
+              onClick={() => handleViewChange("settings")}
               className={`py-3 px-1 border-b-2 transition-colors ${
-                currentView === 'settings'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                currentView === "settings"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -187,36 +182,38 @@ export default function HomeClient({ families }: HomeClientProps) {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
-        {currentView === 'memories' && selectedFamily && (
+        {currentView === "memories" && selectedFamily && (
           <MemoryFeed
             familyId={selectedFamily.id}
-            onCreateMemory={() => handleViewChange('create')}
+            onCreateMemory={() => handleViewChange("create")}
             onMemoryClick={(memoryId) => {
-              console.log('Memory clicked:', memoryId);
+              console.log("Memory clicked:", memoryId);
             }}
           />
         )}
 
-        {currentView === 'create' && selectedFamily && (
+        {currentView === "create" && selectedFamily && (
           <MemoryCreateForm
             family={selectedFamily}
             childProfiles={(selectedFamily.children || []).map(apiChildToUi)}
-            onSuccess={(memory) => {
+            onSuccess={() => {
               toast({
-                title: 'Memory Created',
-                description: 'Your memory has been successfully saved.',
+                title: "Memory Created",
+                description: "Your memory has been successfully saved.",
               });
-              handleViewChange('memories');
+              handleViewChange("memories");
             }}
-            onCancel={() => handleViewChange('memories')}
+            onCancel={() => handleViewChange("memories")}
           />
         )}
 
-        {currentView === 'analytics' && (
+        {currentView === "analytics" && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Memories</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Total Memories
+                </CardTitle>
                 <Heart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -226,10 +223,12 @@ export default function HomeClient({ families }: HomeClientProps) {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Milestones</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Milestones
+                </CardTitle>
                 <Sparkles className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -239,10 +238,12 @@ export default function HomeClient({ families }: HomeClientProps) {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Family Members</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Family Members
+                </CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -257,7 +258,7 @@ export default function HomeClient({ families }: HomeClientProps) {
           </div>
         )}
 
-        {currentView === 'settings' && (
+        {currentView === "settings" && (
           <div className="max-w-2xl mx-auto">
             <Card>
               <CardHeader>
@@ -266,18 +267,20 @@ export default function HomeClient({ families }: HomeClientProps) {
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-medium mb-2">Family Name</h3>
-                  <p className="text-muted-foreground">{selectedFamily?.name}</p>
+                  <p className="text-muted-foreground">
+                    {selectedFamily?.name}
+                  </p>
                 </div>
                 <div>
                   <h3 className="font-medium mb-2">Your Role</h3>
-                  <Badge>{selectedFamily?.role || 'admin'}</Badge>
+                  <Badge>{selectedFamily?.role || "admin"}</Badge>
                 </div>
                 <div>
                   <h3 className="font-medium mb-2">Member Since</h3>
                   <p className="text-muted-foreground">
                     {selectedFamily?.joined_at
                       ? new Date(selectedFamily.joined_at).toLocaleDateString()
-                      : 'Unknown'}
+                      : "Unknown"}
                   </p>
                 </div>
               </CardContent>

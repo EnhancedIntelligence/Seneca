@@ -8,12 +8,16 @@ All API routes in Seneca Protocol follow a consistent pattern for authentication
 
 ```typescript
 /* eslint-disable @typescript-eslint/naming-convention */
-import { NextRequest } from 'next/server';
-import { ok, err, readJson } from '@/lib/server/api';
-import { requireUser, requireFamilyAccess } from '@/lib/server/auth';
-import { ValidationError, NotFoundError, ForbiddenError } from '@/lib/server/errors';
-import { checkRateLimit } from '@/lib/server/middleware/rate-limit';
-import { z } from 'zod';
+import { NextRequest } from "next/server";
+import { ok, err, readJson } from "@/lib/server/api";
+import { requireUser, requireFamilyAccess } from "@/lib/server/auth";
+import {
+  ValidationError,
+  NotFoundError,
+  ForbiddenError,
+} from "@/lib/server/errors";
+import { checkRateLimit } from "@/lib/server/middleware/rate-limit";
+import { z } from "zod";
 
 // Define validation schema
 const inputSchema = z.object({
@@ -25,19 +29,19 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Authenticate user
     const user = await requireUser(request);
-    
+
     // 2. Apply rate limiting (for expensive operations)
     await checkRateLimit(`${user.id}:operation-name`);
-    
+
     // 3. Validate input
     const params = inputSchema.parse(await readJson(request));
-    
+
     // 4. Check authorization
     await requireFamilyAccess(user.id, params.familyId);
-    
+
     // 5. Perform operation
     const result = await performOperation(params);
-    
+
     // 6. Return standardized response
     return ok(result);
   } catch (error) {
@@ -50,6 +54,7 @@ export async function GET(request: NextRequest) {
 ## Response Format
 
 ### Success Response
+
 ```json
 {
   "data": {
@@ -70,11 +75,13 @@ All list endpoints return a standardized envelope format:
 ```
 
 **Examples:**
+
 - `GET /api/families` → `{ items: [families], nextCursor: null }`
 - `GET /api/children?family_id=X` → `{ items: [children], nextCursor: null }`
 - `GET /api/memories?family_id=X` → `{ items: [memories], nextCursor: "offset:20" }`
 
 ### Error Response
+
 ```json
 {
   "error": {
@@ -86,23 +93,24 @@ All list endpoints return a standardized envelope format:
 
 ## Status Codes
 
-| Status | Usage |
-|--------|-------|
-| **200** | Successful GET, PATCH, PUT |
-| **201** | Successful POST (resource created) |
-| **400** | Validation error / Bad request |
-| **401** | Authentication required |
+| Status  | Usage                                   |
+| ------- | --------------------------------------- |
+| **200** | Successful GET, PATCH, PUT              |
+| **201** | Successful POST (resource created)      |
+| **400** | Validation error / Bad request          |
+| **401** | Authentication required                 |
 | **403** | Forbidden (authenticated but no access) |
-| **404** | Resource not found |
-| **422** | Validation failed (with details) |
-| **429** | Rate limit exceeded |
-| **500** | Internal server error |
+| **404** | Resource not found                      |
+| **422** | Validation failed (with details)        |
+| **429** | Rate limit exceeded                     |
+| **500** | Internal server error                   |
 
 ## Migration Notes
 
 ### Deprecated Endpoints
 
 #### `/api/memories/create` → `/api/memories`
+
 - **Old**: `POST /api/memories/create`
 - **New**: `POST /api/memories`
 - **Sunset Date**: October 1, 2025
@@ -110,6 +118,7 @@ All list endpoints return a standardized envelope format:
 - **Changes**: Same request/response format, just different URL path.
 
 **Response Headers on Deprecated Endpoint:**
+
 ```
 Deprecation: true
 Sunset: Wed, 01 Oct 2025 00:00:00 GMT
@@ -129,6 +138,7 @@ The token is validated using `requireUser(request)` which returns the authentica
 ## Rate Limiting
 
 Rate limiting is applied to expensive operations:
+
 - **POST** endpoints: 10 requests per 10 seconds
 - **AI/Analytics** endpoints: 5 requests per 60 seconds
 - **DELETE/PATCH** operations: 10 requests per 10 seconds
@@ -140,12 +150,15 @@ Rate limiting is **production-only** and bypassed in development.
 ### Families
 
 #### List Families
+
 ```http
 GET /api/families?limit=50
 ```
+
 Returns all families the user is a member of.
 
 #### Create Family
+
 ```http
 POST /api/families
 Content-Type: application/json
@@ -166,11 +179,13 @@ Content-Type: application/json
 ```
 
 #### Get Family
+
 ```http
 GET /api/families/{id}
 ```
 
 #### Update Family
+
 ```http
 PATCH /api/families/{id}
 Content-Type: application/json
@@ -182,19 +197,23 @@ Content-Type: application/json
 ```
 
 #### Leave Family (Soft Delete)
+
 ```http
 DELETE /api/families/{id}
 ```
+
 Removes the user's membership but preserves data for other members.
 
 ### Memories
 
 #### List Memories
+
 ```http
 GET /api/memories?family_id={id}&limit=20&offset=0
 ```
 
 Query Parameters:
+
 - `family_id` (required): Family ID
 - `child_id`: Filter by child
 - `category`: Filter by category
@@ -204,6 +223,7 @@ Query Parameters:
 - `offset`: Pagination offset
 
 #### Create Memory
+
 ```http
 POST /api/memories
 Content-Type: application/json
@@ -218,11 +238,13 @@ Content-Type: application/json
 ```
 
 #### Get Memory
+
 ```http
 GET /api/memories/{id}
 ```
 
 #### Update Memory
+
 ```http
 PATCH /api/memories/{id}
 Content-Type: application/json
@@ -234,19 +256,23 @@ Content-Type: application/json
 ```
 
 #### Hide Memory (Soft Delete)
+
 ```http
 DELETE /api/memories/{id}
 ```
+
 Hides the memory for the current user only using `app_context.hidden_by`.
 
 ### Analytics
 
 #### AI Processing Analytics
+
 ```http
 GET /api/analytics/ai-processing?familyId={id}&timeframe=30d&metric=all
 ```
 
 Query Parameters:
+
 - `familyId` (required): Family ID
 - `timeframe`: 24h, 7d, 30d, 90d, 1y
 - `metric`: all, cost, processing_time, success_rate, milestones
@@ -254,14 +280,17 @@ Query Parameters:
 ### Queue Statistics
 
 #### Get Queue Stats
+
 ```http
 GET /api/queue-stats?familyId={id}
 ```
+
 Returns processing queue statistics for a family.
 
 ## Soft Delete Implementation
 
 Seneca uses **user-specific soft deletes** for memories:
+
 - Memories are marked as hidden in `app_context.hidden_by[userId]`
 - Hidden memories are filtered out in list endpoints
 - Data is preserved for other family members
@@ -270,6 +299,7 @@ Seneca uses **user-specific soft deletes** for memories:
 ## Error Handling Examples
 
 ### Validation Error (422)
+
 ```json
 {
   "error": {
@@ -285,6 +315,7 @@ Seneca uses **user-specific soft deletes** for memories:
 ```
 
 ### Rate Limit Error (429)
+
 ```json
 {
   "error": {
@@ -299,6 +330,7 @@ Seneca uses **user-specific soft deletes** for memories:
 ```
 
 ### Not Found Error (404)
+
 ```json
 {
   "error": {
@@ -312,51 +344,51 @@ Seneca uses **user-specific soft deletes** for memories:
 ### Example Integration Test
 
 ```typescript
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
-describe('POST /api/memories', () => {
-  it('should create memory with valid data', async () => {
-    const response = await fetch('/api/memories', {
-      method: 'POST',
+describe("POST /api/memories", () => {
+  it("should create memory with valid data", async () => {
+    const response = await fetch("/api/memories", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${validToken}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${validToken}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        content: 'Test memory content',
+        content: "Test memory content",
         familyId: testFamilyId,
-        childId: testChildId
-      })
+        childId: testChildId,
+      }),
     });
-    
+
     expect(response.status).toBe(201);
     const { data } = await response.json();
     expect(data.id).toBeDefined();
-    expect(data.content).toBe('Test memory content');
+    expect(data.content).toBe("Test memory content");
   });
-  
-  it('should return 401 without auth', async () => {
-    const response = await fetch('/api/memories', {
-      method: 'POST',
-      body: JSON.stringify({ content: 'Test' })
+
+  it("should return 401 without auth", async () => {
+    const response = await fetch("/api/memories", {
+      method: "POST",
+      body: JSON.stringify({ content: "Test" }),
     });
-    
+
     expect(response.status).toBe(401);
   });
-  
-  it('should return 403 for unauthorized family', async () => {
-    const response = await fetch('/api/memories', {
-      method: 'POST',
+
+  it("should return 403 for unauthorized family", async () => {
+    const response = await fetch("/api/memories", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${validToken}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${validToken}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        content: 'Test',
-        familyId: unauthorizedFamilyId
-      })
+        content: "Test",
+        familyId: unauthorizedFamilyId,
+      }),
     });
-    
+
     expect(response.status).toBe(403);
   });
 });
@@ -370,33 +402,33 @@ async function apiRequest(path: string, options?: RequestInit) {
   const response = await fetch(`/api${path}`, {
     ...options,
     headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-      'Content-Type': 'application/json',
-      ...options?.headers
-    }
+      Authorization: `Bearer ${getAuthToken()}`,
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
   });
-  
+
   if (response.status === 401) {
     // Redirect to login or refresh token
     await refreshAuth();
-    throw new Error('Authentication required');
+    throw new Error("Authentication required");
   }
-  
+
   if (response.status === 403) {
-    throw new Error('Access denied');
+    throw new Error("Access denied");
   }
-  
+
   if (response.status === 429) {
     const { error } = await response.json();
     // Show rate limit message to user
     throw new Error(`Rate limited. Try again at ${error.details.reset}`);
   }
-  
+
   if (!response.ok) {
     const { error } = await response.json();
     throw new Error(error.message);
   }
-  
+
   const { data } = await response.json();
   return data;
 }

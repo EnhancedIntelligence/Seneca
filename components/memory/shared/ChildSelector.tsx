@@ -1,69 +1,69 @@
-'use client'
+"use client";
 
-import React from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  User, 
-  Users, 
-  Baby,
-  Heart
-} from 'lucide-react'
-import type { UIChild } from '@/lib/types'
-import { useFamily } from '@/lib/stores/useAppStore'
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { User, Users, Baby, Heart } from "lucide-react";
+import type { UIChild } from "@/lib/types";
+import { useFamily } from "@/lib/stores/useAppStore";
 
 interface ChildSelectorProps {
-  childProfiles?: UIChild[]
-  value?: string
-  onValueChange?: (childId?: string) => void
-  className?: string
+  childProfiles?: UIChild[];
+  value?: string;
+  onValueChange?: (childId?: string) => void;
+  className?: string;
 }
 
 export function ChildSelector({
   childProfiles: propChildProfiles,
   value: propValue,
   onValueChange: propOnValueChange,
-  className
+  className,
 }: ChildSelectorProps) {
   // Use store values if props not provided
-  const { children: storeChildren, activeChildId, switchChild } = useFamily()
-  
-  const childProfiles = propChildProfiles ?? storeChildren
-  const value = propValue ?? activeChildId
-  const onValueChange = propOnValueChange ?? ((childId?: string) => {
-    if (childId) switchChild(childId)
-  })
-  
-  const selectedChild = value ? childProfiles.find(child => child.id === value) : undefined
+  const { children: storeChildren, activeChildId, switchChild } = useFamily();
+
+  const childProfiles = propChildProfiles ?? storeChildren;
+  const value = propValue ?? activeChildId;
+  const onValueChange =
+    propOnValueChange ??
+    ((childId?: string) => {
+      if (childId) switchChild(childId);
+    });
+
+  const selectedChild = value
+    ? childProfiles.find((child) => child.id === value)
+    : undefined;
 
   const calculateAge = (birthDate: string | null): string => {
-    if (!birthDate) return 'Unknown age'
-    const birth = new Date(birthDate)
-    const now = new Date()
-    const ageInMonths = (now.getFullYear() - birth.getFullYear()) * 12 + 
-                        (now.getMonth() - birth.getMonth())
-    
+    if (!birthDate) return "Unknown age";
+    const birth = new Date(birthDate);
+    const now = new Date();
+    const ageInMonths =
+      (now.getFullYear() - birth.getFullYear()) * 12 +
+      (now.getMonth() - birth.getMonth());
+
     if (ageInMonths < 12) {
-      return `${ageInMonths} month${ageInMonths !== 1 ? 's' : ''}`
+      return `${ageInMonths} month${ageInMonths !== 1 ? "s" : ""}`;
     } else {
-      const years = Math.floor(ageInMonths / 12)
-      const months = ageInMonths % 12
-      
+      const years = Math.floor(ageInMonths / 12);
+      const months = ageInMonths % 12;
+
       if (months === 0) {
-        return `${years} year${years !== 1 ? 's' : ''}`
+        return `${years} year${years !== 1 ? "s" : ""}`;
       } else {
-        return `${years}y ${months}m`
+        return `${years}y ${months}m`;
       }
     }
-  }
+  };
 
   const getChildIcon = (child: UIChild) => {
-    const age = calculateAge(child.birthDate)
-    if (age.includes('month') || parseInt(age) < 2) {
-      return <Baby className="h-4 w-4" />
+    const age = calculateAge(child.birthDate);
+    if (age.includes("month") || parseInt(age) < 2) {
+      return <Baby className="h-4 w-4" />;
     }
-    return <User className="h-4 w-4" />
-  }
+    return <User className="h-4 w-4" />;
+  };
 
   return (
     <div className={className}>
@@ -110,7 +110,7 @@ export function ChildSelector({
         {/* Children Options */}
         {childProfiles.length > 0 ? (
           <div className="space-y-2">
-            {childProfiles.map(child => (
+            {childProfiles.map((child) => (
               <Button
                 key={child.id}
                 type="button"
@@ -121,8 +121,8 @@ export function ChildSelector({
                 <div className="flex items-center gap-3 w-full">
                   <div className="flex items-center justify-center w-10 h-10 rounded-full bg-secondary">
                     {child.avatarUrl ? (
-                      <img 
-                        src={child.avatarUrl} 
+                      <img
+                        src={child.avatarUrl}
                         alt={child.name}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -177,13 +177,11 @@ export function ChildSelector({
           <div className="p-3 bg-muted/50 rounded-lg border">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4" />
-              <span>
-                This memory will be shared with all family members
-              </span>
+              <span>This memory will be shared with all family members</span>
             </div>
           </div>
         )}
       </div>
     </div>
-  )
-} 
+  );
+}

@@ -1,15 +1,21 @@
-'use client'
+"use client";
 
-import React from 'react'
-import { CheckCircle, Circle, AlertCircle, Calendar, User, Tag } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import React from "react";
+import {
+  CheckCircle,
+  Circle,
+  AlertCircle,
+  Calendar,
+  User,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * MilestoneTimeline Component
- * 
+ *
  * Displays developmental milestones in a vertical timeline format.
  * Shows verification status, AI confidence, and categorization.
- * 
+ *
  * @component
  * @example
  * ```tsx
@@ -32,38 +38,38 @@ import { cn } from '@/lib/utils'
 
 export interface Milestone {
   /** Unique identifier */
-  id: string
+  id: string;
   /** Child's name */
-  child: string
+  child: string;
   /** Milestone title/description */
-  title: string
+  title: string;
   /** Date of the milestone */
-  date: string
+  date: string;
   /** Category of the milestone */
-  category: string
+  category: string;
   /** AI confidence percentage (0-100) */
-  aiConfidence: number
+  aiConfidence: number;
   /** Whether the milestone has been verified */
-  verified: boolean
+  verified: boolean;
   /** Optional description */
-  description?: string
+  description?: string;
   /** Optional media URLs */
-  mediaUrls?: string[]
+  mediaUrls?: string[];
 }
 
 export interface MilestoneTimelineProps {
   /** Array of milestones to display */
-  milestones: Milestone[]
+  milestones: Milestone[];
   /** Callback when a milestone is clicked */
-  onMilestoneClick?: (id: string) => void
+  onMilestoneClick?: (id: string) => void;
   /** Whether to show the timeline line */
-  showTimeline?: boolean
+  showTimeline?: boolean;
   /** Whether to group by date */
-  groupByDate?: boolean
+  groupByDate?: boolean;
   /** Additional CSS classes */
-  className?: string
+  className?: string;
   /** Empty state message */
-  emptyMessage?: string
+  emptyMessage?: string;
 }
 
 export function MilestoneTimeline({
@@ -72,71 +78,79 @@ export function MilestoneTimeline({
   showTimeline = true,
   groupByDate = false,
   className,
-  emptyMessage = 'No milestones recorded yet'
+  emptyMessage = "No milestones recorded yet",
 }: MilestoneTimelineProps) {
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      Physical: 'from-blue-600 to-cyan-600',
-      Cognitive: 'from-purple-600 to-violet-600',
-      Social: 'from-green-600 to-emerald-600',
-      Language: 'from-amber-600 to-yellow-600',
-      Emotional: 'from-pink-600 to-rose-600',
-      Creative: 'from-indigo-600 to-purple-600',
-      'Self-care': 'from-teal-600 to-green-600'
-    }
-    return colors[category] || 'from-gray-600 to-gray-400'
-  }
+      Physical: "from-blue-600 to-cyan-600",
+      Cognitive: "from-purple-600 to-violet-600",
+      Social: "from-green-600 to-emerald-600",
+      Language: "from-amber-600 to-yellow-600",
+      Emotional: "from-pink-600 to-rose-600",
+      Creative: "from-indigo-600 to-purple-600",
+      "Self-care": "from-teal-600 to-green-600",
+    };
+    return colors[category] || "from-gray-600 to-gray-400";
+  };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 90) return 'text-green-400'
-    if (confidence >= 70) return 'text-amber-400'
-    return 'text-red-400'
-  }
+    if (confidence >= 90) return "text-green-400";
+    if (confidence >= 70) return "text-amber-400";
+    return "text-red-400";
+  };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
     if (date.toDateString() === today.toDateString()) {
-      return 'Today'
+      return "Today";
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday'
+      return "Yesterday";
     } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
-      })
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
     }
-  }
+  };
 
   if (milestones.length === 0) {
     return (
-      <div className={cn('flex flex-col items-center justify-center py-12', className)}>
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center py-12",
+          className,
+        )}
+      >
         <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-white/40" />
         </div>
         <p className="text-white/60 text-center">{emptyMessage}</p>
       </div>
-    )
+    );
   }
 
   // Group milestones by date if requested
   const groupedMilestones = groupByDate
-    ? milestones.reduce((groups, milestone) => {
-        const date = milestone.date
-        if (!groups[date]) {
-          groups[date] = []
-        }
-        groups[date].push(milestone)
-        return groups
-      }, {} as Record<string, Milestone[]>)
-    : { all: milestones }
+    ? milestones.reduce(
+        (groups, milestone) => {
+          const date = milestone.date;
+          if (!groups[date]) {
+            groups[date] = [];
+          }
+          groups[date].push(milestone);
+          return groups;
+        },
+        {} as Record<string, Milestone[]>,
+      )
+    : { all: milestones };
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn("relative", className)}>
       {showTimeline && (
         <div className="absolute left-5 top-8 bottom-8 w-0.5 bg-gradient-to-b from-violet-600/30 via-blue-600/30 to-transparent" />
       )}
@@ -144,7 +158,7 @@ export function MilestoneTimeline({
       <div className="space-y-6">
         {Object.entries(groupedMilestones).map(([date, dateMilestones]) => (
           <div key={date}>
-            {groupByDate && date !== 'all' && (
+            {groupByDate && date !== "all" && (
               <div className="flex items-center gap-3 mb-4">
                 <Calendar className="w-4 h-4 text-white/40" />
                 <span className="text-sm font-medium text-white/60">
@@ -154,12 +168,12 @@ export function MilestoneTimeline({
             )}
 
             <div className="space-y-4">
-              {dateMilestones.map((milestone, index) => (
+              {dateMilestones.map((milestone) => (
                 <div
                   key={milestone.id}
                   className={cn(
-                    'relative flex gap-4',
-                    onMilestoneClick && 'cursor-pointer group'
+                    "relative flex gap-4",
+                    onMilestoneClick && "cursor-pointer group",
                   )}
                   onClick={() => onMilestoneClick?.(milestone.id)}
                 >
@@ -168,12 +182,12 @@ export function MilestoneTimeline({
                     <div className="relative flex-shrink-0 w-10 flex justify-center">
                       <div
                         className={cn(
-                          'w-3 h-3 rounded-full border-2 border-zinc-900',
-                          'transition-all duration-200',
+                          "w-3 h-3 rounded-full border-2 border-zinc-900",
+                          "transition-all duration-200",
                           milestone.verified
-                            ? 'bg-green-500 shadow-lg shadow-green-500/30'
-                            : 'bg-amber-500 shadow-lg shadow-amber-500/30',
-                          onMilestoneClick && 'group-hover:scale-125'
+                            ? "bg-green-500 shadow-lg shadow-green-500/30"
+                            : "bg-amber-500 shadow-lg shadow-amber-500/30",
+                          onMilestoneClick && "group-hover:scale-125",
                         )}
                       />
                     </div>
@@ -182,10 +196,11 @@ export function MilestoneTimeline({
                   {/* Content Card */}
                   <div
                     className={cn(
-                      'flex-1 rounded-xl border p-4',
-                      'bg-white/5 backdrop-blur-sm border-white/10',
-                      'transition-all duration-200',
-                      onMilestoneClick && 'hover:bg-white/10 hover:border-white/20'
+                      "flex-1 rounded-xl border p-4",
+                      "bg-white/5 backdrop-blur-sm border-white/10",
+                      "transition-all duration-200",
+                      onMilestoneClick &&
+                        "hover:bg-white/10 hover:border-white/20",
                     )}
                   >
                     {/* Header */}
@@ -237,9 +252,9 @@ export function MilestoneTimeline({
                       <div className="flex items-center gap-2">
                         <div
                           className={cn(
-                            'px-3 py-1 rounded-full text-xs font-medium text-white',
-                            'bg-gradient-to-r',
-                            getCategoryColor(milestone.category)
+                            "px-3 py-1 rounded-full text-xs font-medium text-white",
+                            "bg-gradient-to-r",
+                            getCategoryColor(milestone.category),
                           )}
                         >
                           {milestone.category}
@@ -248,8 +263,15 @@ export function MilestoneTimeline({
 
                       {/* AI Confidence */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/40">AI Confidence:</span>
-                        <span className={cn('text-sm font-medium', getConfidenceColor(milestone.aiConfidence))}>
+                        <span className="text-xs text-white/40">
+                          AI Confidence:
+                        </span>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            getConfidenceColor(milestone.aiConfidence),
+                          )}
+                        >
                           {milestone.aiConfidence}%
                         </span>
                       </div>
@@ -259,7 +281,10 @@ export function MilestoneTimeline({
                     {milestone.mediaUrls && milestone.mediaUrls.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-white/10">
                         <div className="flex items-center gap-2 text-xs text-white/40">
-                          <span>📷 {milestone.mediaUrls.length} media file{milestone.mediaUrls.length !== 1 ? 's' : ''}</span>
+                          <span>
+                            📷 {milestone.mediaUrls.length} media file
+                            {milestone.mediaUrls.length !== 1 ? "s" : ""}
+                          </span>
                         </div>
                       </div>
                     )}
@@ -271,5 +296,5 @@ export function MilestoneTimeline({
         ))}
       </div>
     </div>
-  )
+  );
 }

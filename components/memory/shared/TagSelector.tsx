@@ -1,51 +1,77 @@
-'use client'
+"use client";
 
-import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { 
-  X, 
-  Plus, 
-  Tag,
-  Sparkles,
-  Check
-} from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { X, Plus, Tag, Sparkles } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TagSelectorProps {
-  value: string[]
-  onChange: (tags: string[]) => void
-  familyId: string
-  maxTags?: number
-  className?: string
-  suggestions?: string[]
+  value: string[];
+  onChange: (tags: string[]) => void;
+  familyId: string;
+  maxTags?: number;
+  className?: string;
+  suggestions?: string[];
 }
 
 // Common memory tag suggestions for AI-assisted tagging
 const DEFAULT_TAG_SUGGESTIONS = [
   // Milestones
-  'first-steps', 'first-words', 'first-food', 'first-day', 'milestone',
-  
-  // Activities  
-  'playing', 'learning', 'reading', 'cooking', 'crafts', 'outdoor', 'sports',
-  
+  "first-steps",
+  "first-words",
+  "first-food",
+  "first-day",
+  "milestone",
+
+  // Activities
+  "playing",
+  "learning",
+  "reading",
+  "cooking",
+  "crafts",
+  "outdoor",
+  "sports",
+
   // Emotions & Moods
-  'happy', 'excited', 'proud', 'silly', 'curious', 'calm', 'adventurous',
-  
+  "happy",
+  "excited",
+  "proud",
+  "silly",
+  "curious",
+  "calm",
+  "adventurous",
+
   // Family & Social
-  'family-time', 'siblings', 'grandparents', 'friends', 'playdate',
-  
+  "family-time",
+  "siblings",
+  "grandparents",
+  "friends",
+  "playdate",
+
   // Occasions
-  'birthday', 'holiday', 'vacation', 'celebration', 'special-occasion',
-  
+  "birthday",
+  "holiday",
+  "vacation",
+  "celebration",
+  "special-occasion",
+
   // Development
-  'growth', 'independence', 'creativity', 'problem-solving', 'social-skills',
-  
+  "growth",
+  "independence",
+  "creativity",
+  "problem-solving",
+  "social-skills",
+
   // Daily Life
-  'bedtime', 'mealtime', 'bath-time', 'morning-routine', 'evening-routine'
-]
+  "bedtime",
+  "mealtime",
+  "bath-time",
+  "morning-routine",
+  "evening-routine",
+];
 
 export function TagSelector({
   value = [],
@@ -53,14 +79,14 @@ export function TagSelector({
   familyId,
   maxTags = 20,
   className,
-  suggestions = DEFAULT_TAG_SUGGESTIONS
+  suggestions = DEFAULT_TAG_SUGGESTIONS,
 }: TagSelectorProps) {
-  const { toast } = useToast()
-  const [inputValue, setInputValue] = useState('')
-  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [familyTags, setFamilyTags] = useState<string[]>([])
-  const inputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast();
+  const [inputValue, setInputValue] = useState("");
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [familyTags, setFamilyTags] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Load popular tags from family's previous memories
   useEffect(() => {
@@ -69,148 +95,168 @@ export function TagSelector({
         // This would typically fetch from your API
         // For now, we'll use a mock implementation
         const mockFamilyTags = [
-          'park-visit', 'bedtime-stories', 'garden-time', 'art-project',
-          'music-time', 'dance-party', 'baking', 'nature-walk'
-        ]
-        setFamilyTags(mockFamilyTags)
+          "park-visit",
+          "bedtime-stories",
+          "garden-time",
+          "art-project",
+          "music-time",
+          "dance-party",
+          "baking",
+          "nature-walk",
+        ];
+        setFamilyTags(mockFamilyTags);
       } catch (error) {
-        console.error('Failed to load family tags:', error)
+        console.error("Failed to load family tags:", error);
       }
-    }
+    };
 
-    loadFamilyTags()
-  }, [familyId])
+    loadFamilyTags();
+  }, [familyId]);
 
   // Filter suggestions based on input
   useEffect(() => {
     if (!inputValue.trim()) {
-      setFilteredSuggestions([])
-      setShowSuggestions(false)
-      return
+      setFilteredSuggestions([]);
+      setShowSuggestions(false);
+      return;
     }
 
-    const query = inputValue.toLowerCase().trim()
-    
+    const query = inputValue.toLowerCase().trim();
+
     // Combine all suggestion sources
     const allSuggestions = [
       ...familyTags, // Family-specific tags first
-      ...suggestions // Default suggestions
-    ]
+      ...suggestions, // Default suggestions
+    ];
 
     // Filter and deduplicate
     const filtered = [...new Set(allSuggestions)]
-      .filter(tag => 
-        tag.toLowerCase().includes(query) && 
-        !value.includes(tag)
+      .filter(
+        (tag) => tag.toLowerCase().includes(query) && !value.includes(tag),
       )
-      .slice(0, 8) // Limit suggestions
+      .slice(0, 8); // Limit suggestions
 
-    setFilteredSuggestions(filtered)
-    setShowSuggestions(filtered.length > 0)
-  }, [inputValue, suggestions, familyTags, value])
+    setFilteredSuggestions(filtered);
+    setShowSuggestions(filtered.length > 0);
+  }, [inputValue, suggestions, familyTags, value]);
 
   // Add a tag
-  const addTag = useCallback((tag: string) => {
-    const cleanTag = tag.trim().toLowerCase().replace(/\s+/g, '-')
-    
-    // Validation
-    if (!cleanTag) return
-    
-    if (cleanTag.length > 50) {
+  const addTag = useCallback(
+    (tag: string) => {
+      const cleanTag = tag.trim().toLowerCase().replace(/\s+/g, "-");
+
+      // Validation
+      if (!cleanTag) return;
+
+      if (cleanTag.length > 50) {
+        toast({
+          title: "Tag too long",
+          description: "Tags must be 50 characters or less.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (value.includes(cleanTag)) {
+        toast({
+          title: "Tag already added",
+          description: `"${cleanTag}" is already in your tag list.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (value.length >= maxTags) {
+        toast({
+          title: "Too many tags",
+          description: `Maximum ${maxTags} tags allowed.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Add tag and clear input
+      onChange([...value, cleanTag]);
+      setInputValue("");
+      setShowSuggestions(false);
+
+      // Focus back on input for easy addition of more tags
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+
       toast({
-        title: "Tag too long",
-        description: "Tags must be 50 characters or less.",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (value.includes(cleanTag)) {
-      toast({
-        title: "Tag already added",
-        description: `"${cleanTag}" is already in your tag list.`,
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (value.length >= maxTags) {
-      toast({
-        title: "Too many tags",
-        description: `Maximum ${maxTags} tags allowed.`,
-        variant: "destructive"
-      })
-      return
-    }
-
-    // Add tag and clear input
-    onChange([...value, cleanTag])
-    setInputValue('')
-    setShowSuggestions(false)
-    
-    // Focus back on input for easy addition of more tags
-    setTimeout(() => {
-      inputRef.current?.focus()
-    }, 0)
-
-    toast({
-      title: "Tag added",
-      description: `Added "${cleanTag}" to your memory.`
-    })
-  }, [value, onChange, maxTags, toast])
+        title: "Tag added",
+        description: `Added "${cleanTag}" to your memory.`,
+      });
+    },
+    [value, onChange, maxTags, toast],
+  );
 
   // Remove a tag
-  const removeTag = useCallback((tagToRemove: string) => {
-    onChange(value.filter(tag => tag !== tagToRemove))
-    
-    toast({
-      title: "Tag removed",
-      description: `Removed "${tagToRemove}" from your memory.`
-    })
-  }, [value, onChange, toast])
+  const removeTag = useCallback(
+    (tagToRemove: string) => {
+      onChange(value.filter((tag) => tag !== tagToRemove));
+
+      toast({
+        title: "Tag removed",
+        description: `Removed "${tagToRemove}" from your memory.`,
+      });
+    },
+    [value, onChange, toast],
+  );
 
   // Handle input key events
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      if (inputValue.trim()) {
-        addTag(inputValue)
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (inputValue.trim()) {
+          addTag(inputValue);
+        }
+      } else if (e.key === "Escape") {
+        setShowSuggestions(false);
+      } else if (e.key === "Backspace" && !inputValue && value.length > 0) {
+        // Remove last tag when backspacing on empty input
+        const lastTag = value[value.length - 1];
+        removeTag(lastTag);
       }
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false)
-    } else if (e.key === 'Backspace' && !inputValue && value.length > 0) {
-      // Remove last tag when backspacing on empty input
-      const lastTag = value[value.length - 1]
-      removeTag(lastTag)
-    }
-  }, [inputValue, addTag, value, removeTag])
+    },
+    [inputValue, addTag, value, removeTag],
+  );
 
   // Select suggestion
-  const selectSuggestion = useCallback((suggestion: string) => {
-    addTag(suggestion)
-  }, [addTag])
+  const selectSuggestion = useCallback(
+    (suggestion: string) => {
+      addTag(suggestion);
+    },
+    [addTag],
+  );
 
   // Generate AI-powered tag suggestions based on content
   const generateAITags = useCallback(async () => {
     // This would typically call your AI API to analyze the memory content
     // For now, we'll provide some smart suggestions
     const aiSuggestions = [
-      'ai-suggested', 'special-moment', 'memorable', 'growth-milestone'
-    ].filter(tag => !value.includes(tag))
+      "ai-suggested",
+      "special-moment",
+      "memorable",
+      "growth-milestone",
+    ].filter((tag) => !value.includes(tag));
 
     if (aiSuggestions.length === 0) {
       toast({
         title: "No new suggestions",
         description: "AI couldn't find any new relevant tags.",
-      })
-      return
+      });
+      return;
     }
 
     // Add first AI suggestion automatically
     if (aiSuggestions.length > 0) {
-      addTag(aiSuggestions[0])
+      addTag(aiSuggestions[0]);
     }
-  }, [value, addTag, toast])
+  }, [value, addTag, toast]);
 
   return (
     <div className={className}>
@@ -218,10 +264,10 @@ export function TagSelector({
         {/* Current Tags Display */}
         {value.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {value.map(tag => (
-              <Badge 
-                key={tag} 
-                variant="secondary" 
+            {value.map((tag) => (
+              <Badge
+                key={tag}
+                variant="secondary"
                 className="px-2 py-1 text-xs group cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
                 onClick={() => removeTag(tag)}
               >
@@ -240,11 +286,18 @@ export function TagSelector({
               <Input
                 ref={inputRef}
                 type="text"
-                placeholder={value.length === 0 ? "Add tags to organize your memory..." : "Add another tag..."}
+                placeholder={
+                  value.length === 0
+                    ? "Add tags to organize your memory..."
+                    : "Add another tag..."
+                }
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onFocus={() => inputValue && setShowSuggestions(filteredSuggestions.length > 0)}
+                onFocus={() =>
+                  inputValue &&
+                  setShowSuggestions(filteredSuggestions.length > 0)
+                }
                 className="pr-10"
               />
               {inputValue && (
@@ -252,7 +305,7 @@ export function TagSelector({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setInputValue('')}
+                  onClick={() => setInputValue("")}
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                 >
                   <X className="h-3 w-3" />
@@ -312,12 +365,14 @@ export function TagSelector({
         {/* Popular Family Tags */}
         {familyTags.length > 0 && value.length < maxTags && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Popular in your family:</p>
+            <p className="text-xs text-muted-foreground">
+              Popular in your family:
+            </p>
             <div className="flex flex-wrap gap-1">
               {familyTags
-                .filter(tag => !value.includes(tag))
+                .filter((tag) => !value.includes(tag))
                 .slice(0, 8)
-                .map(tag => (
+                .map((tag) => (
                   <Button
                     key={tag}
                     type="button"
@@ -336,19 +391,24 @@ export function TagSelector({
 
         {/* Tag Count and Tips */}
         <div className="flex justify-between items-center text-xs text-muted-foreground">
-          <span>{value.length}/{maxTags} tags</span>
-          <span>Press Enter to add • Backspace to remove • Click tags to delete</span>
+          <span>
+            {value.length}/{maxTags} tags
+          </span>
+          <span>
+            Press Enter to add • Backspace to remove • Click tags to delete
+          </span>
         </div>
 
         {value.length > 0 && (
           <div className="p-3 bg-muted/30 rounded-lg border-l-2 border-primary">
             <p className="text-xs text-muted-foreground">
-              💡 <strong>Pro tip:</strong> Good tags help you find memories later and enable better AI insights. 
-              Try using specific tags like "first-steps" rather than generic ones like "walking".
+              💡 <strong>Pro tip:</strong> Good tags help you find memories
+              later and enable better AI insights. Try using specific tags like
+              "first-steps" rather than generic ones like "walking".
             </p>
           </div>
         )}
       </div>
     </div>
-  )
-} 
+  );
+}

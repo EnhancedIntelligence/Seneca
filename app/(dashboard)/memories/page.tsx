@@ -1,23 +1,39 @@
-'use client';
+"use client";
 
 /**
  * Memories List View
  * Browse and search all memories
  */
 
-import { useState, useEffect, useMemo } from 'react';
-import { MemoryCard } from '@/components/memory/MemoryCard';
-import { useFilteredMemories, useFilters, useFamily } from '@/lib/stores/useAppStore';
-import type { UIMemory } from '@/lib/types';
-import { useApi } from '@/lib/services/mockApi';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Tag, ChevronDown, SortAsc, Clock, TrendingUp, Star } from 'lucide-react';
-import { tagOptions } from '@/lib/stores/mockData';
+import { useState, useEffect, useMemo } from "react";
+import { MemoryCard } from "@/components/memory/MemoryCard";
+import {
+  useFilteredMemories,
+  useFilters,
+  useFamily,
+} from "@/lib/stores/useAppStore";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Search,
+  Tag,
+  ChevronDown,
+  SortAsc,
+  Clock,
+  TrendingUp,
+  Star,
+} from "lucide-react";
+import { tagOptions } from "@/lib/stores/mockData";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,22 +42,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 
-type SortOption = 'recent' | 'oldest' | 'milestone' | 'confidence';
+type SortOption = "recent" | "oldest" | "milestone" | "confidence";
 
 export default function MemoriesPage() {
   const memories = useFilteredMemories();
-  const { searchQuery, setSearchQuery, selectedTags, toggleTag, clearFilters } = useFilters();
+  const { searchQuery, setSearchQuery, selectedTags, toggleTag, clearFilters } =
+    useFilters();
   const { children, activeChildId, switchChild } = useFamily();
   const [localSearch, setLocalSearch] = useState(searchQuery);
-  const [sortBy, setSortBy] = useState<SortOption>('recent');
+  const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [isLoading, setIsLoading] = useState(false);
-  const api = useApi();
+  const isLoading = false; // Will add real loading when API is connected
 
-  const activeChild = children.find(c => c.id === activeChildId);
+  const activeChild = children.find((c) => c.id === activeChildId);
 
   // Debounced search
   useEffect(() => {
@@ -54,32 +70,42 @@ export default function MemoriesPage() {
   // Sort memories
   const sortedMemories = useMemo(() => {
     const sorted = [...memories];
-    
+
     switch (sortBy) {
-      case 'oldest':
-        sorted.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      case "oldest":
+        sorted.sort(
+          (a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+        );
         break;
-      case 'milestone':
+      case "milestone":
         sorted.sort((a, b) => {
-          const aMilestone = a.tags.some(t => t.label === 'milestone') ? 1 : 0;
-          const bMilestone = b.tags.some(t => t.label === 'milestone') ? 1 : 0;
+          const aMilestone = a.tags.some((t) => t.label === "milestone")
+            ? 1
+            : 0;
+          const bMilestone = b.tags.some((t) => t.label === "milestone")
+            ? 1
+            : 0;
           return bMilestone - aMilestone;
         });
         break;
-      case 'confidence':
+      case "confidence":
         // Mock confidence score based on processing status and tags
         sorted.sort((a, b) => {
-          const aScore = a.processingStatus === 'completed' ? 1 : 0.5;
-          const bScore = b.processingStatus === 'completed' ? 1 : 0.5;
+          const aScore = a.processingStatus === "completed" ? 1 : 0.5;
+          const bScore = b.processingStatus === "completed" ? 1 : 0.5;
           return bScore - aScore;
         });
         break;
-      case 'recent':
+      case "recent":
       default:
-        sorted.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        sorted.sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        );
         break;
     }
-    
+
     return sorted;
   }, [memories, sortBy]);
 
@@ -91,7 +117,6 @@ export default function MemoriesPage() {
   }, [sortedMemories, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(sortedMemories.length / itemsPerPage);
-
 
   const hasFilters = searchQuery || selectedTags.length > 0 || activeChildId;
 
@@ -121,9 +146,12 @@ export default function MemoriesPage() {
               className="pl-10 bg-white/5 border-white/10"
             />
           </div>
-          
+
           {/* Sort Selector */}
-          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+          <Select
+            value={sortBy}
+            onValueChange={(value) => setSortBy(value as SortOption)}
+          >
             <SelectTrigger className="w-[180px] bg-white/5 border-white/10">
               <SortAsc className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Sort by..." />
@@ -162,14 +190,18 @@ export default function MemoriesPage() {
           {/* Child Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="bg-white/5 border-white/10">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/5 border-white/10"
+              >
                 {activeChild ? (
                   <>
                     <span className="mr-1">{activeChild.emoji}</span>
                     {activeChild.name}
                   </>
                 ) : (
-                  'All Children'
+                  "All Children"
                 )}
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
@@ -177,7 +209,7 @@ export default function MemoriesPage() {
             <DropdownMenuContent className="bg-zinc-900 border-white/10">
               <DropdownMenuLabel>Select Child</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem onClick={() => switchChild('')}>
+              <DropdownMenuItem onClick={() => switchChild("")}>
                 All Children
               </DropdownMenuItem>
               {children.map((child) => (
@@ -195,7 +227,11 @@ export default function MemoriesPage() {
           {/* Tag Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="bg-white/5 border-white/10">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/5 border-white/10"
+              >
                 <Tag className="w-4 h-4 mr-2" />
                 Tags ({selectedTags.length})
                 <ChevronDown className="ml-2 h-4 w-4" />
@@ -233,7 +269,7 @@ export default function MemoriesPage() {
         {selectedTags.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {selectedTags.map((tag) => {
-              const tagOption = tagOptions.find(t => t.value === tag);
+              const tagOption = tagOptions.find((t) => t.value === tag);
               return (
                 <Badge
                   key={tag}
@@ -271,7 +307,9 @@ export default function MemoriesPage() {
               ) : (
                 <>
                   <p className="text-lg mb-2">No memories yet</p>
-                  <p className="text-sm">Start capturing moments to see them here</p>
+                  <p className="text-sm">
+                    Start capturing moments to see them here
+                  </p>
                 </>
               )}
             </div>
@@ -286,16 +324,18 @@ export default function MemoriesPage() {
                   memory={memory}
                   onCardClick={() => {
                     // TODO: Add memory detail view
-                    console.log('Memory clicked:', memory.id);
+                    console.log("Memory clicked:", memory.id);
                   }}
                 />
               ))}
             </div>
-            
+
             {/* Memory count and pagination info */}
             <div className="flex items-center justify-between text-sm text-gray-400">
               <span>
-                Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, sortedMemories.length)} of {sortedMemories.length} memories
+                Showing {(currentPage - 1) * itemsPerPage + 1} -{" "}
+                {Math.min(currentPage * itemsPerPage, sortedMemories.length)} of{" "}
+                {sortedMemories.length} memories
               </span>
             </div>
           </>
@@ -308,13 +348,13 @@ export default function MemoriesPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
             className="bg-white/5 border-white/10"
           >
             Previous
           </Button>
-          
+
           {/* Page numbers */}
           <div className="flex gap-1">
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -328,16 +368,17 @@ export default function MemoriesPage() {
               } else {
                 pageNum = currentPage - 2 + i;
               }
-              
+
               return (
                 <Button
                   key={i}
-                  variant={pageNum === currentPage ? 'default' : 'outline'}
+                  variant={pageNum === currentPage ? "default" : "outline"}
                   size="sm"
                   onClick={() => setCurrentPage(pageNum)}
-                  className={pageNum === currentPage 
-                    ? 'bg-gradient-to-r from-violet-600 to-blue-600' 
-                    : 'bg-white/5 border-white/10'
+                  className={
+                    pageNum === currentPage
+                      ? "bg-gradient-to-r from-violet-600 to-blue-600"
+                      : "bg-white/5 border-white/10"
                   }
                 >
                   {pageNum}
@@ -345,11 +386,13 @@ export default function MemoriesPage() {
               );
             })}
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+            }
             disabled={currentPage === totalPages}
             className="bg-white/5 border-white/10"
           >

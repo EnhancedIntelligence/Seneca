@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,7 +6,15 @@ import Link from "next/link";
 import { useAuthContext } from "@/lib/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowRight, Mic, Brain, Users, Shield, Sparkles, Heart } from "lucide-react";
+import {
+  ArrowRight,
+  Mic,
+  Brain,
+  Users,
+  Shield,
+  Sparkles,
+  Heart,
+} from "lucide-react";
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthContext();
@@ -14,7 +22,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push('/capture');
+      router.push("/capture");
     }
   }, [isAuthenticated, isLoading, router]);
 
@@ -46,20 +54,28 @@ export default function Home() {
               Your Family{`'`}s Memory Vault
             </p>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Capture precious moments, track developmental milestones, and let AI help you understand your child{`'`}s growth journey.
+              Capture precious moments, track developmental milestones, and let
+              AI help you understand your child{`'`}s growth journey.
             </p>
           </div>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link href="/login">
-              <Button size="lg" className="bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-lg px-8">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-lg px-8"
+              >
                 Get Started
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link href="/login">
-              <Button size="lg" variant="outline" className="bg-white/5 border-white/10 text-lg px-8">
+              <Button
+                size="lg"
+                variant="outline"
+                className="bg-white/5 border-white/10 text-lg px-8"
+              >
                 Sign In
               </Button>
             </Link>
@@ -67,7 +83,10 @@ export default function Home() {
 
           {/* Demo Account Info */}
           <div className="text-sm text-gray-400">
-            <p>Try with demo account: <code className="text-violet-400">demo@seneca.com</code></p>
+            <p>
+              Try with demo account:{" "}
+              <code className="text-violet-400">demo@seneca.com</code>
+            </p>
           </div>
         </div>
       </div>
@@ -78,7 +97,7 @@ export default function Home() {
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
             Designed for Modern Families
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Feature 1 */}
             <Card className="bg-white/5 border-white/10 p-6 hover:bg-white/10 transition-colors">
@@ -89,7 +108,8 @@ export default function Home() {
                 <h3 className="text-xl font-semibold">Voice Recording</h3>
               </div>
               <p className="text-gray-400">
-                Simply hold to record. Capture moments in seconds with automatic transcription.
+                Simply hold to record. Capture moments in seconds with automatic
+                transcription.
               </p>
             </Card>
 
@@ -102,7 +122,8 @@ export default function Home() {
                 <h3 className="text-xl font-semibold">AI Insights</h3>
               </div>
               <p className="text-gray-400">
-                Get intelligent insights about developmental milestones and growth patterns.
+                Get intelligent insights about developmental milestones and
+                growth patterns.
               </p>
             </Card>
 
@@ -115,7 +136,8 @@ export default function Home() {
                 <h3 className="text-xl font-semibold">Multi-Child Support</h3>
               </div>
               <p className="text-gray-400">
-                Track multiple children with personalized profiles and development tracking.
+                Track multiple children with personalized profiles and
+                development tracking.
               </p>
             </Card>
 
@@ -128,7 +150,8 @@ export default function Home() {
                 <h3 className="text-xl font-semibold">Smart Organization</h3>
               </div>
               <p className="text-gray-400">
-                Automatic tagging and categorization keeps memories organized effortlessly.
+                Automatic tagging and categorization keeps memories organized
+                effortlessly.
               </p>
             </Card>
 
@@ -141,7 +164,8 @@ export default function Home() {
                 <h3 className="text-xl font-semibold">Privacy First</h3>
               </div>
               <p className="text-gray-400">
-                Your family{`'`}s memories are encrypted and secure. You control your data.
+                Your family{`'`}s memories are encrypted and secure. You control
+                your data.
               </p>
             </Card>
 
@@ -164,7 +188,10 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-white/10">
         <div className="max-w-6xl mx-auto text-center text-gray-400">
-          <p>© 2024 Seneca. A demo application showcasing modern React architecture.</p>
+          <p>
+            © 2024 Seneca. A demo application showcasing modern React
+            architecture.
+          </p>
         </div>
       </footer>
     </main>

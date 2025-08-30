@@ -1,12 +1,15 @@
 # SMTP Configuration for Supabase Auth
 
 ## Current Status
+
 The login code is implemented and working, but SMTP needs to be configured in your Supabase project for email authentication to work.
 
 ## Steps to Configure SMTP
 
 ### 1. Choose an SMTP Provider
+
 Popular options:
+
 - **Resend** (recommended for simplicity)
 - **AWS SES** (good for scale)
 - **SendGrid**
@@ -14,7 +17,9 @@ Popular options:
 - **Postmark**
 
 ### 2. Get SMTP Credentials
+
 Once you've chosen a provider, you'll need:
+
 - SMTP Host (e.g., `smtp.resend.com`)
 - SMTP Port (usually 587 for TLS or 465 for SSL)
 - Username/API Key
@@ -41,6 +46,7 @@ Once you've chosen a provider, you'll need:
 ### 4. Resend Quick Setup (Recommended)
 
 If using Resend:
+
 1. Sign up at https://resend.com
 2. Verify your domain or use their test domain
 3. Get your API key from the dashboard
@@ -56,6 +62,7 @@ If using Resend:
 ### 5. Test Authentication Flow
 
 Once configured:
+
 1. Go to `/login` in your app
 2. Enter an email address
 3. Check for the magic link email
@@ -64,6 +71,7 @@ Once configured:
 ## Troubleshooting
 
 ### Email not sending?
+
 - Check SMTP credentials are correct
 - Verify sender email is authorized with provider
 - Check Supabase logs for errors
@@ -80,6 +88,7 @@ If SMTP setup is blocking development, you can temporarily use password auth:
 ## Next Steps
 
 After SMTP is working:
+
 1. Customize email templates in Supabase
 2. Add email verification requirements
 3. Configure password reset flow

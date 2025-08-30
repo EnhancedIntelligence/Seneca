@@ -63,20 +63,20 @@ npx playwright test tests/e2e/auth-redirect.spec.ts
 ### Vitest Config (`vitest.config.ts`)
 
 ```typescript
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: true,
-    setupFiles: './tests/setup.ts',
+    setupFiles: "./tests/setup.ts",
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
+      "@": path.resolve(__dirname, "./"),
     },
   },
 });
@@ -85,32 +85,32 @@ export default defineConfig({
 ### Playwright Config (`playwright.config.ts`)
 
 ```typescript
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: "./tests/e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: "html",
   use: {
-    baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry',
+    baseURL: "http://localhost:3000",
+    trace: "on-first-retry",
   },
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      name: "Mobile Chrome",
+      use: { ...devices["Pixel 5"] },
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: "npm run dev",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
 });
@@ -121,25 +121,25 @@ export default defineConfig({
 ### API Test Example
 
 ```typescript
-describe('Children API', () => {
-  it('should create a child with proper validation', async () => {
-    const response = await fetch('/api/children', {
-      method: 'POST',
+describe("Children API", () => {
+  it("should create a child with proper validation", async () => {
+    const response = await fetch("/api/children", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        name: 'Test Child',
+        name: "Test Child",
         family_id: testFamilyId,
-        birth_date: '2020-01-01',
+        birth_date: "2020-01-01",
       }),
     });
 
     expect(response.status).toBe(201);
     const data = await response.json();
     expect(data.data).toMatchObject({
-      name: 'Test Child',
+      name: "Test Child",
       family_id: testFamilyId,
     });
   });
@@ -149,26 +149,26 @@ describe('Children API', () => {
 ### E2E Test Example
 
 ```typescript
-test('user can create and view a memory', async ({ page }) => {
+test("user can create and view a memory", async ({ page }) => {
   // Login
-  await page.goto('/login');
-  await page.fill('input[type="email"]', 'test@example.com');
+  await page.goto("/login");
+  await page.fill('input[type="email"]', "test@example.com");
   await page.click('button[type="submit"]');
-  
+
   // Wait for magic link (in test, mock the auth)
-  await page.goto('/auth/callback?code=test-code');
-  
+  await page.goto("/auth/callback?code=test-code");
+
   // Navigate to memories
-  await page.goto('/memories');
-  
+  await page.goto("/memories");
+
   // Create new memory
-  await page.click('text=New Memory');
-  await page.fill('[name="title"]', 'First Steps');
-  await page.fill('[name="content"]', 'Baby took first steps today!');
-  await page.click('text=Save Memory');
-  
+  await page.click("text=New Memory");
+  await page.fill('[name="title"]', "First Steps");
+  await page.fill('[name="content"]', "Baby took first steps today!");
+  await page.click("text=Save Memory");
+
   // Verify memory appears
-  await expect(page.locator('text=First Steps')).toBeVisible();
+  await expect(page.locator("text=First Steps")).toBeVisible();
 });
 ```
 
@@ -178,28 +178,25 @@ test('user can create and view a memory', async ({ page }) => {
 
 ```typescript
 // tests/setup.ts
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 const supabaseTest = createClient(
   process.env.TEST_SUPABASE_URL!,
-  process.env.TEST_SUPABASE_SERVICE_KEY!
+  process.env.TEST_SUPABASE_SERVICE_KEY!,
 );
 
 export async function setupTestFamily() {
   const { data: family } = await supabaseTest
-    .from('families')
-    .insert({ name: 'Test Family' })
+    .from("families")
+    .insert({ name: "Test Family" })
     .select()
     .single();
-  
+
   return family;
 }
 
 export async function cleanupTestData(familyId: string) {
-  await supabaseTest
-    .from('families')
-    .delete()
-    .eq('id', familyId);
+  await supabaseTest.from("families").delete().eq("id", familyId);
 }
 ```
 
@@ -214,8 +211,8 @@ export const mockSupabase = {
     getSession: vi.fn(() => ({
       data: {
         session: {
-          user: { id: 'test-user-id' },
-          access_token: 'test-token',
+          user: { id: "test-user-id" },
+          access_token: "test-token",
         },
       },
     })),
@@ -226,7 +223,7 @@ export const mockSupabase = {
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
         single: vi.fn(() => ({
-          data: { id: 'test-id' },
+          data: { id: "test-id" },
           error: null,
         })),
       })),
@@ -251,7 +248,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: supabase/postgres:14
@@ -267,28 +264,28 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      
+
       - uses: actions/setup-node@v3
         with:
-          node-version: '20'
-          cache: 'npm'
-      
+          node-version: "20"
+          cache: "npm"
+
       - run: npm ci
-      
+
       - name: Run unit tests
         run: npm run test:unit
-      
+
       - name: Run integration tests
         run: npm run test:integration
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
-      
+
       - name: Install Playwright
         run: npx playwright install --with-deps
-      
+
       - name: Run E2E tests
         run: npm run test:e2e
-      
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v3
@@ -319,6 +316,7 @@ jobs:
 ## Debugging Tests
 
 ### Vitest
+
 ```bash
 # Run specific test file
 npm run test -- tests/api/children.spec.ts
@@ -331,6 +329,7 @@ npm run test -- --grep "soft-delete"
 ```
 
 ### Playwright
+
 ```bash
 # Debug mode
 npx playwright test --debug
@@ -345,20 +344,26 @@ npx playwright show-trace trace.zip
 ## Common Issues
 
 ### Issue: Tests fail with "Cannot find module '@/...'"
+
 **Solution**: Ensure path aliases are configured in both `tsconfig.json` and test config files.
 
 ### Issue: E2E tests timeout
+
 **Solution**: Increase timeout in playwright.config.ts or specific test:
+
 ```typescript
 test.setTimeout(60000); // 60 seconds
 ```
 
 ### Issue: Database connection errors in tests
+
 **Solution**: Ensure test database is running and credentials are correct in `.env.test`.
 
 ### Issue: Flaky E2E tests
+
 **Solution**: Add proper wait conditions:
+
 ```typescript
-await page.waitForSelector('.memory-card');
-await expect(page.locator('.spinner')).not.toBeVisible();
+await page.waitForSelector(".memory-card");
+await expect(page.locator(".spinner")).not.toBeVisible();
 ```

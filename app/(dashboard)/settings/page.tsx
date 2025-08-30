@@ -1,54 +1,54 @@
-'use client';
+"use client";
 
 /**
  * Settings Page
  * User preferences and app configuration
  */
 
-import { useState } from 'react';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { useAuthContext } from "@/lib/contexts/AuthContext";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { 
+} from "@/components/ui/select";
+import {
   User,
-  Bell, 
-  Shield, 
-  Palette, 
-  Database, 
+  Bell,
+  Shield,
+  Palette,
+  Database,
   CreditCard,
   LogOut,
   Save,
-  AlertCircle
-} from 'lucide-react';
+  AlertCircle,
+} from "lucide-react";
 
 export default function SettingsPage() {
   const { user, logout, updateProfile } = useAuthContext();
   const { toast } = useToast();
-  
+
   const [profileData, setProfileData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
+    name: user?.name || "",
+    email: user?.email || "",
   });
-  
+
   const [preferences, setPreferences] = useState({
     notifications: true,
-    emailDigest: 'weekly',
+    emailDigest: "weekly",
     autoBackup: true,
-    theme: 'dark',
-    language: 'en',
-    timezone: 'America/New_York',
+    theme: "dark",
+    language: "en",
+    timezone: "America/New_York",
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -58,18 +58,18 @@ export default function SettingsPage() {
     try {
       // TODO: Replace with actual API call when backend is ready
       const result = await updateProfile({ name: profileData.name });
-      
+
       if (result.success) {
         toast({
-          title: 'Profile updated',
-          description: 'Your profile has been updated successfully',
+          title: "Profile updated",
+          description: "Your profile has been updated successfully",
         });
       }
     } catch {
       toast({
-        title: 'Error updating profile',
-        description: 'Please try again',
-        variant: 'destructive',
+        title: "Error updating profile",
+        description: "Please try again",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -79,8 +79,8 @@ export default function SettingsPage() {
   const handleSavePreferences = () => {
     // TODO: Save preferences to backend when ready
     toast({
-      title: 'Preferences saved',
-      description: 'Your preferences have been updated',
+      title: "Preferences saved",
+      description: "Your preferences have been updated",
     });
   };
 
@@ -95,7 +95,9 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
           Settings
         </h1>
-        <p className="text-gray-400 mt-1">Manage your account and preferences</p>
+        <p className="text-gray-400 mt-1">
+          Manage your account and preferences
+        </p>
       </div>
 
       {/* Profile Settings */}
@@ -110,7 +112,9 @@ export default function SettingsPage() {
             <Input
               id="name"
               value={profileData.name}
-              onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+              onChange={(e) =>
+                setProfileData({ ...profileData, name: e.target.value })
+              }
               className="bg-white/5 border-white/10"
             />
           </div>
@@ -123,9 +127,11 @@ export default function SettingsPage() {
               disabled
               className="bg-white/5 border-white/10 opacity-50"
             />
-            <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Email cannot be changed
+            </p>
           </div>
-          <Button 
+          <Button
             onClick={handleSaveProfile}
             disabled={isLoading}
             className="bg-gradient-to-r from-violet-600 to-blue-600"
@@ -146,12 +152,14 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="notifications">Push Notifications</Label>
-              <p className="text-sm text-gray-400">Receive alerts for new milestones</p>
+              <p className="text-sm text-gray-400">
+                Receive alerts for new milestones
+              </p>
             </div>
             <Switch
               id="notifications"
               checked={preferences.notifications}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setPreferences({ ...preferences, notifications: checked })
               }
             />
@@ -161,7 +169,7 @@ export default function SettingsPage() {
             <Label htmlFor="digest">Email Digest</Label>
             <Select
               value={preferences.emailDigest}
-              onValueChange={(value) => 
+              onValueChange={(value) =>
                 setPreferences({ ...preferences, emailDigest: value })
               }
             >
@@ -189,12 +197,14 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="backup">Auto Backup</Label>
-              <p className="text-sm text-gray-400">Automatically backup your data</p>
+              <p className="text-sm text-gray-400">
+                Automatically backup your data
+              </p>
             </div>
             <Switch
               id="backup"
               checked={preferences.autoBackup}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setPreferences({ ...preferences, autoBackup: checked })
               }
             />
@@ -220,7 +230,7 @@ export default function SettingsPage() {
             <Label htmlFor="theme">Theme</Label>
             <Select
               value={preferences.theme}
-              onValueChange={(value) => 
+              onValueChange={(value) =>
                 setPreferences({ ...preferences, theme: value })
               }
             >
@@ -238,7 +248,7 @@ export default function SettingsPage() {
             <Label htmlFor="language">Language</Label>
             <Select
               value={preferences.language}
-              onValueChange={(value) => 
+              onValueChange={(value) =>
                 setPreferences({ ...preferences, language: value })
               }
             >
@@ -298,7 +308,8 @@ export default function SettingsPage() {
         </div>
         <div className="space-y-4">
           <p className="text-sm text-gray-400">
-            Once you log out, you{`'`}ll need to sign in again to access your memories.
+            Once you log out, you{`'`}ll need to sign in again to access your
+            memories.
           </p>
           <Button
             variant="destructive"

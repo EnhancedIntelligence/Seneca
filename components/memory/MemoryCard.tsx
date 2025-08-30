@@ -1,31 +1,56 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 // Simple Avatar component for this file
-const Avatar = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className || ''}`} {...props}>
+const Avatar = ({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className || ""}`}
+    {...props}
+  >
     {children}
   </div>
-)
+);
 
-const AvatarImage = ({ className, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
-  <img className={`aspect-square h-full w-full object-cover ${className || ''}`} {...props} />
-)
+const AvatarImage = ({
+  className,
+  ...props
+}: React.ImgHTMLAttributes<HTMLImageElement>) => (
+  <img
+    className={`aspect-square h-full w-full object-cover ${className || ""}`}
+    {...props}
+  />
+);
 
-const AvatarFallback = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-blue-600 text-sm font-medium text-white ${className || ''}`} {...props}>
+const AvatarFallback = ({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-blue-600 text-sm font-medium text-white ${className || ""}`}
+    {...props}
+  >
     {children}
   </div>
-)
-import { 
-  Calendar, 
-  MapPin, 
-  Clock, 
-  Star, 
-  MessageCircle, 
+);
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  Star,
+  MessageCircle,
   Heart,
   Eye,
   MoreVertical,
@@ -33,91 +58,97 @@ import {
   Brain,
   Sparkles,
   Image as ImageIcon,
-  Video
-} from 'lucide-react'
+  Video,
+} from "lucide-react";
 // Simple date formatting utility
 const formatDistanceToNow = (date: Date): string => {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const diffMinutes = Math.floor(diffMs / (1000 * 60))
-  
-  if (diffDays > 0) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
-  if (diffHours > 0) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
-  if (diffMinutes > 0) return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`
-  return 'Just now'
-}
-import type { UIMemory, UIChild } from '@/lib/types'
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffDays > 0) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+  if (diffHours > 0)
+    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+  if (diffMinutes > 0)
+    return `${diffMinutes} minute${diffMinutes !== 1 ? "s" : ""} ago`;
+  return "Just now";
+};
+import type { UIMemory, UIChild } from "@/lib/types";
 
 interface MemoryCardProps {
-  memory: UIMemory
-  child?: UIChild
-  onCardClick?: (memoryId: string) => void
-  onLike?: (memoryId: string) => void
-  onComment?: (memoryId: string) => void
-  className?: string
+  memory: UIMemory;
+  child?: UIChild;
+  onCardClick?: (memoryId: string) => void;
+  onLike?: (memoryId: string) => void;
+  onComment?: (memoryId: string) => void;
+  className?: string;
 }
 
-export function MemoryCard({ 
-  memory, 
-  child, 
+export function MemoryCard({
+  memory,
+  child,
   onCardClick,
   onLike,
   onComment,
-  className = ''
+  className = "",
 }: MemoryCardProps) {
-  const [isLiked, setIsLiked] = useState(false)
-  const [showFullContent, setShowFullContent] = useState(false)
-  
+  const [isLiked, setIsLiked] = useState(false);
+  const [showFullContent, setShowFullContent] = useState(false);
+
   const handleLike = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsLiked(!isLiked)
-    onLike?.(memory.id)
-  }
-  
+    e.stopPropagation();
+    setIsLiked(!isLiked);
+    onLike?.(memory.id);
+  };
+
   const handleComment = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onComment?.(memory.id)
-  }
-  
+    e.stopPropagation();
+    onComment?.(memory.id);
+  };
+
   const handleCardClick = () => {
-    onCardClick?.(memory.id)
-  }
-  
-  const hasMedia = (memory.imageUrls && memory.imageUrls.length > 0) || 
-                   (memory.videoUrls && memory.videoUrls.length > 0)
-  
-  const processingStatusColor = {
-    'queued': 'bg-yellow-500',
-    'processing_classification': 'bg-blue-500',
-    'categorized': 'bg-blue-600',
-    'processing_embedding': 'bg-purple-500',
-    'embedded': 'bg-purple-600',
-    'processing': 'bg-blue-500',
-    'completed': 'bg-green-500',
-    'failed': 'bg-red-500',
-    'error': 'bg-red-500'
-  }[memory.processingStatus] || 'bg-gray-500'
-  
-  const processingStatusText = {
-    'queued': 'Queued',
-    'processing_classification': 'Analyzing...',
-    'categorized': 'Categorized',
-    'processing_embedding': 'Embedding...',
-    'embedded': 'Embedded',
-    'processing': 'Processing...',
-    'completed': 'AI Processed',
-    'failed': 'Failed',
-    'error': 'Error'
-  }[memory.processingStatus] || 'Unknown'
-  
-  const truncatedContent = memory.content.length > 150 
-    ? memory.content.substring(0, 150) + '...'
-    : memory.content
-  
+    onCardClick?.(memory.id);
+  };
+
+  const hasMedia =
+    (memory.imageUrls && memory.imageUrls.length > 0) ||
+    (memory.videoUrls && memory.videoUrls.length > 0);
+
+  const processingStatusColor =
+    {
+      queued: "bg-yellow-500",
+      processing_classification: "bg-blue-500",
+      categorized: "bg-blue-600",
+      processing_embedding: "bg-purple-500",
+      embedded: "bg-purple-600",
+      processing: "bg-blue-500",
+      completed: "bg-green-500",
+      failed: "bg-red-500",
+      error: "bg-red-500",
+    }[memory.processingStatus] || "bg-gray-500";
+
+  const processingStatusText =
+    {
+      queued: "Queued",
+      processing_classification: "Analyzing...",
+      categorized: "Categorized",
+      processing_embedding: "Embedding...",
+      embedded: "Embedded",
+      processing: "Processing...",
+      completed: "AI Processed",
+      failed: "Failed",
+      error: "Error",
+    }[memory.processingStatus] || "Unknown";
+
+  const truncatedContent =
+    memory.content.length > 150
+      ? memory.content.substring(0, 150) + "..."
+      : memory.content;
+
   return (
-    <Card 
+    <Card
       className={`cursor-pointer bg-white/5 border-white/10 hover:bg-white/10 transition-all duration-200 ${className}`}
       onClick={handleCardClick}
     >
@@ -126,39 +157,45 @@ export function MemoryCard({
           <div className="flex items-center space-x-3">
             {child && (
               <Avatar className="w-10 h-10 ring-2 ring-white/20">
-                <AvatarImage 
-                  src={child.avatarUrl || undefined} 
-                  alt={child.name} 
+                <AvatarImage
+                  src={child.avatarUrl || undefined}
+                  alt={child.name}
                 />
                 <AvatarFallback className="bg-gradient-to-r from-violet-600 to-blue-600 text-white">
-                  {child.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {child.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             )}
             <div>
               <h3 className="font-semibold text-lg leading-tight text-white">
-                {memory.title || 'Untitled Memory'}
+                {memory.title || "Untitled Memory"}
               </h3>
-              {child && (
-                <p className="text-sm text-gray-400">{child.name}</p>
-              )}
+              {child && <p className="text-sm text-gray-400">{child.name}</p>}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
-            <Badge 
-              variant="secondary" 
+            <Badge
+              variant="secondary"
               className={`text-xs ${processingStatusColor} text-white border-0`}
             >
               {processingStatusText}
             </Badge>
-            <Button variant="ghost" size="sm" className="p-1 text-gray-400 hover:text-white hover:bg-white/10">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-1 text-gray-400 hover:text-white hover:bg-white/10"
+            >
               <MoreVertical className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Memory Content */}
         <div className="space-y-2">
@@ -171,33 +208,39 @@ export function MemoryCard({
               size="sm"
               className="text-violet-400 hover:text-violet-300 p-0 h-auto"
               onClick={(e) => {
-                e.stopPropagation()
-                setShowFullContent(!showFullContent)
+                e.stopPropagation();
+                setShowFullContent(!showFullContent);
               }}
             >
-              {showFullContent ? 'Show less' : 'Show more'}
+              {showFullContent ? "Show less" : "Show more"}
             </Button>
           )}
         </div>
-        
+
         {/* Media Preview */}
         {hasMedia && (
           <div className="flex items-center space-x-4 text-sm text-gray-400">
             {memory.imageUrls && memory.imageUrls.length > 0 && (
               <div className="flex items-center space-x-1">
                 <ImageIcon className="w-4 h-4" />
-                <span>{memory.imageUrls.length} photo{memory.imageUrls.length !== 1 ? 's' : ''}</span>
+                <span>
+                  {memory.imageUrls.length} photo
+                  {memory.imageUrls.length !== 1 ? "s" : ""}
+                </span>
               </div>
             )}
             {memory.videoUrls && memory.videoUrls.length > 0 && (
               <div className="flex items-center space-x-1">
                 <Video className="w-4 h-4" />
-                <span>{memory.videoUrls.length} video{memory.videoUrls.length !== 1 ? 's' : ''}</span>
+                <span>
+                  {memory.videoUrls.length} video
+                  {memory.videoUrls.length !== 1 ? "s" : ""}
+                </span>
               </div>
             )}
           </div>
         )}
-        
+
         {/* Tags */}
         {memory.tags && memory.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -214,13 +257,15 @@ export function MemoryCard({
             )}
           </div>
         )}
-        
+
         {/* AI Insights */}
-        {memory.processingStatus === 'completed' && (
+        {memory.processingStatus === "completed" && (
           <div className="bg-gradient-to-r from-violet-600/10 to-blue-600/10 p-3 rounded-lg border border-white/10">
             <div className="flex items-center space-x-2 mb-2">
               <Brain className="w-4 h-4 text-violet-400" />
-              <span className="text-sm font-medium text-violet-300">AI Insights</span>
+              <span className="text-sm font-medium text-violet-300">
+                AI Insights
+              </span>
             </div>
             <div className="space-y-1 text-sm">
               {memory.milestoneDetected && (
@@ -231,7 +276,8 @@ export function MemoryCard({
                   </span>
                   {memory.milestoneConfidence && (
                     <span className="text-xs text-gray-400">
-                      ({Math.round(memory.milestoneConfidence * 100)}% confidence)
+                      ({Math.round(memory.milestoneConfidence * 100)}%
+                      confidence)
                     </span>
                   )}
                 </div>
@@ -240,14 +286,14 @@ export function MemoryCard({
                 <div className="flex items-center space-x-2">
                   <Star className="w-3 h-3 text-blue-500" />
                   <span className="text-gray-300">
-                    Category: {memory.category.replace('_', ' ')}
+                    Category: {memory.category.replace("_", " ")}
                   </span>
                 </div>
               )}
             </div>
           </div>
         )}
-        
+
         {/* Location */}
         {memory.locationName && (
           <div className="flex items-center space-x-2 text-sm text-gray-400">
@@ -256,17 +302,16 @@ export function MemoryCard({
           </div>
         )}
       </CardContent>
-      
+
       <CardFooter className="pt-3 border-t border-white/10">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center space-x-4 text-sm text-gray-400">
             <div className="flex items-center space-x-1">
               <Calendar className="w-4 h-4" />
               <span>
-                {memory.memoryDate 
+                {memory.memoryDate
                   ? formatDistanceToNow(new Date(memory.memoryDate))
-                  : formatDistanceToNow(new Date(memory.timestamp))
-                }
+                  : formatDistanceToNow(new Date(memory.timestamp))}
               </span>
             </div>
             <div className="flex items-center space-x-1">
@@ -274,15 +319,15 @@ export function MemoryCard({
               <span>{formatDistanceToNow(new Date(memory.timestamp))}</span>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
               size="sm"
-              className={`p-2 ${isLiked ? 'text-red-400' : 'text-gray-400'} hover:bg-white/10`}
+              className={`p-2 ${isLiked ? "text-red-400" : "text-gray-400"} hover:bg-white/10`}
               onClick={handleLike}
             >
-              <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+              <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
             </Button>
             <Button
               variant="ghost"
@@ -303,5 +348,5 @@ export function MemoryCard({
         </div>
       </CardFooter>
     </Card>
-  )
-} 
+  );
+}

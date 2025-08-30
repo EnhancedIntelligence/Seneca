@@ -5,6 +5,7 @@ This document contains the complete UI implementation that needs to be broken do
 ## Implementation Status
 
 ### ✅ Created Structure
+
 - `/app/(app)/` - Main app routes
   - `layout.tsx` - App layout wrapper
   - `capture/page.tsx` - Main capture screen
@@ -15,18 +16,21 @@ This document contains the complete UI implementation that needs to be broken do
 ### 🔧 Components to Build
 
 #### 1. Layout Components (`/components/layout/`)
+
 - `AppShell.tsx` - Main wrapper with navigation state
 - `TopBar.tsx` - Header with menu/profile buttons
 - `SideMenu.tsx` - Navigation drawer
 - `ProfileMenu.tsx` - User profile dropdown
 
 #### 2. Capture Components (`/components/capture/`)
+
 - `RecordButton.tsx` - Hold-to-record button
 - `QuickEntry.tsx` - Text input with plus button
 - `ManualEntrySheet.tsx` - Bottom sheet for detailed entry
 - `ChildSwitcher.tsx` - Quick child selection
 
 #### 3. Dashboard Components (`/components/dashboard/`)
+
 - `MetricCard.tsx` - Stats display card
 - `MemoryCard.tsx` - Memory list item
 - `ChildCard.tsx` - Child profile card
@@ -34,6 +38,7 @@ This document contains the complete UI implementation that needs to be broken do
 - `MilestoneTimeline.tsx` - Milestone timeline view
 
 #### 4. Shared Components (`/components/ui/`)
+
 - Already have Shadcn components
 - Need to add custom components:
   - `BottomSheet.tsx` - Reusable bottom sheet
@@ -74,6 +79,7 @@ This document contains the complete UI implementation that needs to be broken do
 ### 🎨 Design System
 
 #### Colors (Tailwind)
+
 ```css
 Primary: violet-600 (#8b5cf6) to blue-600 (#3b82f6)
 Recording: red-500 (#ef4444) to red-600 (#dc2626)
@@ -83,12 +89,14 @@ Borders: white/10 opacity
 ```
 
 #### Spacing
+
 - Mobile padding: 16px (p-4)
 - Desktop padding: 20px (p-5)
 - Card radius: 12px (rounded-xl)
 - Button radius: full (rounded-full)
 
 #### Typography
+
 - Headers: text-2xl font-semibold
 - Subheaders: text-lg font-medium
 - Body: text-base
@@ -139,6 +147,7 @@ Borders: white/10 opacity
 ## Component Templates
 
 ### RecordButton Component Structure
+
 ```tsx
 interface RecordButtonProps {
   onRecordStart?: () => void;
@@ -154,6 +163,7 @@ interface RecordButtonProps {
 ```
 
 ### QuickEntry Component Structure
+
 ```tsx
 interface QuickEntryProps {
   onSend: (text: string) => void;
@@ -169,6 +179,7 @@ interface QuickEntryProps {
 ```
 
 ### SideMenu Component Structure
+
 ```tsx
 interface SideMenuProps {
   currentView: string;
@@ -213,504 +224,502 @@ Complete React Code for UI
 import React, { useState, useEffect, useRef } from 'react';
 
 interface MemoryData {
-  id: number;
-  child: string;
-  title: string;
-  date: string;
-  category: string;
-  tags?: string[];
-  confidence?: number;
+id: number;
+child: string;
+title: string;
+date: string;
+category: string;
+tags?: string[];
+confidence?: number;
 }
 
 interface ChildData {
-  id: number;
-  name: string;
-  age: string;
-  avatar: string;
-  totalMemories: number;
-  milestones: number;
-  lastEntry: string;
-  developmentScore: number;
+id: number;
+name: string;
+age: string;
+avatar: string;
+totalMemories: number;
+milestones: number;
+lastEntry: string;
+developmentScore: number;
 }
 
 interface MilestoneData {
-  id: number;
-  child: string;
-  title: string;
-  date: string;
-  category: string;
-  aiConfidence: number;
-  verified: boolean;
+id: number;
+child: string;
+title: string;
+date: string;
+category: string;
+aiConfidence: number;
+verified: boolean;
 }
 
 const MemoryVaultApp: React.FC = () => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [currentView, setCurrentView] = useState<string>('capture');
-  const [sideMenuOpen, setSideMenuOpen] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [manualPanelOpen, setManualPanelOpen] = useState(false);
-  const [memoryInput, setMemoryInput] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedChild, setSelectedChild] = useState<string>('Emma');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [autoDetection, setAutoDetection] = useState(true);
-  const [weeklyReports, setWeeklyReports] = useState(true);
-  
-  const recordingInterval = useRef<NodeJS.Timeout | null>(null);
+const [isRecording, setIsRecording] = useState(false);
+const [recordingTime, setRecordingTime] = useState(0);
+const [currentView, setCurrentView] = useState<string>('capture');
+const [sideMenuOpen, setSideMenuOpen] = useState(false);
+const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+const [manualPanelOpen, setManualPanelOpen] = useState(false);
+const [memoryInput, setMemoryInput] = useState('');
+const [selectedTags, setSelectedTags] = useState<string[]>([]);
+const [selectedChild, setSelectedChild] = useState<string>('Emma');
+const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+const [autoDetection, setAutoDetection] = useState(true);
+const [weeklyReports, setWeeklyReports] = useState(true);
 
-  // Handle recording timer
-  useEffect(() => {
-    if (isRecording) {
-      recordingInterval.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-    } else {
-      if (recordingInterval.current) {
-        clearInterval(recordingInterval.current);
-      }
-      setRecordingTime(0);
-    }
-    
+const recordingInterval = useRef<NodeJS.Timeout | null>(null);
+
+// Handle recording timer
+useEffect(() => {
+if (isRecording) {
+recordingInterval.current = setInterval(() => {
+setRecordingTime(prev => prev + 1);
+}, 1000);
+} else {
+if (recordingInterval.current) {
+clearInterval(recordingInterval.current);
+}
+setRecordingTime(0);
+}
+
     return () => {
       if (recordingInterval.current) {
         clearInterval(recordingInterval.current);
       }
     };
-  }, [isRecording]);
 
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+}, [isRecording]);
 
-  const startRecording = () => {
-    setIsRecording(true);
-    if (navigator.vibrate) {
-      navigator.vibrate(50);
-    }
-  };
+const formatTime = (seconds: number): string => {
+const mins = Math.floor(seconds / 60);
+const secs = seconds % 60;
+return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
 
-  const stopRecording = () => {
-    setIsRecording(false);
-  };
+const startRecording = () => {
+setIsRecording(true);
+if (navigator.vibrate) {
+navigator.vibrate(50);
+}
+};
 
-  const navigateTo = (view: string) => {
-    setCurrentView(view);
-    setSideMenuOpen(false);
-  };
+const stopRecording = () => {
+setIsRecording(false);
+};
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
-  };
+const navigateTo = (view: string) => {
+setCurrentView(view);
+setSideMenuOpen(false);
+};
 
-  const sendMemory = () => {
-    if (memoryInput.trim()) {
-      setMemoryInput('');
-      // Show success message
-    }
-  };
+const toggleTag = (tag: string) => {
+setSelectedTags(prev =>
+prev.includes(tag)
+? prev.filter(t => t !== tag)
+: [...prev, tag]
+);
+};
 
-  // Sample data
-  const memories: MemoryData[] = [
-    { id: 1, child: 'Emma', title: 'First steps!', date: 'Today at 2:30 PM', category: 'milestone', tags: ['milestone', 'physical'], confidence: 96 },
-    { id: 2, child: 'Lucas', title: 'Said "mama" clearly', date: 'Yesterday', category: 'language', tags: ['language'], confidence: 88 },
-    { id: 3, child: 'Emma', title: 'Playing with blocks', date: '2 days ago', category: 'cognitive', tags: ['cognitive'], confidence: 72 },
-    { id: 4, child: 'Lucas', title: 'Shared toy with friend', date: '3 days ago', category: 'social', tags: ['social', 'emotional'], confidence: 85 },
-    { id: 5, child: 'Emma', title: 'Drew first circle', date: '4 days ago', category: 'creative', tags: ['creative', 'cognitive'], confidence: 91 },
-  ];
+const sendMemory = () => {
+if (memoryInput.trim()) {
+setMemoryInput('');
+// Show success message
+}
+};
 
-  const children: ChildData[] = [
-    { id: 1, name: 'Emma', age: '2 years 3 months', avatar: '👧', totalMemories: 142, milestones: 18, lastEntry: '2 hours ago', developmentScore: 94 },
-    { id: 2, name: 'Lucas', age: '11 months', avatar: '👦', totalMemories: 105, milestones: 16, lastEntry: 'Yesterday', developmentScore: 88 },
-  ];
+// Sample data
+const memories: MemoryData[] = [
+{ id: 1, child: 'Emma', title: 'First steps!', date: 'Today at 2:30 PM', category: 'milestone', tags: ['milestone', 'physical'], confidence: 96 },
+{ id: 2, child: 'Lucas', title: 'Said "mama" clearly', date: 'Yesterday', category: 'language', tags: ['language'], confidence: 88 },
+{ id: 3, child: 'Emma', title: 'Playing with blocks', date: '2 days ago', category: 'cognitive', tags: ['cognitive'], confidence: 72 },
+{ id: 4, child: 'Lucas', title: 'Shared toy with friend', date: '3 days ago', category: 'social', tags: ['social', 'emotional'], confidence: 85 },
+{ id: 5, child: 'Emma', title: 'Drew first circle', date: '4 days ago', category: 'creative', tags: ['creative', 'cognitive'], confidence: 91 },
+];
 
-  const milestones: MilestoneData[] = [
-    { id: 1, child: 'Emma', title: 'First steps without support', date: '2025-01-28', category: 'Physical', aiConfidence: 96, verified: true },
-    { id: 2, child: 'Lucas', title: 'First word: "mama"', date: '2025-01-27', category: 'Language', aiConfidence: 88, verified: true },
-    { id: 3, child: 'Emma', title: 'Counted to 10', date: '2025-01-25', category: 'Cognitive', aiConfidence: 92, verified: false },
-    { id: 4, child: 'Lucas', title: 'Clapped hands', date: '2025-01-20', category: 'Physical', aiConfidence: 94, verified: true },
-    { id: 5, child: 'Emma', title: 'Used spoon independently', date: '2025-01-18', category: 'Self-care', aiConfidence: 89, verified: true },
-  ];
+const children: ChildData[] = [
+{ id: 1, name: 'Emma', age: '2 years 3 months', avatar: '👧', totalMemories: 142, milestones: 18, lastEntry: '2 hours ago', developmentScore: 94 },
+{ id: 2, name: 'Lucas', age: '11 months', avatar: '👦', totalMemories: 105, milestones: 16, lastEntry: 'Yesterday', developmentScore: 88 },
+];
 
-  const tags = [
-    { icon: '🎯', label: 'Milestone' },
-    { icon: '💬', label: 'Language' },
-    { icon: '🧩', label: 'Cognitive' },
-    { icon: '🤝', label: 'Social' },
-    { icon: '🏃', label: 'Physical' },
-    { icon: '😊', label: 'Emotional' },
-    { icon: '🎨', label: 'Creative' },
-    { icon: '🍽️', label: 'Eating' },
-    { icon: '😴', label: 'Sleep' },
-  ];
+const milestones: MilestoneData[] = [
+{ id: 1, child: 'Emma', title: 'First steps without support', date: '2025-01-28', category: 'Physical', aiConfidence: 96, verified: true },
+{ id: 2, child: 'Lucas', title: 'First word: "mama"', date: '2025-01-27', category: 'Language', aiConfidence: 88, verified: true },
+{ id: 3, child: 'Emma', title: 'Counted to 10', date: '2025-01-25', category: 'Cognitive', aiConfidence: 92, verified: false },
+{ id: 4, child: 'Lucas', title: 'Clapped hands', date: '2025-01-20', category: 'Physical', aiConfidence: 94, verified: true },
+{ id: 5, child: 'Emma', title: 'Used spoon independently', date: '2025-01-18', category: 'Self-care', aiConfidence: 89, verified: true },
+];
 
-  const insights = [
-    { type: 'prediction', icon: '🔮', title: 'Next Milestone Prediction', content: 'Based on Emma\'s progress, she\'s likely to start jumping with both feet within 2-3 weeks.' },
-    { type: 'pattern', icon: '📈', title: 'Learning Pattern Detected', content: 'Lucas shows peak cognitive activity between 9-11 AM. Best time for introducing new concepts.' },
-    { type: 'recommendation', icon: '💡', title: 'Activity Suggestion', content: 'Emma hasn\'t had outdoor play memories in 5 days. Consider park activities for gross motor development.' },
-    { type: 'comparison', icon: '📊', title: 'Peer Comparison', content: 'Lucas is in the 85th percentile for language development among 11-month-olds.' },
-  ];
+const tags = [
+{ icon: '🎯', label: 'Milestone' },
+{ icon: '💬', label: 'Language' },
+{ icon: '🧩', label: 'Cognitive' },
+{ icon: '🤝', label: 'Social' },
+{ icon: '🏃', label: 'Physical' },
+{ icon: '😊', label: 'Emotional' },
+{ icon: '🎨', label: 'Creative' },
+{ icon: '🍽️', label: 'Eating' },
+{ icon: '😴', label: 'Sleep' },
+];
 
-  const faqs = [
-    { q: 'How does AI milestone detection work?', a: 'Our AI analyzes your memories using advanced language processing to identify developmental milestones with confidence scores.' },
-    { q: 'Is my family data private?', a: 'Yes, all data is encrypted and never shared. You control who has access to your family memories.' },
-    { q: 'Can I export my memories?', a: 'Yes, you can export all memories as PDF or JSON format from the Settings page.' },
-    { q: 'How accurate is the AI?', a: 'Our AI has 94% accuracy for common milestones, always verified by pediatric development standards.' },
-  ];
+const insights = [
+{ type: 'prediction', icon: '🔮', title: 'Next Milestone Prediction', content: 'Based on Emma\'s progress, she\'s likely to start jumping with both feet within 2-3 weeks.' },
+{ type: 'pattern', icon: '📈', title: 'Learning Pattern Detected', content: 'Lucas shows peak cognitive activity between 9-11 AM. Best time for introducing new concepts.' },
+{ type: 'recommendation', icon: '💡', title: 'Activity Suggestion', content: 'Emma hasn\'t had outdoor play memories in 5 days. Consider park activities for gross motor development.' },
+{ type: 'comparison', icon: '📊', title: 'Peer Comparison', content: 'Lucas is in the 85th percentile for language development among 11-month-olds.' },
+];
 
-  const styles = {
-    container: {
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      background: '#000',
-      color: '#fff',
-      height: '100vh',
-      overflow: 'hidden',
-      position: 'relative' as const,
-    },
-    captureScreen: {
-      height: '100vh',
-      display: currentView === 'capture' ? 'flex' : 'none',
-      flexDirection: 'column' as const,
-      position: 'relative' as const,
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
-    },
-    topNav: {
-      position: 'absolute' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '20px',
-      zIndex: 100,
-    },
-    menuBtn: {
-      width: '40px',
-      height: '40px',
-      background: 'rgba(255, 255, 255, 0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      transition: 'all 0.3s',
-    },
-    recordContainer: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-    },
-    recordBtn: {
-      width: '180px',
-      height: '180px',
-      borderRadius: '50%',
-      background: isRecording 
-        ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-        : 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
-      border: '4px solid rgba(255, 255, 255, 0.3)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      transition: 'all 0.3s',
-      boxShadow: isRecording 
-        ? '0 0 60px rgba(239, 68, 68, 0.6)'
-        : '0 0 40px rgba(139, 92, 246, 0.5)',
-      animation: isRecording ? 'pulse 1.5s infinite' : 'none',
-    },
-    recordIcon: {
-      width: isRecording ? '40px' : '60px',
-      height: isRecording ? '40px' : '60px',
-      background: 'white',
-      borderRadius: isRecording ? '8px' : '50%',
-      transition: 'all 0.3s',
-    },
-    recordText: {
-      marginTop: '20px',
-      fontSize: '18px',
-      color: 'rgba(255, 255, 255, 0.8)',
-      textAlign: 'center' as const,
-    },
-    bottomInput: {
-      position: 'absolute' as const,
-      bottom: 0,
-      left: 0,
-      right: 0,
-      background: 'rgba(255, 255, 255, 0.05)',
-      backdropFilter: 'blur(20px)',
-      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-      padding: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      zIndex: 10,
-    },
-    inputContainer: {
-      flex: 1,
-      position: 'relative' as const,
-      display: 'flex',
-      alignItems: 'center',
-    },
-    plusBtn: {
-      position: 'absolute' as const,
-      left: '12px',
-      width: '32px',
-      height: '32px',
-      background: 'rgba(139, 92, 246, 0.2)',
-      border: '1px solid rgba(139, 92, 246, 0.4)',
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      zIndex: 2,
-    },
-    textInput: {
-      width: '100%',
-      padding: '12px 12px 12px 52px',
-      background: 'rgba(255, 255, 255, 0.05)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '24px',
-      color: 'white',
-      fontSize: '16px',
-      outline: 'none',
-    },
-    sendBtn: {
-      width: '40px',
-      height: '40px',
-      background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
-      border: 'none',
-      borderRadius: '50%',
-      color: 'white',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    overlay: {
-      position: 'fixed' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.7)',
-      display: sideMenuOpen ? 'block' : 'none',
-      zIndex: 200,
-      backdropFilter: 'blur(4px)',
-    },
-    sideMenu: {
-      position: 'fixed' as const,
-      top: 0,
-      left: sideMenuOpen ? 0 : '-320px',
-      width: '320px',
-      height: '100vh',
-      background: '#141414',
-      zIndex: 300,
-      overflowY: 'auto' as const,
-      transition: 'left 0.3s ease',
-      boxShadow: '2px 0 20px rgba(0, 0, 0, 0.5)',
-    },
-    menuHeader: {
-      padding: '24px',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-      background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
-    },
-    menuSection: {
-      padding: '16px 0',
-    },
-    menuSectionTitle: {
-      padding: '8px 24px',
-      fontSize: '11px',
-      textTransform: 'uppercase' as const,
-      letterSpacing: '0.5px',
-      color: 'rgba(255, 255, 255, 0.4)',
-      fontWeight: 600,
-    },
-    menuItem: {
-      padding: '14px 24px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-      color: 'rgba(255, 255, 255, 0.9)',
-      fontSize: '15px',
-    },
-    dashboardView: {
-      position: 'fixed' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
-      padding: '20px',
-      overflowY: 'auto' as const,
-      zIndex: 150,
-    },
-    viewHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-      marginBottom: '24px',
-      paddingBottom: '16px',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-    },
-    backBtn: {
-      width: '40px',
-      height: '40px',
-      background: 'rgba(255, 255, 255, 0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      fontSize: '20px',
-    },
-    metricsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-      gap: '20px',
-      marginBottom: '30px',
-    },
-    metricCard: {
-      background: 'rgba(255, 255, 255, 0.05)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '12px',
-      padding: '24px',
-    },
-    card: {
-      background: 'rgba(255, 255, 255, 0.05)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '12px',
-      padding: '24px',
-      marginBottom: '20px',
-    },
-    manualPanel: {
-      position: 'fixed' as const,
-      bottom: manualPanelOpen ? 0 : '-85vh',
-      left: 0,
-      right: 0,
-      height: '85vh',
-      background: 'rgba(20, 20, 20, 0.98)',
-      backdropFilter: 'blur(20px)',
-      borderTopLeftRadius: '24px',
-      borderTopRightRadius: '24px',
-      transition: 'bottom 0.3s ease',
-      zIndex: 500,
-      overflowY: 'auto' as const,
-      boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.5)',
-    },
-    tagGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
-      gap: '8px',
-    },
-    tagOption: {
-      padding: '8px 12px',
-      background: 'rgba(255, 255, 255, 0.05)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '20px',
-      textAlign: 'center' as const,
-      cursor: 'pointer',
-      fontSize: '14px',
-    },
-    tagSelected: {
-      background: 'rgba(139, 92, 246, 0.3)',
-      borderColor: '#8b5cf6',
-    },
-    progressBar: {
-      width: '100%',
-      height: '8px',
-      background: 'rgba(255, 255, 255, 0.1)',
-      borderRadius: '4px',
-      overflow: 'hidden',
-    },
-    progressFill: {
-      height: '100%',
-      background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)',
-      borderRadius: '4px',
-      transition: 'width 0.3s',
-    },
-    toggle: {
-      width: '48px',
-      height: '24px',
-      background: 'rgba(255, 255, 255, 0.2)',
-      borderRadius: '12px',
-      position: 'relative' as const,
-      cursor: 'pointer',
-      transition: 'background 0.3s',
-    },
-    toggleActive: {
-      background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)',
-    },
-    toggleSlider: {
-      width: '20px',
-      height: '20px',
-      background: 'white',
-      borderRadius: '50%',
-      position: 'absolute' as const,
-      top: '2px',
-      left: '2px',
-      transition: 'transform 0.3s',
-    },
-    toggleSliderActive: {
-      transform: 'translateX(24px)',
-    },
-  };
+const faqs = [
+{ q: 'How does AI milestone detection work?', a: 'Our AI analyzes your memories using advanced language processing to identify developmental milestones with confidence scores.' },
+{ q: 'Is my family data private?', a: 'Yes, all data is encrypted and never shared. You control who has access to your family memories.' },
+{ q: 'Can I export my memories?', a: 'Yes, you can export all memories as PDF or JSON format from the Settings page.' },
+{ q: 'How accurate is the AI?', a: 'Our AI has 94% accuracy for common milestones, always verified by pediatric development standards.' },
+];
 
-  // Add animation keyframes
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes pulse {
+const styles = {
+container: {
+fontFamily: 'system-ui, -apple-system, sans-serif',
+background: '#000',
+color: '#fff',
+height: '100vh',
+overflow: 'hidden',
+position: 'relative' as const,
+},
+captureScreen: {
+height: '100vh',
+display: currentView === 'capture' ? 'flex' : 'none',
+flexDirection: 'column' as const,
+position: 'relative' as const,
+background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
+},
+topNav: {
+position: 'absolute' as const,
+top: 0,
+left: 0,
+right: 0,
+display: 'flex',
+justifyContent: 'space-between',
+alignItems: 'center',
+padding: '20px',
+zIndex: 100,
+},
+menuBtn: {
+width: '40px',
+height: '40px',
+background: 'rgba(255, 255, 255, 0.1)',
+border: '1px solid rgba(255, 255, 255, 0.2)',
+borderRadius: '50%',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+cursor: 'pointer',
+transition: 'all 0.3s',
+},
+recordContainer: {
+flex: 1,
+display: 'flex',
+flexDirection: 'column' as const,
+alignItems: 'center',
+justifyContent: 'center',
+padding: '20px',
+},
+recordBtn: {
+width: '180px',
+height: '180px',
+borderRadius: '50%',
+background: isRecording
+? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
+border: '4px solid rgba(255, 255, 255, 0.3)',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+cursor: 'pointer',
+transition: 'all 0.3s',
+boxShadow: isRecording
+? '0 0 60px rgba(239, 68, 68, 0.6)'
+: '0 0 40px rgba(139, 92, 246, 0.5)',
+animation: isRecording ? 'pulse 1.5s infinite' : 'none',
+},
+recordIcon: {
+width: isRecording ? '40px' : '60px',
+height: isRecording ? '40px' : '60px',
+background: 'white',
+borderRadius: isRecording ? '8px' : '50%',
+transition: 'all 0.3s',
+},
+recordText: {
+marginTop: '20px',
+fontSize: '18px',
+color: 'rgba(255, 255, 255, 0.8)',
+textAlign: 'center' as const,
+},
+bottomInput: {
+position: 'absolute' as const,
+bottom: 0,
+left: 0,
+right: 0,
+background: 'rgba(255, 255, 255, 0.05)',
+backdropFilter: 'blur(20px)',
+borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+padding: '16px',
+display: 'flex',
+alignItems: 'center',
+gap: '12px',
+zIndex: 10,
+},
+inputContainer: {
+flex: 1,
+position: 'relative' as const,
+display: 'flex',
+alignItems: 'center',
+},
+plusBtn: {
+position: 'absolute' as const,
+left: '12px',
+width: '32px',
+height: '32px',
+background: 'rgba(139, 92, 246, 0.2)',
+border: '1px solid rgba(139, 92, 246, 0.4)',
+borderRadius: '50%',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+cursor: 'pointer',
+zIndex: 2,
+},
+textInput: {
+width: '100%',
+padding: '12px 12px 12px 52px',
+background: 'rgba(255, 255, 255, 0.05)',
+border: '1px solid rgba(255, 255, 255, 0.2)',
+borderRadius: '24px',
+color: 'white',
+fontSize: '16px',
+outline: 'none',
+},
+sendBtn: {
+width: '40px',
+height: '40px',
+background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
+border: 'none',
+borderRadius: '50%',
+color: 'white',
+cursor: 'pointer',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+},
+overlay: {
+position: 'fixed' as const,
+top: 0,
+left: 0,
+right: 0,
+bottom: 0,
+background: 'rgba(0, 0, 0, 0.7)',
+display: sideMenuOpen ? 'block' : 'none',
+zIndex: 200,
+backdropFilter: 'blur(4px)',
+},
+sideMenu: {
+position: 'fixed' as const,
+top: 0,
+left: sideMenuOpen ? 0 : '-320px',
+width: '320px',
+height: '100vh',
+background: '#141414',
+zIndex: 300,
+overflowY: 'auto' as const,
+transition: 'left 0.3s ease',
+boxShadow: '2px 0 20px rgba(0, 0, 0, 0.5)',
+},
+menuHeader: {
+padding: '24px',
+borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
+},
+menuSection: {
+padding: '16px 0',
+},
+menuSectionTitle: {
+padding: '8px 24px',
+fontSize: '11px',
+textTransform: 'uppercase' as const,
+letterSpacing: '0.5px',
+color: 'rgba(255, 255, 255, 0.4)',
+fontWeight: 600,
+},
+menuItem: {
+padding: '14px 24px',
+display: 'flex',
+alignItems: 'center',
+gap: '16px',
+cursor: 'pointer',
+transition: 'all 0.2s',
+color: 'rgba(255, 255, 255, 0.9)',
+fontSize: '15px',
+},
+dashboardView: {
+position: 'fixed' as const,
+top: 0,
+left: 0,
+right: 0,
+bottom: 0,
+background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
+padding: '20px',
+overflowY: 'auto' as const,
+zIndex: 150,
+},
+viewHeader: {
+display: 'flex',
+alignItems: 'center',
+gap: '16px',
+marginBottom: '24px',
+paddingBottom: '16px',
+borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+},
+backBtn: {
+width: '40px',
+height: '40px',
+background: 'rgba(255, 255, 255, 0.1)',
+border: '1px solid rgba(255, 255, 255, 0.2)',
+borderRadius: '50%',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+cursor: 'pointer',
+fontSize: '20px',
+},
+metricsGrid: {
+display: 'grid',
+gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+gap: '20px',
+marginBottom: '30px',
+},
+metricCard: {
+background: 'rgba(255, 255, 255, 0.05)',
+border: '1px solid rgba(255, 255, 255, 0.1)',
+borderRadius: '12px',
+padding: '24px',
+},
+card: {
+background: 'rgba(255, 255, 255, 0.05)',
+border: '1px solid rgba(255, 255, 255, 0.1)',
+borderRadius: '12px',
+padding: '24px',
+marginBottom: '20px',
+},
+manualPanel: {
+position: 'fixed' as const,
+bottom: manualPanelOpen ? 0 : '-85vh',
+left: 0,
+right: 0,
+height: '85vh',
+background: 'rgba(20, 20, 20, 0.98)',
+backdropFilter: 'blur(20px)',
+borderTopLeftRadius: '24px',
+borderTopRightRadius: '24px',
+transition: 'bottom 0.3s ease',
+zIndex: 500,
+overflowY: 'auto' as const,
+boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.5)',
+},
+tagGrid: {
+display: 'grid',
+gridTemplateColumns: 'repeat(3, 1fr)',
+gap: '8px',
+},
+tagOption: {
+padding: '8px 12px',
+background: 'rgba(255, 255, 255, 0.05)',
+border: '1px solid rgba(255, 255, 255, 0.2)',
+borderRadius: '20px',
+textAlign: 'center' as const,
+cursor: 'pointer',
+fontSize: '14px',
+},
+tagSelected: {
+background: 'rgba(139, 92, 246, 0.3)',
+borderColor: '#8b5cf6',
+},
+progressBar: {
+width: '100%',
+height: '8px',
+background: 'rgba(255, 255, 255, 0.1)',
+borderRadius: '4px',
+overflow: 'hidden',
+},
+progressFill: {
+height: '100%',
+background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)',
+borderRadius: '4px',
+transition: 'width 0.3s',
+},
+toggle: {
+width: '48px',
+height: '24px',
+background: 'rgba(255, 255, 255, 0.2)',
+borderRadius: '12px',
+position: 'relative' as const,
+cursor: 'pointer',
+transition: 'background 0.3s',
+},
+toggleActive: {
+background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)',
+},
+toggleSlider: {
+width: '20px',
+height: '20px',
+background: 'white',
+borderRadius: '50%',
+position: 'absolute' as const,
+top: '2px',
+left: '2px',
+transition: 'transform 0.3s',
+},
+toggleSliderActive: {
+transform: 'translateX(24px)',
+},
+};
+
+// Add animation keyframes
+useEffect(() => {
+const style = document.createElement('style');
+style.textContent = `       @keyframes pulse {
         0% { transform: scale(1); }
         50% { transform: scale(1.05); }
         100% { transform: scale(1); }
       }
     `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+document.head.appendChild(style);
+return () => {
+document.head.removeChild(style);
+};
+}, []);
 
-  return (
-    <div style={styles.container}>
-      {/* Main Capture Screen */}
-      <div style={styles.captureScreen}>
-        <div style={styles.topNav}>
-          <div 
-            style={styles.menuBtn}
-            onClick={() => setSideMenuOpen(!sideMenuOpen)}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <span style={{ display: 'block', width: '20px', height: '2px', background: 'white' }} />
-              <span style={{ display: 'block', width: '20px', height: '2px', background: 'white' }} />
-              <span style={{ display: 'block', width: '20px', height: '2px', background: 'white' }} />
-            </div>
-          </div>
-          <div 
-            style={styles.menuBtn}
-            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-          >
-            👤
-          </div>
-        </div>
+return (
+<div style={styles.container}>
+{/_ Main Capture Screen _/}
+<div style={styles.captureScreen}>
+<div style={styles.topNav}>
+<div
+style={styles.menuBtn}
+onClick={() => setSideMenuOpen(!sideMenuOpen)} >
+<div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+<span style={{ display: 'block', width: '20px', height: '2px', background: 'white' }} />
+<span style={{ display: 'block', width: '20px', height: '2px', background: 'white' }} />
+<span style={{ display: 'block', width: '20px', height: '2px', background: 'white' }} />
+</div>
+</div>
+<div
+style={styles.menuBtn}
+onClick={() => setProfileMenuOpen(!profileMenuOpen)} >
+👤
+</div>
+</div>
 
         <div style={styles.recordContainer}>
-          <div 
+          <div
             style={styles.recordBtn}
             onMouseDown={startRecording}
             onMouseUp={stopRecording}
@@ -732,13 +741,13 @@ const MemoryVaultApp: React.FC = () => {
 
         <div style={styles.bottomInput}>
           <div style={styles.inputContainer}>
-            <div 
+            <div
               style={styles.plusBtn}
               onClick={() => setManualPanelOpen(true)}
             >
               +
             </div>
-            <input 
+            <input
               type="text"
               style={styles.textInput}
               placeholder="Type a memory..."
@@ -754,7 +763,7 @@ const MemoryVaultApp: React.FC = () => {
       </div>
 
       {/* Overlay */}
-      <div 
+      <div
         style={styles.overlay}
         onClick={() => setSideMenuOpen(false)}
       />
@@ -769,7 +778,7 @@ const MemoryVaultApp: React.FC = () => {
             Enhanced Intelligence
           </div>
         </div>
-        
+
         <div style={styles.menuSection}>
           <div style={styles.menuSectionTitle}>Main</div>
           <div style={{...styles.menuItem, ...(currentView === 'capture' ? {background: 'rgba(139, 92, 246, 0.1)', borderLeft: '3px solid #8b5cf6'} : {})}} onClick={() => navigateTo('capture')}>
@@ -785,7 +794,7 @@ const MemoryVaultApp: React.FC = () => {
             <span>Memories</span>
           </div>
         </div>
-        
+
         <div style={styles.menuSection}>
           <div style={styles.menuSectionTitle}>Family</div>
           <div style={{...styles.menuItem, ...(currentView === 'children' ? {background: 'rgba(139, 92, 246, 0.1)', borderLeft: '3px solid #8b5cf6'} : {})}} onClick={() => navigateTo('children')}>
@@ -797,7 +806,7 @@ const MemoryVaultApp: React.FC = () => {
             <span>Milestones</span>
           </div>
         </div>
-        
+
         <div style={styles.menuSection}>
           <div style={styles.menuSectionTitle}>Intelligence</div>
           <div style={{...styles.menuItem, ...(currentView === 'analytics' ? {background: 'rgba(139, 92, 246, 0.1)', borderLeft: '3px solid #8b5cf6'} : {})}} onClick={() => navigateTo('analytics')}>
@@ -809,7 +818,7 @@ const MemoryVaultApp: React.FC = () => {
             <span>AI Insights</span>
           </div>
         </div>
-        
+
         <div style={styles.menuSection}>
           <div style={styles.menuSectionTitle}>Settings</div>
           <div style={{...styles.menuItem, ...(currentView === 'settings' ? {background: 'rgba(139, 92, 246, 0.1)', borderLeft: '3px solid #8b5cf6'} : {})}} onClick={() => navigateTo('settings')}>
@@ -832,7 +841,7 @@ const MemoryVaultApp: React.FC = () => {
             </div>
             <div style={{ fontSize: '28px', fontWeight: 600 }}>Overview</div>
           </div>
-          
+
           <div style={styles.metricsGrid}>
             <div style={styles.metricCard}>
               <div style={{ color: '#888', fontSize: '14px' }}>Total Memories</div>
@@ -904,7 +913,7 @@ const MemoryVaultApp: React.FC = () => {
             </div>
             <div style={{ fontSize: '28px', fontWeight: 600 }}>All Memories</div>
           </div>
-          
+
           {/* Filters */}
           <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
             <select style={{ padding: '8px 16px', background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '8px', color: 'white' }}>
@@ -919,13 +928,13 @@ const MemoryVaultApp: React.FC = () => {
               <option>Physical</option>
               <option>Social</option>
             </select>
-            <input 
-              type="text" 
-              placeholder="Search memories..." 
+            <input
+              type="text"
+              placeholder="Search memories..."
               style={{ flex: 1, minWidth: '200px', padding: '8px 16px', background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '8px', color: 'white' }}
             />
           </div>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
             {memories.map(memory => (
               <div key={memory.id} style={{
@@ -976,20 +985,20 @@ const MemoryVaultApp: React.FC = () => {
             </div>
             <div style={{ fontSize: '28px', fontWeight: 600 }}>Children</div>
           </div>
-          
+
           <div style={styles.metricsGrid}>
             {children.map(child => (
               <div key={child.id} style={styles.card}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-                  <div style={{ 
-                    width: '60px', 
-                    height: '60px', 
-                    background: child.name === 'Emma' ? 'linear-gradient(135deg, #8b5cf6, #ec4899)' : 'linear-gradient(135deg, #3b82f6, #06b6d4)', 
-                    borderRadius: '50%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    fontSize: '28px' 
+                  <div style={{
+                    width: '60px',
+                    height: '60px',
+                    background: child.name === 'Emma' ? 'linear-gradient(135deg, #8b5cf6, #ec4899)' : 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '28px'
                   }}>
                     {child.avatar}
                   </div>
@@ -998,7 +1007,7 @@ const MemoryVaultApp: React.FC = () => {
                     <div style={{ color: '#888', fontSize: '14px' }}>Age: {child.age}</div>
                   </div>
                 </div>
-                
+
                 {/* Development Score */}
                 <div style={{ marginBottom: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -1009,7 +1018,7 @@ const MemoryVaultApp: React.FC = () => {
                     <div style={{ ...styles.progressFill, width: `${child.developmentScore}%` }} />
                   </div>
                 </div>
-                
+
                 {/* Stats */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
@@ -1029,33 +1038,33 @@ const MemoryVaultApp: React.FC = () => {
                     <div style={{ fontSize: '14px', fontWeight: 500 }}>12 memories</div>
                   </div>
                 </div>
-                
-                <button style={{ 
-                  width: '100%', 
-                  marginTop: '20px', 
-                  padding: '10px', 
-                  background: 'rgba(139, 92, 246, 0.1)', 
-                  border: '1px solid rgba(139, 92, 246, 0.3)', 
-                  borderRadius: '8px', 
-                  color: 'white', 
-                  cursor: 'pointer' 
+
+                <button style={{
+                  width: '100%',
+                  marginTop: '20px',
+                  padding: '10px',
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer'
                 }}>
                   View Timeline →
                 </button>
               </div>
             ))}
-            
+
             {/* Add Child Card */}
             <div style={{ ...styles.card, border: '2px dashed rgba(255, 255, 255, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '280px' }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ 
-                  width: '60px', 
-                  height: '60px', 
-                  background: 'rgba(255, 255, 255, 0.1)', 
-                  borderRadius: '50%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   margin: '0 auto 12px',
                   fontSize: '24px',
                   cursor: 'pointer'
@@ -1078,7 +1087,7 @@ const MemoryVaultApp: React.FC = () => {
             </div>
             <div style={{ fontSize: '28px', fontWeight: 600 }}>Milestones</div>
           </div>
-          
+
           {/* Milestone Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' }}>
             <div style={{ background: 'rgba(147, 51, 234, 0.1)', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
@@ -1098,31 +1107,31 @@ const MemoryVaultApp: React.FC = () => {
               <div style={{ fontSize: '12px', color: '#60a5fa' }}>Avg Confidence</div>
             </div>
           </div>
-          
+
           {/* Timeline View */}
           <div style={styles.card}>
             <div style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}>Milestone Timeline</div>
             <div style={{ position: 'relative', paddingLeft: '40px' }}>
               {/* Timeline line */}
               <div style={{ position: 'absolute', left: '20px', top: '20px', bottom: '20px', width: '2px', background: 'rgba(139, 92, 246, 0.3)' }} />
-              
+
               {milestones.map((milestone, index) => (
                 <div key={milestone.id} style={{ position: 'relative', marginBottom: '24px' }}>
                   {/* Timeline dot */}
-                  <div style={{ 
-                    position: 'absolute', 
-                    left: '-25px', 
-                    top: '8px', 
-                    width: '12px', 
-                    height: '12px', 
-                    background: milestone.verified ? '#10b981' : '#fbbf24', 
+                  <div style={{
+                    position: 'absolute',
+                    left: '-25px',
+                    top: '8px',
+                    width: '12px',
+                    height: '12px',
+                    background: milestone.verified ? '#10b981' : '#fbbf24',
                     borderRadius: '50%',
                     border: '2px solid #1a1a1a'
                   }} />
-                  
-                  <div style={{ 
-                    background: 'rgba(255, 255, 255, 0.03)', 
-                    padding: '12px', 
+
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    padding: '12px',
                     borderRadius: '8px',
                     border: '1px solid rgba(255, 255, 255, 0.1)'
                   }}>
@@ -1134,9 +1143,9 @@ const MemoryVaultApp: React.FC = () => {
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ 
-                          padding: '2px 8px', 
-                          background: milestone.verified ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)', 
+                        <div style={{
+                          padding: '2px 8px',
+                          background: milestone.verified ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
                           color: milestone.verified ? '#4ade80' : '#fbbf24',
                           borderRadius: '4px',
                           fontSize: '11px',
@@ -1150,10 +1159,10 @@ const MemoryVaultApp: React.FC = () => {
                       </div>
                     </div>
                     <div style={{ marginTop: '8px' }}>
-                      <span style={{ 
-                        padding: '2px 8px', 
-                        background: 'rgba(139, 92, 246, 0.1)', 
-                        borderRadius: '12px', 
+                      <span style={{
+                        padding: '2px 8px',
+                        background: 'rgba(139, 92, 246, 0.1)',
+                        borderRadius: '12px',
                         fontSize: '11px',
                         color: '#a78bfa'
                       }}>
@@ -1177,7 +1186,7 @@ const MemoryVaultApp: React.FC = () => {
             </div>
             <div style={{ fontSize: '28px', fontWeight: 600 }}>Analytics</div>
           </div>
-          
+
           {/* Processing Health */}
           <div style={styles.card}>
             <div style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}>Processing Pipeline Health</div>
@@ -1236,7 +1245,7 @@ const MemoryVaultApp: React.FC = () => {
                 <div style={{ fontSize: '12px', color: '#10b981' }}>↓ 8% optimization</div>
               </div>
             </div>
-            
+
             <div style={{ marginTop: '20px' }}>
               <div style={{ fontSize: '14px', marginBottom: '12px' }}>Cost Breakdown</div>
               <div style={{ display: 'grid', gap: '8px' }}>
@@ -1289,20 +1298,20 @@ const MemoryVaultApp: React.FC = () => {
             </div>
             <div style={{ fontSize: '28px', fontWeight: 600 }}>AI Insights</div>
           </div>
-          
+
           {/* Insights Grid */}
           <div style={{ display: 'grid', gap: '20px' }}>
             {insights.map((insight, index) => (
               <div key={index} style={styles.card}>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'start' }}>
-                  <div style={{ 
-                    fontSize: '28px', 
-                    width: '48px', 
-                    height: '48px', 
-                    background: 'rgba(139, 92, 246, 0.1)', 
-                    borderRadius: '8px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <div style={{
+                    fontSize: '28px',
+                    width: '48px',
+                    height: '48px',
+                    background: 'rgba(139, 92, 246, 0.1)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0
                   }}>
@@ -1311,13 +1320,13 @@ const MemoryVaultApp: React.FC = () => {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>{insight.title}</div>
                     <div style={{ color: '#888', lineHeight: 1.6 }}>{insight.content}</div>
-                    <button style={{ 
-                      marginTop: '12px', 
-                      padding: '6px 16px', 
-                      background: 'rgba(139, 92, 246, 0.1)', 
-                      border: '1px solid rgba(139, 92, 246, 0.3)', 
-                      borderRadius: '6px', 
-                      color: '#a78bfa', 
+                    <button style={{
+                      marginTop: '12px',
+                      padding: '6px 16px',
+                      background: 'rgba(139, 92, 246, 0.1)',
+                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                      borderRadius: '6px',
+                      color: '#a78bfa',
                       cursor: 'pointer',
                       fontSize: '14px'
                     }}>
@@ -1341,8 +1350,8 @@ const MemoryVaultApp: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <div style={{ flex: 1, ...styles.progressBar }}>
-                      <div style={{ 
-                        ...styles.progressFill, 
+                      <div style={{
+                        ...styles.progressFill,
                         width: `${75 + Math.random() * 20}%`,
                         background: category === 'Physical' ? 'linear-gradient(90deg, #10b981, #34d399)' :
                                    category === 'Cognitive' ? 'linear-gradient(90deg, #8b5cf6, #a78bfa)' :
@@ -1368,7 +1377,7 @@ const MemoryVaultApp: React.FC = () => {
             </div>
             <div style={{ fontSize: '28px', fontWeight: 600 }}>Settings</div>
           </div>
-          
+
           {/* AI Settings */}
           <div style={styles.card}>
             <div style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}>AI Processing</div>
@@ -1378,7 +1387,7 @@ const MemoryVaultApp: React.FC = () => {
                   <div style={{ fontWeight: 500 }}>Automatic Milestone Detection</div>
                   <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>AI analyzes memories for developmental milestones</div>
                 </div>
-                <div 
+                <div
                   style={{ ...styles.toggle, ...(autoDetection ? styles.toggleActive : {}) }}
                   onClick={() => setAutoDetection(!autoDetection)}
                 >
@@ -1390,7 +1399,7 @@ const MemoryVaultApp: React.FC = () => {
                   <div style={{ fontWeight: 500 }}>Weekly AI Reports</div>
                   <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>Receive weekly summaries and insights</div>
                 </div>
-                <div 
+                <div
                   style={{ ...styles.toggle, ...(weeklyReports ? styles.toggleActive : {}) }}
                   onClick={() => setWeeklyReports(!weeklyReports)}
                 >
@@ -1402,7 +1411,7 @@ const MemoryVaultApp: React.FC = () => {
                   <div style={{ fontWeight: 500 }}>Smart Suggestions</div>
                   <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>Get prompts for memory capture based on patterns</div>
                 </div>
-                <div 
+                <div
                   style={{ ...styles.toggle, ...styles.toggleActive }}
                 >
                   <div style={{ ...styles.toggleSlider, ...styles.toggleSliderActive }} />
@@ -1438,7 +1447,7 @@ const MemoryVaultApp: React.FC = () => {
                 <div style={{ fontWeight: 500 }}>Push Notifications</div>
                 <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>Milestone alerts and memory reminders</div>
               </div>
-              <div 
+              <div
                 style={{ ...styles.toggle, ...(notificationsEnabled ? styles.toggleActive : {}) }}
                 onClick={() => setNotificationsEnabled(!notificationsEnabled)}
               >
@@ -1465,7 +1474,7 @@ const MemoryVaultApp: React.FC = () => {
             </div>
             <div style={{ fontSize: '28px', fontWeight: 600 }}>Help & Support</div>
           </div>
-          
+
           {/* Quick Help */}
           <div style={styles.card}>
             <div style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}>Getting Started</div>
@@ -1554,7 +1563,7 @@ const MemoryVaultApp: React.FC = () => {
           zIndex: 10,
         }}>
           <h3 style={{ fontSize: '18px', fontWeight: 600 }}>Add Detailed Memory</h3>
-          <div 
+          <div
             style={{
               width: '32px',
               height: '32px',
@@ -1570,7 +1579,7 @@ const MemoryVaultApp: React.FC = () => {
             ✕
           </div>
         </div>
-        
+
         <div style={{ padding: '20px', maxHeight: 'calc(85vh - 60px)', overflowY: 'auto' }}>
           {/* Child Selection */}
           <div style={{ marginBottom: '20px' }}>
@@ -1610,7 +1619,7 @@ const MemoryVaultApp: React.FC = () => {
             <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Memory Description
             </div>
-            <textarea 
+            <textarea
               placeholder="What happened? Be as detailed as you'd like..."
               style={{
                 width: '100%',
@@ -1633,8 +1642,8 @@ const MemoryVaultApp: React.FC = () => {
               When Did This Happen?
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 style={{
                   padding: '10px',
                   background: 'rgba(255, 255, 255, 0.05)',
@@ -1643,7 +1652,7 @@ const MemoryVaultApp: React.FC = () => {
                   color: 'white',
                 }}
               />
-              <input 
+              <input
                 type="time"
                 style={{
                   padding: '10px',
@@ -1687,7 +1696,7 @@ const MemoryVaultApp: React.FC = () => {
             <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Location
             </div>
-            <input 
+            <input
               type="text"
               placeholder="Home, Park, Grandma's house, Doctor's office..."
               style={{
@@ -1751,7 +1760,7 @@ const MemoryVaultApp: React.FC = () => {
             </div>
             <div style={styles.tagGrid}>
               {tags.map(tag => (
-                <div 
+                <div
                   key={tag.label}
                   style={{
                     ...styles.tagOption,
@@ -1788,7 +1797,7 @@ const MemoryVaultApp: React.FC = () => {
                 </button>
               ))}
             </div>
-            <input 
+            <input
               type="text"
               placeholder="Add specific names or other people..."
               style={{
@@ -1808,7 +1817,7 @@ const MemoryVaultApp: React.FC = () => {
             <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Parent Insight & Reflection
             </div>
-            <textarea 
+            <textarea
               placeholder="What did you notice about your child? Any thoughts on their development, behavior, or emotions? What made this moment special?"
               style={{
                 width: '100%',
@@ -2001,7 +2010,7 @@ const MemoryVaultApp: React.FC = () => {
               </button>
             </div>
           </div>
-          
+
           {/* Save Button */}
           <button style={{
             width: '100%',
@@ -2034,7 +2043,8 @@ const MemoryVaultApp: React.FC = () => {
         </div>
       </div>
     </div>
-  );
+
+);
 };
 
 export default MemoryVaultApp;

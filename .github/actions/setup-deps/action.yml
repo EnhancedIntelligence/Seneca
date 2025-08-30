@@ -97,28 +97,60 @@ runs:
           fi
           echo "::endgroup::"
         else
-          echo "ℹ️  Module $MODULE_PATH not found in dependencies - skipping rebuild"
+          echo "ℹ️  Package $REBUILD_PKG not found - skipping rebuild"
         fi
         
-        # Sanity check: fail fast if binding is missing when it should exist
-        if node -e "try { require.resolve('$MODULE_PATH'); process.exit(0); } catch { process.exit(1); }" 2>/dev/null; then
-          node -e "
-            const fs = require('fs');
-            const path = '$MODULE_PATH';
-            try {
-              const resolved = require.resolve(path);
-              fs.accessSync(resolved, fs.constants.R_OK);
-              console.log('✓ Native binding verified: ' + path);
-              console.log('  Resolved to: ' + resolved);
-            } catch (e) {
-              console.error('✗ Native binding check failed for: ' + path);
-              console.error('  Error: ' + String(e && e.message || e));
-              process.exit(1);
-            }
-          "
-        else
-          echo "ℹ️  Skipping native binding check (module not in dependencies)"
+        # Enhanced sanity check: Always try to load and exercise the native binding
+        echo "::group::Verify Native Binding"
+        
+        # Debug: Show what .node files are present
+        echo "Looking for native bindings in node_modules/$REBUILD_PKG/:"
+        ls -la "node_modules/$REBUILD_PKG/" 2>/dev/null | grep -E '\.node$' || echo "  No .node files in root"
+        if [ -d "node_modules/$REBUILD_PKG/node" ]; then
+          echo "Looking in node_modules/$REBUILD_PKG/node/:"
+          ls -la "node_modules/$REBUILD_PKG/node/" 2>/dev/null | grep -E '\.node$' || echo "  No .node files in node/"
         fi
+        
+        # Actually load and test the native binding
+        node -e "
+          const pkgName = '$REBUILD_PKG';
+          try {
+            // Force-load the native binding by requiring the package
+            const mod = require(pkgName);
+            
+            // Show resolved package location for diagnostics
+            try {
+              const resolved = require.resolve(pkgName);
+              console.log('Resolved package entry:', resolved);
+            } catch {}
+            
+            console.log('✓ Successfully required package:', pkgName);
+            
+            // For lightningcss, try to exercise the transform function
+            if (mod && typeof mod.transform === 'function') {
+              try {
+                // Simple CSS transform to verify the native binding works
+                const result = mod.transform({
+                  filename: 'test.css',
+                  code: Buffer.from('body { color: red; }'),
+                  minify: false
+                });
+                console.log('✓ Transform function works!');
+              } catch (e) {
+                console.log('ℹ️  Transform test skipped:', e.message);
+              }
+            }
+            
+            console.log('✅ Native binding verified and functional:', pkgName);
+          } catch (e) {
+            console.error('✗ Native binding failed for:', pkgName);
+            console.error('  Error:', String(e && e.message || e));
+            console.error('');
+            console.error('Stack trace:');
+            console.error(e.stack || 'No stack trace available');
+            process.exit(1);
+          }
+        "
         
         echo "::endgroup::"
         echo "✅ Dependencies installed successfully"

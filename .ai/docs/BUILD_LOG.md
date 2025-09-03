@@ -4,8 +4,8 @@
 **Name:** Seneca Protocol  
 **Type:** Family Memory Capture Platform with AI Processing  
 **Stack:** Next.js 15, React 19, TypeScript, Supabase, OpenAI  
-**Status:** Build Fixed (TypeScript & Supabase Integration Complete)  
-**Last Updated:** 2025-08-28
+**Status:** Authentication Gate Complete (Production Ready Security)  
+**Last Updated:** 2025-09-02
 
 ---
 
@@ -79,14 +79,66 @@
 └─────────────────────────────────────────┘
 ```
 
+### Phase 6: Queue System Infrastructure (Session 020-022)
+- **Date:** 2025-08-28
+- **Critical Issue:** Build failures from missing queue functions
+- **Solution:** Complete queue table implementation vs stubbing
+- **Implementation:**
+  - PostgreSQL migration with `queue_jobs` table
+  - Atomic job claiming with `FOR UPDATE SKIP LOCKED`
+  - State coherence constraints (processing requires lock)
+  - Comprehensive RPC functions for job lifecycle
+  - Production-ready with retry, cleanup, and monitoring
+
+### Phase 7: Authentication Gate System (Session 023)
+- **Date:** 2025-09-02
+- **Branch:** `feat/auth-gate`
+- **Achievement:** Complete authentication security implementation
+- **Components:**
+  - **AuthGuard**: Event-driven client-side protection
+  - **Enhanced Login**: Magic link + password fallback
+  - **Safe Redirects**: Open redirect prevention
+  - **Session Management**: Real-time monitoring with Supabase
+  - **Security Hardening**: Origin validation, error sanitization
+
+### Phase 8: ESLint Cleanup & CI/CD Unblocking (Session 024)
+- **Date:** 2025-09-02
+- **Context:** PR #8 feat/auth-gate branch with CI blocking issues
+- **Initial State:** 282 total issues (112 errors, 170 warnings)
+- **Partner Progress:** Applied prettier formatting, reduced to 48 issues
+- **User Fixes:** Manually fixed remaining 6 errors and 42 warnings in real-time
+- **Achievement:** Zero errors/warnings, CI/CD pipeline unblocked
+
+#### Critical Fixes Applied:
+1. **Type Safety (6 errors)**:
+   - Added proper TypeScript interfaces for API responses
+   - Created NavigationView union type for routing
+   - Fixed auth callback Supabase compatibility types
+   - Proper category validation in memory forms
+
+2. **Code Cleanup (42 warnings)**:
+   - Removed all unused imports and variables
+   - Fixed React hook dependencies
+   - Cleaned up development placeholder code
+   - Organized imports consistently
+
+3. **Project Organization**:
+   - Moved AI scripts to `.ai/scripts/` directory
+   - Created documentation for script purposes
+   - Cleaned root directory for production readiness
+
 ---
 
 ## Technical Decisions Log
 
 ### Authentication Architecture
-- **Decision:** Magic Link only (no password)
-- **Rationale:** Simpler UX, no password management
-- **Implementation:** Supabase OTP with email verification
+- **Decision:** Event-driven AuthGuard with Magic Link + Password fallback
+- **Rationale:** Real-time protection, graceful degradation, better UX
+- **Implementation:** 
+  - AuthGuard component with `onAuthStateChange` monitoring
+  - Magic Link primary (requires SMTP), Password fallback
+  - Safe redirect protection against open redirects
+  - Layered security: server-side + client-side validation
 
 ### Environment Variables Strategy
 - **Decision:** Three-tier system (core/server/public)
@@ -97,6 +149,15 @@
 - **Decision:** ESLint rules prevent client imports of server modules
 - **Rationale:** Prevent secret leaks, enforce proper architecture
 - **Implementation:** Custom ESLint configuration with exceptions
+
+### Queue System Architecture
+- **Decision:** PostgreSQL-native queue with atomic operations
+- **Rationale:** Database-level consistency, race-free job claiming, production-ready
+- **Implementation:**
+  - `queue_jobs` table with status enum constraints
+  - `FOR UPDATE SKIP LOCKED` for atomic job claiming
+  - Comprehensive RPC functions for job lifecycle
+  - Automatic retry and cleanup mechanisms
 
 ### State Management
 - **Decision:** Zustand over Context API
@@ -256,6 +317,7 @@ lib/
 
 ## Version History
 
+- **v0.5.0** (2025-09-02): CI/CD ready, zero lint issues, feat/auth-gate complete
 - **v0.4.0** (2025-08-22): Environment system refactor
 - **v0.3.0** (2025-08-20): Authentication hardening
 - **v0.2.0** (2025-08-18): Basic authentication

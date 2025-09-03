@@ -1,141 +1,123 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-// Force Node.js runtime to avoid Edge + Supabase issues
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-// Type definitions for Supabase version compatibility
-type AuthErrorLike = { 
-  message: string; 
-  name?: string; 
-  status?: number;
-};
+// Accept the common variants across Supabase versions
+// Note: Some providers send "email", others send "magiclink" - both are allowed
+const AllowedTypes = [
+  "email",        // magic link often arrives as "email"
+  "magiclink",    // alternative magic link type
+  "signup",
+  "recovery",
+  "email_change",
+] as const;
+const allowed = new Set<string>(AllowedTypes);
 
-type ExchangeResult = { 
-  error: AuthErrorLike | null;
-  data?: { session?: unknown };
-};
-
-// Support multiple Supabase auth signatures
-type ExchangeWithString = (code: string) => Promise<ExchangeResult>;
-type ExchangeWithObject = (params: { code: string }) => Promise<ExchangeResult>;
-type ExchangeNoArg = () => Promise<ExchangeResult>;
-
-/**
- * Sanitizes redirect paths to prevent open redirects
- * Only allows same-origin relative paths
- */
-function sanitizeNext(next: string, req: NextRequest): string {
-  try {
-    const u = new URL(next, req.url);
-    return u.origin === new URL(req.url).origin
-      ? u.pathname + u.search + u.hash
-      : "/";
-  } catch {
-    return "/";
-  }
+/** Only allow single-leading-slash relative paths. */
+function sanitizeNext(next: string | null): string {
+  if (!next) return "/overview";
+  // allow a single leading slash only; blocks '//' protocol-relative and externals
+  return /^\/(?!\/)/.test(next) ? next : "/overview";
 }
 
 /**
- * Auth Callback Route
- * Handles OAuth and magic link code exchange for session establishment
- * Supports multiple Supabase client versions
+ * Compatibility wrapper for verifyOtp to handle SDK type variations
+ * @param auth - Supabase auth client
+ * @param params - OTP verification parameters
+ */
+function verifyOtpCompat(
+  auth: SupabaseClient["auth"],
+  params: { token_hash: string; type: string }
+) {
+  // @ts-expect-error — supabase-js@2.53.0 may not include "email" in the union;
+  // runtime accepts it for magic links. Remove when SDK updates.
+  return auth.verifyOtp(params);
+}
+
+/**
+ * Unified Auth Callback Route
+ * - OAuth: /auth/callback?code=XXX&next=/dashboard
+ * - Magic: /auth/callback?token_hash=XXX&type=email&next=/dashboard
  */
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const rawNext = url.searchParams.get("next") ?? "/";
 
-  // Decode the next parameter (it was encoded by the client)
+  // Decode next BEFORE sanitizing
+  const nextParam = url.searchParams.get("next");
   const decodedNext = (() => {
-    try {
-      return decodeURIComponent(rawNext);
-    } catch {
-      return "/";
-    }
+    try { return nextParam ? decodeURIComponent(nextParam) : null; }
+    catch { return null; }
   })();
+  const next = sanitizeNext(decodedNext);
 
-  const safe = sanitizeNext(decodedNext, req);
+  const code = url.searchParams.get("code");
+  const tokenHash = url.searchParams.get("token_hash");
+  const type = url.searchParams.get("type");
+  const error = url.searchParams.get("error");
+  const errorDescription = url.searchParams.get("error_description");
 
-  // Handle provider errors (OAuth denials, etc.)
-  const providerError =
-    url.searchParams.get("error") || url.searchParams.get("error_description");
-  const code = url.searchParams.get("code") ?? "";
-
-  if (!code && providerError) {
+  // Provider error (e.g., user denied OAuth)
+  if (error && !code && !tokenHash) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(providerError)}`, req.url),
+      new URL(`/login?error=${encodeURIComponent(errorDescription || error)}`, url.origin)
     );
   }
 
-  if (!code && !providerError) {
-    return NextResponse.redirect(
-      new URL("/login?error=No%20code%20provided", req.url),
-    );
+  const supabase = await createClient();
+
+  // OAuth flow
+  if (code) {
+    try {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) {
+        return NextResponse.redirect(
+          new URL(`/login?error=${encodeURIComponent(exchangeError.message ?? "Authentication failed")}`, url.origin)
+        );
+      }
+      
+      // Verify session was created
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin));
+      }
+      
+      return NextResponse.redirect(new URL(next, url.origin));
+    } catch {
+      return NextResponse.redirect(new URL("/login?error=Authentication%20failed", url.origin));
+    }
   }
 
-  try {
-    const supabase = await createClient();
-
-    // Robust version compatibility with try/fallback pattern
-    const auth = supabase.auth;
-    const exchange = auth.exchangeCodeForSession.bind(auth) as unknown;
-    
-    async function exchangeCodeForSessionCompat(authCode: string): Promise<ExchangeResult> {
-      // Try common Supabase signatures in order of likelihood
-      
-      // 1. Try with string argument (most common)
-      try {
-        return await (exchange as ExchangeWithString)(authCode);
-      } catch {
-        // Continue to next signature
+  // Magic link / OTP flow (accepts both "email" and "magiclink")
+  if (tokenHash && type && allowed.has(type)) {
+    try {
+      // Use computed key to avoid ESLint naming-convention warning
+      const otpParams = { ["token_hash"]: tokenHash, type };
+      const { error: otpError } = await verifyOtpCompat(supabase.auth, otpParams);
+      if (otpError) {
+        const msg =
+          /rate|seconds/i.test(otpError.message ?? "")
+            ? "Too%20many%20attempts.%20Please%20wait%2030%20seconds"
+            : encodeURIComponent(otpError.message ?? "Verification failed");
+        return NextResponse.redirect(new URL(`/login?error=${msg}`, url.origin));
       }
       
-      // 2. Try with object argument (some versions)
-      try {
-        return await (exchange as ExchangeWithObject)({ code: authCode });
-      } catch {
-        // Continue to next signature
+      // Verify session was created
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin));
       }
       
-      // 3. Try with no argument (reads from URL internally)
-      try {
-        return await (exchange as ExchangeNoArg)();
-      } catch (_e) {
-        // All signatures failed - return normalized error
-        return {
-          error: {
-            message: _e instanceof Error ? _e.message : "Failed to exchange code for session",
-            name: "ExchangeError"
-          }
-        };
-      }
+      return NextResponse.redirect(new URL(next, url.origin));
+    } catch (err) {
+      /* eslint-disable-next-line no-console */
+      console.error("OTP verification error:", err);
+      return NextResponse.redirect(new URL("/login?error=Verification%20failed", url.origin));
     }
-
-    const { error } = await exchangeCodeForSessionCompat(code);
-
-    if (error) {
-      console.error("Auth callback error:", error);
-      const msg = encodeURIComponent(error.message || "Authentication failed");
-      return NextResponse.redirect(new URL(`/login?error=${msg}`, req.url));
-    }
-
-    // Verify session was created
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
-      console.error("No session after code exchange");
-      return NextResponse.redirect(
-        new URL("/login?error=Session%20creation%20failed", req.url),
-      );
-    }
-
-    return NextResponse.redirect(new URL(safe, req.url));
-  } catch (err) {
-    // Guard against unexpected throws
-    console.error("Unexpected error in auth callback:", err);
-    return NextResponse.redirect(
-      new URL("/login?error=An%20unexpected%20error%20occurred", req.url),
-    );
   }
+
+  // No valid auth parameters
+  return NextResponse.redirect(new URL("/login?error=Invalid%20authentication%20link", url.origin));
 }

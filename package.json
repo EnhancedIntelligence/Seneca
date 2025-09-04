@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "lint:ci": "next lint --max-warnings=0",
+    "format": "prettier --write .",
     "typecheck": "next build --no-lint",
     "test": "vitest",
     "test:unit": "vitest run",
@@ -20,7 +21,9 @@
     "ai:migrate": "./migrate-ai-files.sh",
     "ai:prune": "rm -rf .ai/artifacts/*",
     "ai:docs": "open .ai/docs/BUILD_LOG.md 2>/dev/null || xdg-open .ai/docs/BUILD_LOG.md 2>/dev/null || echo 'See .ai/docs/BUILD_LOG.md'",
-    "ai:verify-imports": "node -e \"const {execSync}=require('child_process'); try{execSync('rg -n \\\"from [\\\\'\\\\\\\"]\\\\.?\\\\.?/.ai/|import .* from [\\\\'\\\\\\\"]\\\\.?\\\\.?/.ai/\\\" --glob \\\"!node_modules\\\" --glob \\\"!.ai/**\\\"', {stdio:'inherit'}); process.exit(1);}catch(e){process.exit(0);}\""
+    "ai:verify-imports": "node -e \"const {execSync}=require('child_process'); try{execSync('rg -n \\\"from [\\\\'\\\\\\\"]\\\\.?\\\\.?/.ai/|import .* from [\\\\'\\\\\\\"]\\\\.?\\\\.?/.ai/\\\" --glob \\\"!node_modules\\\" --glob \\\"!.ai/**\\\"', {stdio:'inherit'}); process.exit(1);}catch(e){process.exit(0);}\"",
+    "supabase:types": "npx supabase gen types typescript --project-id ahggunjqfvlmvgycisgc --schema public > lib/database.generated.ts",
+    "supabase:types:safe": "bash -c 'set -euo pipefail; : ${SUPABASE_ACCESS_TOKEN:?Missing SUPABASE_ACCESS_TOKEN}; TMP=$(mktemp); npx supabase gen types typescript --project-id ahggunjqfvlmvgycisgc --schema public > \"$TMP\" && mv \"$TMP\" lib/database.generated.ts && echo \"Types generated: lib/database.generated.ts\"'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -53,10 +56,12 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
+    "eslint-config-prettier": "^10.1.8",
     "isomorphic-dompurify": "^2.26.0",
     "lucide-react": "^0.536.0",
     "next": "15.4.5",
     "next-themes": "^0.4.6",
+    "prettier": "^3.6.2",
     "react": "19.1.0",
     "react-day-picker": "^9.8.1",
     "react-dom": "19.1.0",

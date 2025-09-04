@@ -64,7 +64,7 @@ export function TopBar({
         "px-4 py-4",
         "flex items-center justify-between",
         !transparent && "bg-black/80 backdrop-blur-xl border-b border-white/10",
-        className
+        className,
       )}
     >
       {/* Left Section - Menu Button */}
@@ -77,7 +77,7 @@ export function TopBar({
           "transition-all duration-200",
           "hover:bg-white/20 hover:scale-105",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
-          "active:scale-95"
+          "active:scale-95",
         )}
         aria-label="Toggle menu"
         aria-expanded={isMenuOpen}
@@ -105,7 +105,7 @@ export function TopBar({
               "transition-all duration-200",
               "hover:bg-white/20 hover:scale-105",
               "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
-              "active:scale-95"
+              "active:scale-95",
             )}
             aria-label="Notifications"
           >
@@ -136,7 +136,7 @@ export function TopBar({
               "transition-all duration-200",
               "hover:bg-white/20 hover:scale-105",
               "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
-              "active:scale-95"
+              "active:scale-95",
             )}
             aria-label="Settings"
           >
@@ -155,7 +155,7 @@ export function TopBar({
             "transition-all duration-200",
             "hover:scale-105 hover:shadow-lg hover:shadow-violet-500/30",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
-            "active:scale-95"
+            "active:scale-95",
           )}
           aria-label="Profile menu"
         >

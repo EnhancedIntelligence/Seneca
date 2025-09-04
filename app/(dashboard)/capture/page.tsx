@@ -5,12 +5,12 @@
  * Primary interface for recording memories
  */
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { RecordButton } from "@/components/capture/RecordButton";
 import { QuickEntry } from "@/components/capture/QuickEntry";
 import { ManualEntrySheet } from "@/components/capture/ManualEntrySheet";
 import { useCapture, useFamily, useMemoryData } from "@/lib/stores/useAppStore";
-import type { UIChild, UITag, Tag, Weather, Mood } from "@/lib/types";
+import type { Tag, Weather, Mood } from "@/lib/types";
 
 // Helper to convert string array to Tag objects (Tag is alias for UITag)
 const toTags = (arr: string[]): Tag[] =>
@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Users, Calendar, TrendingUp } from "lucide-react";
 
 export default function CapturePage() {
-  const { isRecording, startRecording, stopRecording } = useCapture();
+  const { startRecording } = useCapture();
   const { children, activeChildId, switchChild } = useFamily();
   const { addMemory } = useMemoryData();
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
@@ -97,7 +97,7 @@ export default function CapturePage() {
         "eating",
         "sleep",
         "play",
-      ].includes(t)
+      ].includes(t),
     );
     const tagsUi = toTags(validTags);
 

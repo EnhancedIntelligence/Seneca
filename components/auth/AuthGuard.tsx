@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
-import type { User } from '@supabase/supabase-js';
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
+import type { User } from "@supabase/supabase-js";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -17,10 +17,10 @@ function safeNext(path: string): string {
   try {
     // Only allow same-origin relative paths
     const u = new URL(path, window.location.origin);
-    if (u.origin !== window.location.origin) return '/';
+    if (u.origin !== window.location.origin) return "/";
     return u.pathname + u.search + u.hash;
   } catch {
-    return '/';
+    return "/";
   }
 }
 
@@ -41,24 +41,30 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const supabase = useMemo(() => {
     return createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     );
   }, []);
 
   useEffect(() => {
     // Check if we're already on an auth route to prevent redirect loops
-    const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/auth/');
-    
+    const isAuthRoute =
+      pathname.startsWith("/login") || pathname.startsWith("/auth/");
+
     // Initial session check
     const checkSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
         if (error || !session) {
           // Only redirect if not already on auth route
           if (!isAuthRoute) {
             const next = encodeURIComponent(
-              safeNext(pathname + (searchParams?.toString() ? `?${searchParams}` : ''))
+              safeNext(
+                pathname + (searchParams?.toString() ? `?${searchParams}` : ""),
+              ),
             );
             router.replace(`/login?next=${next}`);
           }
@@ -67,9 +73,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
         setUser(session.user);
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error("Auth check failed:", error);
         if (!isAuthRoute) {
-          router.replace('/login');
+          router.replace("/login");
         }
       } finally {
         setLoading(false);
@@ -79,20 +85,24 @@ export function AuthGuard({ children }: AuthGuardProps) {
     checkSession();
 
     // Event-driven auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session || event === 'SIGNED_OUT') {
-        // Only redirect if not already on auth route (prevent loops)
-        if (!isAuthRoute) {
-          const next = encodeURIComponent(
-            safeNext(pathname + (searchParams?.toString() ? `?${searchParams}` : ''))
-          );
-          router.replace(`/login?next=${next}`);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!session || event === "SIGNED_OUT") {
+          // Only redirect if not already on auth route (prevent loops)
+          if (!isAuthRoute) {
+            const next = encodeURIComponent(
+              safeNext(
+                pathname + (searchParams?.toString() ? `?${searchParams}` : ""),
+              ),
+            );
+            router.replace(`/login?next=${next}`);
+          }
+        } else if (event === "SIGNED_IN" && session) {
+          setUser(session.user);
+          setLoading(false);
         }
-      } else if (event === 'SIGNED_IN' && session) {
-        setUser(session.user);
-        setLoading(false);
-      }
-    });
+      },
+    );
 
     // Cleanup subscription
     return () => {

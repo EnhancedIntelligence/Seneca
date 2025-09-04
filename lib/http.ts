@@ -15,7 +15,7 @@ export function problem(
   status: number,
   title: string,
   detail?: string,
-  meta?: Record<string, unknown>
+  meta?: Record<string, unknown>,
 ): Response {
   const body = {
     title,
@@ -27,7 +27,7 @@ export function problem(
   return new Response(JSON.stringify(body), {
     status,
     headers: {
-      'Content-Type': 'application/problem+json',
+      "Content-Type": "application/problem+json",
     },
   });
 }
@@ -37,26 +37,35 @@ export function problem(
  */
 export const problems = {
   badRequest: (detail?: string, meta?: Record<string, unknown>) =>
-    problem(400, 'Bad Request', detail, meta),
-  
+    problem(400, "Bad Request", detail, meta),
+
   unauthorized: (detail?: string) =>
-    problem(401, 'Unauthorized', detail || 'Authentication required'),
-  
+    problem(401, "Unauthorized", detail || "Authentication required"),
+
   forbidden: (detail?: string) =>
-    problem(403, 'Forbidden', detail || 'Insufficient permissions'),
-  
+    problem(403, "Forbidden", detail || "Insufficient permissions"),
+
   notFound: (resource?: string) =>
-    problem(404, 'Not Found', resource ? `${resource} not found` : 'Resource not found'),
-  
-  conflict: (detail?: string) =>
-    problem(409, 'Conflict', detail),
-  
+    problem(
+      404,
+      "Not Found",
+      resource ? `${resource} not found` : "Resource not found",
+    ),
+
+  conflict: (detail?: string) => problem(409, "Conflict", detail),
+
   validationError: (errors: Record<string, string[]>) =>
-    problem(422, 'Validation Failed', 'The request contains invalid fields', { errors }),
-  
+    problem(422, "Validation Failed", "The request contains invalid fields", {
+      errors,
+    }),
+
   tooManyRequests: (retryAfter?: number) =>
-    problem(429, 'Too Many Requests', 'Rate limit exceeded', { retryAfter }),
-  
+    problem(429, "Too Many Requests", "Rate limit exceeded", { retryAfter }),
+
   serverError: (detail?: string) =>
-    problem(500, 'Internal Server Error', detail || 'An unexpected error occurred'),
+    problem(
+      500,
+      "Internal Server Error",
+      detail || "An unexpected error occurred",
+    ),
 } as const;

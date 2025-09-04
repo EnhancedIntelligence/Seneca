@@ -16,7 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Seneca - Family Memory Vault",
-  description: "Capture and preserve your family's precious moments with AI-powered insights",
+  description:
+    "Capture and preserve your family's precious moments with AI-powered insights",
 };
 
 export default function RootLayout({

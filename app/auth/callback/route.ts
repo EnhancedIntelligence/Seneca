@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.generated";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,11 +17,42 @@ const AllowedTypes = [
 ] as const;
 const allowed = new Set<string>(AllowedTypes);
 
-/** Only allow single-leading-slash relative paths. */
-function sanitizeNext(next: string | null): string {
-  if (!next) return "/overview";
-  // allow a single leading slash only; blocks '//' protocol-relative and externals
-  return /^\/(?!\/)/.test(next) ? next : "/overview";
+/** Only allow same-origin relative paths and prevent redirect loops/odd UX. */
+function sanitizeNext(nextParam: string | null | undefined): string {
+  const SAFE = "/overview";
+  if (!nextParam) return SAFE;
+
+  // Trim & cap length
+  const raw = nextParam.trim();
+  if (raw.length === 0 || raw.length > 2048) return SAFE;
+
+  try {
+    // Only allow same-origin relative paths
+    const u = new URL(raw, "http://local");
+    if (u.origin !== "http://local") return SAFE;
+    if (!u.pathname.startsWith("/")) return SAFE;
+
+    // Block problematic prefixes (loops/internal)
+    const blockedPrefixes = [
+      "/onboarding",
+      "/auth",
+      "/login",
+      "/logout",
+      "/api",
+      "/_next",
+      "/static",
+      "/images",
+    ];
+    if (blockedPrefixes.some(p => u.pathname === p || u.pathname.startsWith(p + "/"))) {
+      return SAFE;
+    }
+
+    // Normalize trailing slashes  
+    const path = u.pathname.replace(/\/+$/, "") || SAFE;
+    return path + (u.search || "") + (u.hash || "");
+  } catch {
+    return SAFE;
+  }
 }
 
 /**
@@ -38,6 +70,44 @@ function verifyOtpCompat(
 }
 
 /**
+ * Handle post-authentication redirect with onboarding check
+ * @param supabase - Authenticated Supabase client
+ * @param userId - Authenticated user ID
+ * @param url - Request URL for origin
+ * @param nextParam - Requested redirect path (will be sanitized)
+ */
+async function redirectAfterAuth(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  url: URL,
+  nextParam: string | null
+): Promise<NextResponse> {
+  const onboardingEnabled = process.env.SENECA_ONBOARDING_V1 === "true";
+
+  // Always sanitize next; safe default already set to "/overview"
+  const safeNext = sanitizeNext(nextParam);
+
+  // If feature is disabled, behave exactly like pre-onboarding
+  if (!onboardingEnabled) {
+    return NextResponse.redirect(new URL(safeNext, url.origin));
+  }
+
+  // Onboarding enabled → gate by completion
+  const { data: member, error } = await supabase
+    .from('members')
+    .select('onboarding_completed_at')
+    .eq('id', userId)
+    .maybeSingle();
+
+  /* eslint-disable-next-line no-console -- non-PII fetch warning */
+  if (error) console.warn('[AUTH_CALLBACK] Member fetch error:', error?.code ?? error?.message);
+
+  const done = !!member?.onboarding_completed_at;
+  const redirectTo = done ? safeNext : '/onboarding';
+  return NextResponse.redirect(new URL(redirectTo, url.origin));
+}
+
+/**
  * Unified Auth Callback Route
  * - OAuth: /auth/callback?code=XXX&next=/dashboard
  * - Magic: /auth/callback?token_hash=XXX&type=email&next=/dashboard
@@ -45,13 +115,12 @@ function verifyOtpCompat(
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
 
-  // Decode next BEFORE sanitizing
+  // Decode next parameter for later use
   const nextParam = url.searchParams.get("next");
   const decodedNext = (() => {
     try { return nextParam ? decodeURIComponent(nextParam) : null; }
     catch { return null; }
   })();
-  const next = sanitizeNext(decodedNext);
 
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
@@ -84,7 +153,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin));
       }
       
-      return NextResponse.redirect(new URL(next, url.origin));
+      // Handle post-auth redirect with onboarding check
+      return redirectAfterAuth(supabase, session.user.id, url, decodedNext);
     } catch {
       return NextResponse.redirect(new URL("/login?error=Authentication%20failed", url.origin));
     }
@@ -110,7 +180,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin));
       }
       
-      return NextResponse.redirect(new URL(next, url.origin));
+      // Handle post-auth redirect with onboarding check
+      return redirectAfterAuth(supabase, session.user.id, url, decodedNext);
     } catch (err) {
       /* eslint-disable-next-line no-console */
       console.error("OTP verification error:", err);

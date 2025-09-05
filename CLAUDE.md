@@ -209,7 +209,7 @@ This will ensure Claude has the proper context and approach for helping with the
 ### Core Documentation
 
 - **Build Log**: `.ai/docs/BUILD_LOG.md` - Complete build history and technical decisions
-- **Latest Session**: `.ai/sessions/SESSION_017_2025-08-20.md` - Authentication hardening complete
+- **Latest Session**: `.ai/sessions/SESSION_028_2025-09-04_onboarding_gates.md` - Onboarding gates implemented
 - **Session Archive**: `.ai/sessions/` - All session handdowns
 
 ### Technical Guides
@@ -228,8 +228,8 @@ This will ensure Claude has the proper context and approach for helping with the
 
 ### Status
 
-- **Last Updated**: 2025-08-20
-- **Version**: 0.3.0
-- **Production Ready**: Yes (pending SMTP configuration)
-- **Auth System**: Hardened and optimized
+- **Last Updated**: 2025-09-04
+- **Version**: 0.4.0
+- **Production Ready**: Yes (pending onboarding UI)
+- **Auth System**: Hardened with onboarding gates
 <!-- AI-DOCS:END -->

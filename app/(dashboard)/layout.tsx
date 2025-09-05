@@ -12,6 +12,7 @@
  */
 
 import { redirect } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
 import { protectRoute } from "@/lib/server/subscription";
 import { AuthError, ForbiddenError } from "@/lib/server/errors";
 import { AppShell } from "@/components/layout/AppShell";
@@ -29,13 +30,40 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Gate: not authenticated -> /login; no active subscription -> /billing
   try {
+    // Feature flag for safe rollout
+    const onboardingEnabled = process.env.SENECA_ONBOARDING_V1 === "true";
+    
+    if (onboardingEnabled) {
+      // Get authenticated user first
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return redirect("/login");
+      }
+      
+      // Check onboarding FIRST (narrow select)
+      const { data: member, error } = await supabase
+        .from("members")
+        .select("onboarding_completed_at")
+        .eq("id", user.id)
+        .maybeSingle();
+      
+      if (error || !member?.onboarding_completed_at) {
+        /* eslint-disable-next-line no-console -- non-PII gate warn */
+        console.warn("[DASHBOARD_GATE] Onboarding incomplete:", user.id);
+        return redirect("/onboarding");
+      }
+    }
+    
+    // Then check authentication and subscription (reuse existing logic)
     // protectRoute() checks:
     // 1. User is authenticated (has valid session)
     // 2. User has active subscription (not expired)
     // 3. User has required tier (defaults to basic/premium)
-    await protectRoute(); // Throws if requirements not met
+    await protectRoute();
+    
   } catch (err: unknown) {
     // Use instanceof for type-safe error checking
     if (err instanceof AuthError) {
@@ -45,11 +73,12 @@ export default async function DashboardLayout({
       return redirect("/billing");
     }
     // Unknown error -> safe fallback to login
+    /* eslint-disable-next-line no-console -- unexpected error */
     console.error("[DASHBOARD_GATE] Unexpected error:", err);
     return redirect("/login");
   }
-  // User has valid session AND active subscription
-  // Render dashboard with client-side auth provider
+  
+  // All checks passed - render dashboard with providers
   // The DashboardAuthProvider will:
   // - Monitor session changes
   // - Handle token refresh

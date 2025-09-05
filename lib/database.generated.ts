@@ -840,6 +840,10 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_member: {
+        Args: { p_email?: string; p_full_name?: string; p_id: string }
+        Returns: undefined
+      }
       get_job_statistics: {
         Args: Record<PropertyKey, never>
         Returns: {

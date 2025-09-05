@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.generated";
 
 export const runtime = "nodejs";
@@ -75,13 +75,36 @@ function verifyOtpCompat(
  * @param userId - Authenticated user ID
  * @param url - Request URL for origin
  * @param nextParam - Requested redirect path (will be sanitized)
+ * @param userEmail - User email for member ensure
+ * @param userMetadata - User metadata for full name extraction
  */
 async function redirectAfterAuth(
   supabase: SupabaseClient<Database>,
   userId: string,
   url: URL,
-  nextParam: string | null
+  nextParam: string | null,
+  userEmail?: string | null,
+  userMetadata?: User['user_metadata']
 ): Promise<NextResponse> {
+  // First, ensure member record exists (safety net for trigger failures)
+  try {
+    const fullName = 
+      userMetadata?.full_name ??
+      userMetadata?.display_name ??
+      (userEmail ? userEmail.split('@')[0] : null) ??
+      `user_${userId.slice(0, 8)}`;
+
+    await supabase.rpc('ensure_member', {
+      p_id: userId,
+      p_email: userEmail || undefined,
+      p_full_name: fullName || undefined
+    });
+  } catch (err) {
+    /* eslint-disable-next-line no-console -- non-PII RPC warning */
+    console.warn('[AUTH_CALLBACK] ensure_member RPC failed:', err);
+    // Continue anyway - the member might already exist
+  }
+
   const onboardingEnabled = process.env.SENECA_ONBOARDING_V1 === "true";
 
   // Always sanitize next; safe default already set to "/overview"
@@ -154,7 +177,14 @@ export async function GET(req: NextRequest) {
       }
       
       // Handle post-auth redirect with onboarding check
-      return redirectAfterAuth(supabase, session.user.id, url, decodedNext);
+      return redirectAfterAuth(
+        supabase, 
+        session.user.id, 
+        url, 
+        decodedNext,
+        session.user.email ?? null,
+        session.user.user_metadata ?? {}
+      );
     } catch {
       return NextResponse.redirect(new URL("/login?error=Authentication%20failed", url.origin));
     }
@@ -181,7 +211,14 @@ export async function GET(req: NextRequest) {
       }
       
       // Handle post-auth redirect with onboarding check
-      return redirectAfterAuth(supabase, session.user.id, url, decodedNext);
+      return redirectAfterAuth(
+        supabase, 
+        session.user.id, 
+        url, 
+        decodedNext,
+        session.user.email ?? null,
+        session.user.user_metadata ?? {}
+      );
     } catch (err) {
       /* eslint-disable-next-line no-console */
       console.error("OTP verification error:", err);

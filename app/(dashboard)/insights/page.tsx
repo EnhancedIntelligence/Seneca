@@ -228,7 +228,6 @@ export default function InsightsPage() {
     comparison: BarChart3,
   };
 
-
   // Calculate statistics
   const stats = useMemo(() => {
     const actionable = filteredInsights.filter((i) => i.actionable).length;

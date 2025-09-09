@@ -64,7 +64,7 @@ const MEMORY_CATEGORIES = [
   "play",
 ] as const;
 
-type MemoryCategory = typeof MEMORY_CATEGORIES[number];
+type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
 
 // Memory Creation Schema - UI layer uses camelCase
 export const memoryCreateSchema = z
@@ -261,7 +261,10 @@ export function MemoryCreateForm({
       );
     }
 
-    if (agentSuggestions.category && isValidCategory(agentSuggestions.category)) {
+    if (
+      agentSuggestions.category &&
+      isValidCategory(agentSuggestions.category)
+    ) {
       setValue("category", agentSuggestions.category, { shouldValidate: true });
       improvements.push("Applied AI-suggested category");
     }

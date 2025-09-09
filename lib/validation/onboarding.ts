@@ -22,7 +22,10 @@ export const usernameSchema = z
   .toLowerCase()
   .min(3, "Username must be at least 3 characters")
   .max(30, "Username must be less than 30 characters")
-  .regex(USERNAME_REGEX, "Username can only contain lowercase letters, numbers, underscore, and hyphen (cannot start with hyphen)");
+  .regex(
+    USERNAME_REGEX,
+    "Username can only contain lowercase letters, numbers, underscore, and hyphen (cannot start with hyphen)",
+  );
 
 export const dateOfBirthSchema = z
   .string()
@@ -38,7 +41,8 @@ export const dateOfBirthSchema = z
   .refine((d) => {
     const now = new Date();
     let age = now.getFullYear() - d.getFullYear();
-    const hadBirthday = now >= new Date(now.getFullYear(), d.getMonth(), d.getDate());
+    const hadBirthday =
+      now >= new Date(now.getFullYear(), d.getMonth(), d.getDate());
     if (!hadBirthday) age -= 1;
     return age >= MIN_AGE;
   }, `You must be at least ${MIN_AGE} years old`);
@@ -48,7 +52,10 @@ export const phoneSchema = z
   .transform((s) => s.trim())
   .optional()
   .transform((v) => (v && v.length === 0 ? undefined : v)) // "" → undefined
-  .refine((v) => !v || E164_REGEX.test(v), "Phone number must be in E.164 format (e.g., +1234567890)");
+  .refine(
+    (v) => !v || E164_REGEX.test(v),
+    "Phone number must be in E.164 format (e.g., +1234567890)",
+  );
 
 export const onboardingFormSchema = z.object({
   fullName: fullNameSchema,

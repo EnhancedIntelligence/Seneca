@@ -1,4 +1,3 @@
- 
 /**
  * Family Individual Route Handler
  * Handles operations on specific families

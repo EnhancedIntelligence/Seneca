@@ -1,5 +1,8 @@
 "use client";
 
+import { devError } from "@/lib/client-debug";
+import { toast } from "sonner";
+
 /**
  * Analytics View
  * Detailed analytics and insights
@@ -61,7 +64,12 @@ export default function AnalyticsPage() {
           });
         }
       } catch (error) {
-        console.error("Error loading analytics:", error);
+        devError("Error loading analytics:", error);
+        if (!aborted) {
+          toast.error("Failed to load analytics", {
+            description: "Please try refreshing the page",
+          });
+        }
       } finally {
         if (!aborted) {
           setIsLoading(false);
@@ -70,7 +78,9 @@ export default function AnalyticsPage() {
     };
 
     loadAnalytics();
-    return () => { aborted = true; };
+    return () => {
+      aborted = true;
+    };
   }, [api]);
 
   if (isLoading) {
@@ -179,7 +189,9 @@ export default function AnalyticsPage() {
             <TrendingUp className="w-5 h-5 text-violet-400" />
             <span className="text-sm text-green-400">+12%</span>
           </div>
-          <div className="text-2xl font-bold">{analytics?.totalMemories ?? memories.length}</div>
+          <div className="text-2xl font-bold">
+            {analytics?.totalMemories ?? memories.length}
+          </div>
           <div className="text-sm text-gray-400">Total Memories</div>
         </Card>
         <Card className="bg-white/5 border-white/10 p-4">
@@ -187,15 +199,21 @@ export default function AnalyticsPage() {
             <Brain className="w-5 h-5 text-blue-400" />
             <span className="text-sm text-green-400">+8%</span>
           </div>
-          <div className="text-2xl font-bold">{analytics?.totalMilestones ?? milestones.length}</div>
+          <div className="text-2xl font-bold">
+            {analytics?.totalMilestones ?? milestones.length}
+          </div>
           <div className="text-sm text-gray-400">Milestones</div>
         </Card>
         <Card className="bg-white/5 border-white/10 p-4">
           <div className="flex items-center justify-between mb-2">
             <Heart className="w-5 h-5 text-red-400" />
-            <span className="text-sm text-yellow-400">{analytics?.activeChildren ?? children.length}</span>
+            <span className="text-sm text-yellow-400">
+              {analytics?.activeChildren ?? children.length}
+            </span>
           </div>
-          <div className="text-2xl font-bold">{analytics?.activeChildren ?? children.length}</div>
+          <div className="text-2xl font-bold">
+            {analytics?.activeChildren ?? children.length}
+          </div>
           <div className="text-sm text-gray-400">Active Children</div>
         </Card>
         <Card className="bg-white/5 border-white/10 p-4">

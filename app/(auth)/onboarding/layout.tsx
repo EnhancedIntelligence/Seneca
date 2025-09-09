@@ -5,7 +5,11 @@ import { createClient } from "@/utils/supabase/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export default async function OnboardingLayout({ children }: { children: ReactNode }) {
+export default async function OnboardingLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const onboardingEnabled = process.env.SENECA_ONBOARDING_V1 === "true";
 
   // If the feature is off, route like pre-onboarding
@@ -14,7 +18,9 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
   }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return redirect("/login");
 
   const { data: member, error } = await supabase

@@ -1,4 +1,3 @@
- 
 /**
  * Children Collection Route Handler
  * Handles listing and creating children with family-scoped access

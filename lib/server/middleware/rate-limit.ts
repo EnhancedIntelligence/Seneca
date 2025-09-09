@@ -7,9 +7,7 @@
 import { RateLimitError } from "../errors";
 
 // Type for rate limit function
-type RateLimitFunction = (
-  key: string,
-) => Promise<{
+type RateLimitFunction = (key: string) => Promise<{
   success: boolean;
   limit?: number;
   remaining?: number;

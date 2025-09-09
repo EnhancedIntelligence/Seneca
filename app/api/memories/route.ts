@@ -1,4 +1,3 @@
- 
 /**
  * Memories Collection Route Handler
  * Handles listing and creating memories with proper auth and rate limiting

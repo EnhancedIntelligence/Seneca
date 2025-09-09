@@ -18,13 +18,15 @@ const compat = new FlatCompat({ baseDirectory: __dirname });
 const config = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 
-  // Silence "unused eslint-disable" messages coming from files
-  { linterOptions: { reportUnusedDisableDirectives: "off" } },
+  // Report unused eslint-disable directives to clean up legacy code
+  { linterOptions: { reportUnusedDisableDirectives: true } },
 
   // Ignore outputs
   {
     ignores: [
       ".next/**",
+      ".turbo/**",
+      ".vercel/**",
       "node_modules/**",
       "supabase/.temp/**",
       "**/*.gen.ts",
@@ -34,7 +36,70 @@ const config = [
       ".ai/**",
       "coverage/**",
       "dist/**",
+      "build/**",
     ],
+  },
+
+  // Transitional global console policy (warn for now to avoid breaking CI)
+  // TODO: After repo-wide console cleanup, change "warn" to "error"
+  {
+    files: ["**/*.{ts,tsx,js,jsx,cjs,mjs}"],
+    ignores: [
+      "scripts/**",
+      "e2e/**",
+      "tests/**",
+      "test/**",
+      "playwright/**",
+      "migrations/**",
+      ".ai/**",
+      // Common root config files
+      "next.config.*",
+      "tailwind.config.*",
+      "postcss.config.*",
+      "vitest.config.*",
+      "playwright.config.*",
+      "eslint.config.*",
+    ],
+    rules: {
+      "no-console": "warn",
+    },
+  },
+
+  // Allow console in logger implementation files
+  {
+    files: ["lib/logger.ts", "lib/client-debug.ts"],
+    rules: { "no-console": "off" },
+  },
+
+  // Enforce strict no-console in the routes we just hardened
+  {
+    files: [
+      "app/(auth)/**/*.{ts,tsx}",
+      "app/auth/**/*.{ts,tsx}",
+      "app/(dashboard)/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-console": "error",
+    },
+  },
+
+  // Prevent importing server-only logger in client components
+  {
+    files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/logger", "@/lib/logger/*"],
+              message:
+                "Server-only logger. In client components use UI toasts or error boundaries.",
+            },
+          ],
+        },
+      ],
+    },
   },
 
   // ==== UI layer (app, components) ====
@@ -74,6 +139,10 @@ const config = [
       "app/**/actions.{ts,tsx}",
       "app/**/route.{ts,tsx}",
       "app/**/layout.{ts,tsx}",
+      // Specific server-side page.tsx files (no "use client")
+      "app/(dashboard)/home/page.{ts,tsx}",
+      "app/(root)/page.{ts,tsx}",
+      "app/page.{ts,tsx}",
     ],
     rules: { "no-restricted-imports": "off" },
   },

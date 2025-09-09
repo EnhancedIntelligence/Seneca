@@ -1,4 +1,3 @@
- 
 /**
  * Families Collection Route Handler
  * Handles listing and creating families

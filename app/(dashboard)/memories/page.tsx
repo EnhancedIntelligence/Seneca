@@ -1,5 +1,7 @@
 "use client";
 
+import { devLog } from "@/lib/client-debug";
+
 /**
  * Memories List View
  * Browse and search all memories
@@ -324,7 +326,7 @@ export default function MemoriesPage() {
                   memory={memory}
                   onCardClick={() => {
                     // TODO: Add memory detail view
-                    console.log("Memory clicked:", memory.id);
+                    devLog("Memory clicked:", memory.id);
                   }}
                 />
               ))}

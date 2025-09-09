@@ -1,4 +1,3 @@
- 
 /**
  * Memory Individual Route Handler
  * Template for refactored API routes using centralized utilities

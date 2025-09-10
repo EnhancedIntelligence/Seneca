@@ -12,6 +12,8 @@ import {
   SUBSCRIPTION_COLUMNS,
   type SubscriptionTier,
 } from "@/lib/server/subscription";
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.server.auth" });
 
 // Use service role for server-side auth validation
 const supabase = createClient(
@@ -85,7 +87,7 @@ export async function getUserFamilyIds(userId: string): Promise<string[]> {
     .eq("user_id", userId);
 
   if (error) {
-    console.error("Error fetching family memberships:", error);
+    log.error("Error fetching family memberships", { error, userId });
     return [];
   }
 
@@ -177,7 +179,7 @@ export async function requireSubscription(
 
   if (error || !member) {
     if (process.env.NODE_ENV !== "production") {
-      console.error("[SUBSCRIPTION_CHECK] Member fetch error:", {
+      log.error("Member subscription fetch error", {
         userId: user.id,
         error: error?.message,
       });

@@ -9,6 +9,8 @@ import {
   handleError,
 } from "./errors";
 import { callRPCWithFallback, StatusCompat } from "./database-compatibility";
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.queue" });
 export type JobType = string;
 
 // Priority helper functions
@@ -96,7 +98,7 @@ export class MemoryQueue {
         handleDatabaseError(error, "add job to queue");
       }
 
-      console.log(`Added job ${data.id} to queue for memory ${memoryId}`);
+      log.info("Added job to queue", { jobId: data.id, memoryId });
       return data.id;
     } catch (error) {
       throw handleError(error, { memoryId, familyId });
@@ -133,7 +135,7 @@ export class MemoryQueue {
         locked_by: job.locked_by,
       };
     } catch (error) {
-      console.error("Error processing next job:", error);
+      log.error("Error processing next job", { error });
       return null;
     }
   }
@@ -150,7 +152,7 @@ export class MemoryQueue {
       .eq("id", jobId);
 
     if (error) {
-      console.error("Failed to mark job as completed:", error);
+      log.error("Failed to mark job as completed", { error, jobId });
       throw new Error("Failed to complete job");
     }
   }
@@ -163,11 +165,11 @@ export class MemoryQueue {
       });
 
       if (error) {
-        console.error("Failed to handle job failure:", error);
+        log.error("Failed to handle job failure", { error, jobId });
         throw new Error("Failed to handle job failure");
       }
     } catch (error) {
-      console.error("Error handling job failure:", error);
+      log.error("Error handling job failure", { error, jobId });
       throw new Error("Failed to handle job failure");
     }
   }
@@ -179,7 +181,7 @@ export class MemoryQueue {
       });
       return Boolean(data);
     } catch (error) {
-      console.error("Error retrying failed job:", error);
+      log.error("Error retrying failed job", { error, jobId });
       return false;
     }
   }
@@ -192,7 +194,7 @@ export class MemoryQueue {
       .single();
 
     if (error) {
-      console.error("Failed to get job status:", error);
+      log.error("Failed to get job status", { error, jobId });
       return null;
     }
 
@@ -204,7 +206,7 @@ export class MemoryQueue {
       const { data, error } = await this.adminClient.rpc("get_job_statistics");
 
       if (error) {
-        console.error("Failed to get queue stats:", error);
+        log.error("Failed to get queue stats", { error });
         return {
           total_jobs: 0,
           pending_jobs: 0,
@@ -244,7 +246,7 @@ export class MemoryQueue {
         queue_health: this.calculateQueueHealth(stats),
       };
     } catch (error) {
-      console.error("Error getting queue stats:", error);
+      log.error("Error getting queue stats", { error });
       return {
         total_jobs: 0,
         pending_jobs: 0,
@@ -285,7 +287,7 @@ export class MemoryQueue {
       .select("id");
 
     if (error) {
-      console.error("Failed to cleanup old jobs:", error);
+      log.error("Failed to cleanup old jobs", { error, olderThanDays });
       return 0;
     }
 
@@ -299,7 +301,7 @@ export class MemoryQueue {
       });
       return data || [];
     } catch (error) {
-      console.error("Error getting failed jobs:", error);
+      log.error("Error getting failed jobs", { error, limit });
       return [];
     }
   }
@@ -309,7 +311,7 @@ export class MemoryQueue {
       const data = await callRPCWithFallback("cleanup_stuck_jobs", {});
       return typeof data === "number" ? data : 0;
     } catch (error) {
-      console.error("Error cleaning up stuck jobs:", error);
+      log.error("Error cleaning up stuck jobs", { error });
       return 0;
     }
   }

@@ -14,6 +14,9 @@ import { ValidationError } from "@/lib/server/errors";
 import { checkRateLimit } from "@/lib/server/middleware/rate-limit";
 import { createAdminClient } from "@/lib/server-only/admin-client";
 import { z } from "zod";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.children" });
 
 // Validation schema for child creation
 const childCreateSchema = z.object({
@@ -81,7 +84,12 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error("Error fetching children:", error);
+      log.error("Failed to fetch children", {
+        op: "fetch",
+        familyId: familyId,
+        error: error,
+        userId: user.id
+      });
       throw new Error("Failed to fetch children");
     }
 
@@ -136,7 +144,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Child creation error:", error);
+      log.error("Failed to create child", {
+        op: "create",
+        familyId: validatedData.family_id,
+        error: error,
+        userId: user.id
+      });
       throw new Error("Failed to create child");
     }
 

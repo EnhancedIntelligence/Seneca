@@ -40,8 +40,7 @@ const config = [
     ],
   },
 
-  // Transitional global console policy (warn for now to avoid breaking CI)
-  // TODO: After repo-wide console cleanup, change "warn" to "error"
+  // Global console policy - now enforced as error after cleanup
   {
     files: ["**/*.{ts,tsx,js,jsx,cjs,mjs}"],
     ignores: [
@@ -61,27 +60,18 @@ const config = [
       "eslint.config.*",
     ],
     rules: {
-      "no-console": "warn",
-    },
-  },
-
-  // Allow console in logger implementation files
-  {
-    files: ["lib/logger.ts", "lib/client-debug.ts"],
-    rules: { "no-console": "off" },
-  },
-
-  // Enforce strict no-console in the routes we just hardened
-  {
-    files: [
-      "app/(auth)/**/*.{ts,tsx}",
-      "app/auth/**/*.{ts,tsx}",
-      "app/(dashboard)/**/*.{ts,tsx}",
-    ],
-    rules: {
       "no-console": "error",
     },
   },
+
+  // Allow console in logger implementation files and critical startup files
+  {
+    files: ["lib/logger.ts", "lib/client-debug.ts", "lib/env.ts"],
+    rules: { "no-console": "off" },
+  },
+
+  // All auth and dashboard routes now follow global error rule
+  // (This block is no longer needed since global is now "error")
 
   // Prevent importing server-only logger in client components
   {

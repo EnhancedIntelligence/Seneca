@@ -11,6 +11,7 @@ import {
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import type { Session, User } from "@supabase/supabase-js";
+import { devWarn } from "@/lib/client-debug";
 
 interface AuthContextValue {
   user: User | null;
@@ -111,8 +112,7 @@ export function DashboardAuthProvider({
       mounted = false;
       subscription?.subscription?.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase, isAuthRoute]); // Path changes handled via makeNext()
+  }, [supabase, isAuthRoute, router]); // Path changes handled via makeNext()
 
   // Provide context value
   const value = useMemo(
@@ -134,7 +134,7 @@ export function DashboardAuthProvider({
 export function useDashboardAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    console.warn("useDashboardAuth must be used within DashboardAuthProvider");
+    devWarn("useDashboardAuth must be used within DashboardAuthProvider");
   }
   return context;
 }

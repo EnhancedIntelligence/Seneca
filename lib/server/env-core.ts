@@ -4,15 +4,19 @@
  * This file ALWAYS works for everyone - no optional dependencies
  */
 
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.server.env-core" });
+
 /**
  * Simple validation - crashes early with helpful message if missing
  */
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
-    console.error(`❌ Missing required environment variable: ${name}`);
-    console.error(`📋 Please add it to your .env.local file`);
-    console.error(`💡 See .env.example for guidance`);
+    log.error(`Missing required environment variable: ${name}`, {
+      variable: name,
+      help: "Please add it to your .env.local file. See .env.example for guidance"
+    });
     process.exit(1);
   }
   return value;

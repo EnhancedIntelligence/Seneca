@@ -16,6 +16,9 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/lib/server-only/admin-client";
 import { z } from "zod";
 import type { Database } from "@/lib/types";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.families" });
 
 // Force Node.js runtime to avoid Edge + Supabase issues
 export const runtime = "nodejs";
@@ -96,7 +99,7 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (membershipError) {
-      console.error("Families list error:", membershipError);
+      log.error(membershipError, { op: "listMemberships", userId: user.id });
       throw new ServerError("Failed to fetch families");
     }
 
@@ -123,7 +126,7 @@ export async function GET(request: NextRequest) {
       .in("id", familyIds);
 
     if (familiesError) {
-      console.error("Families fetch error:", familiesError);
+      log.error(familiesError, { op: "fetchFamilies", familyIds });
       throw new ServerError("Failed to fetch family details");
     }
 
@@ -205,7 +208,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (familyError || !family) {
-      console.error("Family creation error:", familyError);
+      log.error(familyError, { op: "createFamily", userId: user.id });
       throw new ServerError("Failed to create family");
     }
 
@@ -223,7 +226,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (membershipError) {
-      console.error("Membership creation error:", membershipError);
+      log.error(membershipError, { op: "createMembership", familyId: family.id, userId: user.id });
       // Rollback: Delete the family
       await adminClient.from("families").delete().eq("id", family.id);
       throw new ServerError("Failed to create family membership");
@@ -244,7 +247,7 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (childrenError) {
-      console.error("Children creation error:", childrenError);
+      log.error(childrenError, { op: "createChildren", familyId: family.id, childCount: childrenToInsert.length });
       // Rollback: Delete family and membership
       await adminClient
         .from("family_memberships")

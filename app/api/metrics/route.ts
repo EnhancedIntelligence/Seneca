@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.metrics" });
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  let familyId: string | null = null;
   try {
     const { searchParams } = new URL(request.url);
-    const familyId = searchParams.get("familyId");
+    familyId = searchParams.get("familyId");
 
     // Validate familyId format if provided
     if (
@@ -56,7 +60,10 @@ export async function GET(request: Request) {
     res.headers.set("Vary", "Cookie, Authorization");
     return res;
   } catch (error) {
-    console.error("Metrics error:", error);
+    log.error(error, {
+      op: "fetch",
+      familyId
+    });
     const errorRes = NextResponse.json(
       { error: "Failed to fetch metrics" },
       { status: 500 },

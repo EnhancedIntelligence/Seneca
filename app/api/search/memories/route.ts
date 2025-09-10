@@ -12,6 +12,9 @@ import { createAdminClient } from "@/lib/server-only/admin-client";
 import { aiConfig } from "@/lib/env";
 import { ExternalAPIError } from "@/lib/errors";
 import { callRPCWithFallback } from "@/lib/database-compatibility";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.search-memories" });
 
 // Search request validation schema
 const searchQuerySchema = z.object({
@@ -121,7 +124,12 @@ async function performSemanticSearch(params: SearchQuery): Promise<{
       query_embedding_generated: true,
     };
   } catch (error) {
-    console.error("Semantic search error:", error);
+    log.error("Semantic search failed", {
+      op: "search",
+      familyId: params.familyId,
+      query: params.query,
+      error: error
+    });
     throw error;
   }
 }
@@ -155,7 +163,11 @@ async function generateQueryEmbedding(query: string): Promise<number[]> {
     const data = await response.json();
     return data.data[0]?.embedding || [];
   } catch (error) {
-    console.error("Query embedding generation failed:", error);
+    log.error("Query embedding generation failed", {
+      op: "embed",
+      query: query,
+      error: error
+    });
     throw error;
   }
 }

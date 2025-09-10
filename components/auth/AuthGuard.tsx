@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
+import { devError } from "@/lib/client-debug";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -73,7 +74,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
         setUser(session.user);
       } catch (error) {
-        console.error("Auth check failed:", error);
+        devError("Auth check failed:", error);
         if (!isAuthRoute) {
           router.replace("/login");
         }

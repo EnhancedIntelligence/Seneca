@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Search, Navigation, X, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { devError } from "@/lib/client-debug";
 
 interface Location {
   name: string;
@@ -79,7 +80,7 @@ export function LocationPicker({
         setSuggestions(results);
         setShowSuggestions(true);
       } catch (_error) {
-        console.error("Location search error:", _error);
+        devError("Location search error:", _error);
         toast({
           title: "Search failed",
           description: "Unable to search for locations. Please try again.",

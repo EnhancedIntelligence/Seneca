@@ -62,6 +62,7 @@ function validateEnv() {
     return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      // Use console.error for critical startup errors since logger may not be initialized
       console.error("❌ Environment validation failed:");
       console.error("\n🔴 Required variables missing:");
 
@@ -158,6 +159,7 @@ export function logEnvStatus() {
     );
     const redactedAppUrl = getAppOrigin().replace(/:\/\/([^@]*@)/, "://***@");
 
+    // Use console.log for environment status since this runs at startup
     console.log("🔧 Environment Configuration:");
     console.log(`  - NODE_ENV: ${env.NODE_ENV}`);
     console.log(`  - Supabase: ✅ ${redactedSupabaseUrl}`);

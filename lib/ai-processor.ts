@@ -6,6 +6,8 @@ import {
   StatusCompat,
   mapProcessingAnalyticsFields,
 } from "./database-compatibility";
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.ai-processor" });
 
 interface AIProcessingResult {
   milestoneDetected: boolean;
@@ -42,9 +44,7 @@ class AIProcessor {
     this.embeddingModel = aiConfig.embeddingModel;
 
     if (!this.openaiApiKey) {
-      console.warn(
-        "OpenAI API key not configured - AI processing will be simulated",
-      );
+      log.warn("OpenAI API key not configured - AI processing will be simulated");
     }
   }
 
@@ -77,11 +77,12 @@ class AIProcessor {
       // Log processing analytics
       await this.logProcessingAnalytics(memoryId, result, processingStartTime);
 
-      console.log(
-        `Successfully processed memory ${memoryId} in ${Date.now() - processingStartTime}ms`,
-      );
+      log.info("Successfully processed memory", {
+        memoryId,
+        processingTime: Date.now() - processingStartTime
+      });
     } catch (error) {
-      console.error(`Failed to process memory ${memoryId}:`, error);
+      log.error("Failed to process memory", { memoryId, error });
 
       // Update status to failed
       await this.updateMemoryStatus(memoryId, "failed");
@@ -212,7 +213,7 @@ Return your analysis as valid JSON only, no additional text.`,
         confidenceScore: this.calculateConfidenceScore(result),
       };
     } catch (error) {
-      console.error("AI processing failed, falling back to simulation:", error);
+      log.error("AI processing failed, falling back to simulation", { error });
 
       if (error instanceof ExternalAPIError) {
         throw error;
@@ -352,7 +353,7 @@ Return only valid JSON, no additional text.
       const jsonString = jsonMatch[1] || content;
       return JSON.parse(jsonString.trim());
     } catch (error) {
-      console.error("Failed to parse AI response:", error);
+      log.error("Failed to parse AI response", { error });
       // Return basic analysis if parsing fails
       return {
         milestoneDetected: false,
@@ -394,7 +395,7 @@ Return only valid JSON, no additional text.
       const data = await response.json();
       return data.data[0]?.embedding || [];
     } catch (error) {
-      console.error("Embedding generation failed:", error);
+      log.error("Embedding generation failed", { error });
       // Return a dummy embedding on failure
       return new Array(1536).fill(0).map(() => Math.random() * 2 - 1);
     }
@@ -427,7 +428,7 @@ Return only valid JSON, no additional text.
         created_at: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Failed to log processing analytics:", error);
+      log.error("Failed to log processing analytics", { error });
       // Don't throw - analytics failure shouldn't break processing
     }
   }
@@ -457,7 +458,7 @@ Return only valid JSON, no additional text.
         created_at: new Date().toISOString(),
       });
     } catch (analyticsError) {
-      console.error("Failed to log processing failure:", analyticsError);
+      log.error("Failed to log processing failure", { error: analyticsError });
     }
   }
 
@@ -564,7 +565,7 @@ Return only valid JSON, no additional text.
       .eq("id", memoryId);
 
     if (error) {
-      console.error(`Failed to update memory status to ${status}:`, error);
+      log.error("Failed to update memory status", { status, error });
       throw error;
     }
   }
@@ -608,7 +609,7 @@ Return only valid JSON, no additional text.
       .eq("id", memoryId);
 
     if (error) {
-      console.error("Failed to update memory with AI results:", error);
+      log.error("Failed to update memory with AI results", { error });
       throw new ProcessingError("Failed to update memory with AI results", {
         memoryId,
         error: error.message,
@@ -638,7 +639,7 @@ Return only valid JSON, no additional text.
       .limit(limit);
 
     if (error) {
-      console.error("Failed to fetch pending memories:", error);
+      log.error("Failed to fetch pending memories", { error });
       return 0;
     }
 
@@ -652,7 +653,7 @@ Return only valid JSON, no additional text.
         await this.processMemory(memory.id);
         processedCount++;
       } catch (error) {
-        console.error(`Failed to process memory ${memory.id}:`, error);
+        log.error("Failed to process memory", { memoryId: memory.id, error });
         // Continue with next memory
       }
     }

@@ -4,8 +4,12 @@
  * TODO: Remove this file once all RPC functions are implemented in production
  */
 
+import "server-only"; // Prevent client-side imports
 import { createAdminClient } from "./server-only/admin-client";
 import type { Database } from "./database.generated";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "lib.database-compatibility" });
 
 // Feature flag for queue functionality - defaults to enabled
 const QUEUE_ENABLED = process.env.ENABLE_QUEUE !== "false";
@@ -85,7 +89,7 @@ export class RPCCompat {
     try {
       if (!QUEUE_ENABLED) {
         if (process.env.NODE_ENV !== "production") {
-          console.warn("Queue disabled via ENABLE_QUEUE env var");
+          log.warn("Queue disabled via ENABLE_QUEUE env var");
         }
         return [];
       }
@@ -101,7 +105,7 @@ export class RPCCompat {
           error.code === "42883" ||
           /function .* does not exist/i.test(String(error?.message ?? error))
         ) {
-          console.warn("Queue RPC not found - migration may not be applied");
+          log.warn("Queue RPC not found - migration may not be applied", { error: error.code });
           return [];
         }
         throw error;
@@ -110,7 +114,7 @@ export class RPCCompat {
       // Maintain return shape contract with mapping
       return (data ?? []).map(ColumnCompat.mapQueueJob);
     } catch (error) {
-      console.warn("Get next job and lock failed:", error);
+      log.warn("Get next job and lock failed", { op: "getNextJobAndLock", error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -141,7 +145,7 @@ export class RPCCompat {
       if (error) throw error;
       return (data?.length ?? 0) > 0;
     } catch (error) {
-      console.warn("Retry failed job failed:", error);
+      log.warn("Retry failed job failed", { op: "retryFailedJob", jobId: params.job_id, error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -165,7 +169,7 @@ export class RPCCompat {
       // Maintain return shape contract
       return (data || []).map(ColumnCompat.mapQueueJob);
     } catch (error) {
-      console.warn("Get failed jobs failed:", error);
+      log.warn("Get failed jobs failed", { op: "getFailedJobs", error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -185,7 +189,7 @@ export class RPCCompat {
           error.code === "42883" ||
           /function .* does not exist/i.test(String(error?.message ?? error))
         ) {
-          console.warn("Cleanup RPC not found - migration may not be applied");
+          log.warn("Cleanup RPC not found - migration may not be applied", { error: error.code });
           return 0;
         }
         throw error;
@@ -193,7 +197,7 @@ export class RPCCompat {
 
       return data ?? 0;
     } catch (error) {
-      console.warn("Cleanup stuck jobs failed:", error);
+      log.warn("Cleanup stuck jobs failed", { op: "cleanupStuckJobs", error: error instanceof Error ? error.message : String(error) });
       return 0;
     }
   }
@@ -237,7 +241,7 @@ export class RPCCompat {
         },
       ];
     } catch (error) {
-      console.warn("Get family with counts fallback failed:", error);
+      log.warn("Get family with counts fallback failed", { op: "getFamilyWithCounts", familyId: params.family_id, error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -272,7 +276,7 @@ export class RPCCompat {
         },
       ];
     } catch (error) {
-      console.warn("AI processing summary fallback failed:", error);
+      log.warn("AI processing summary fallback failed", { op: "getAIProcessingSummary", error: error instanceof Error ? error.message : String(error) });
       return [
         {
           total_processed: 0,
@@ -314,7 +318,7 @@ export class RPCCompat {
         },
       ];
     } catch (error) {
-      console.warn("AI cost analysis fallback failed:", error);
+      log.warn("AI cost analysis fallback failed", { op: "getAICostAnalysis", error: error instanceof Error ? error.message : String(error) });
       return [{ total_tokens: 0, estimated_cost_usd: 0, cost_breakdown: {} }];
     }
   }
@@ -346,7 +350,7 @@ export class RPCCompat {
         },
       ];
     } catch (error) {
-      console.warn("AI performance metrics fallback failed:", error);
+      log.warn("AI performance metrics fallback failed", { op: "getAIPerformanceMetrics", error: error instanceof Error ? error.message : String(error) });
       return [
         {
           avg_processing_time_ms: 0,
@@ -391,7 +395,7 @@ export class RPCCompat {
         },
       ];
     } catch (error) {
-      console.warn("Milestone detection stats fallback failed:", error);
+      log.warn("Milestone detection stats fallback failed", { op: "getMilestoneDetectionStats", error: error instanceof Error ? error.message : String(error) });
       return [
         {
           total_milestones_detected: 0,
@@ -445,7 +449,7 @@ export class RPCCompat {
 
       return Object.values(dailyStats);
     } catch (error) {
-      console.warn("AI processing trends fallback failed:", error);
+      log.warn("AI processing trends fallback failed", { op: "getAIProcessingTrends", error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -477,7 +481,7 @@ export class RPCCompat {
         search_rank: Math.random() * 0.2 + 0.8, // Random score between 0.8-1.0
       }));
     } catch (error) {
-      console.warn("Semantic search fallback failed:", error);
+      log.warn("Semantic search fallback failed", { op: "searchMemoriesSemantic", error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -494,7 +498,7 @@ export class RPCCompat {
       if (error) throw error;
       return [{ count: count || 0 }];
     } catch (error) {
-      console.warn("Count semantic search fallback failed:", error);
+      log.warn("Count semantic search fallback failed", { op: "countSemanticSearchResults", error: error instanceof Error ? error.message : String(error) });
       return [{ count: 0 }];
     }
   }
@@ -515,9 +519,9 @@ export async function callRPCWithFallback(
       return data;
     }
 
-    console.warn(`RPC ${functionName} failed, using fallback:`, error);
+    log.warn(`RPC ${functionName} failed, using fallback`, { functionName, error: error instanceof Error ? error.message : String(error) });
   } catch (error) {
-    console.warn(`RPC ${functionName} not found, using fallback:`, error);
+    log.warn(`RPC ${functionName} not found, using fallback`, { functionName, error: error instanceof Error ? error.message : String(error) });
   }
 
   // Use fallback implementations
@@ -553,9 +557,7 @@ export async function callRPCWithFallback(
       return RPCCompat.countSemanticSearchResults(params);
 
     default:
-      console.error(
-        `No fallback implementation for RPC function: ${functionName}`,
-      );
+      log.error(new Error(`No fallback implementation for RPC function: ${functionName}`), { functionName });
       return null;
   }
 }

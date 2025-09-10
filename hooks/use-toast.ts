@@ -8,11 +8,8 @@ interface Toast {
   duration?: number;
 }
 
-interface ToastContextValue {
-  toasts: Toast[];
-  toast: (toast: Omit<Toast, "id">) => void;
-  dismiss: (id: string) => void;
-}
+// Note: ToastContextValue interface removed as we're using a simpler implementation
+// without React Context for now
 
 // Simple in-memory toast store for now
 let toastStore: Toast[] = [];

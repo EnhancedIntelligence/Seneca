@@ -1,4 +1,3 @@
- 
 /**
  * Family Individual Route Handler
  * Handles operations on specific families
@@ -19,6 +18,9 @@ import {
 import { checkRateLimit } from "@/lib/server/middleware/rate-limit";
 import { createAdminClient } from "@/lib/server-only/admin-client";
 import { z } from "zod";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.families-id" });
 
 // Validation schema for family updates
 const familyUpdateSchema = z.object({
@@ -111,7 +113,12 @@ export async function PATCH(
       .single();
 
     if (updateError) {
-      console.error("Family update error:", updateError);
+      log.error("Failed to update family", {
+        op: "update",
+        resourceId: familyId,
+        error: updateError,
+        userId: user.id
+      });
       throw new Error("Failed to update family");
     }
 
@@ -165,7 +172,12 @@ export async function DELETE(
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("Family membership removal error:", error);
+      log.error("Failed to remove family membership", {
+        op: "delete",
+        resourceId: familyId,
+        error: error,
+        userId: user.id
+      });
       throw new Error("Failed to leave family");
     }
 

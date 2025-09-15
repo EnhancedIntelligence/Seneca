@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/server-only/admin-client";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.health" });
 
 // Service status types - 'pending' and 'not_implemented' are neutral
 type ServiceStatus = "healthy" | "unhealthy" | "pending" | "not_implemented";
@@ -88,7 +91,10 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    console.error("Health check error:", error);
+    log.error("Health check failed", {
+      op: "health-check",
+      error: error
+    });
 
     const errorResponse = NextResponse.json(
       {

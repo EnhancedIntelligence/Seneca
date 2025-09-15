@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { authService, User, AuthSession } from "@/lib/services/mockAuth";
 import { useRouter } from "next/navigation";
+import { devError } from "@/lib/client-debug";
 
 interface AuthContextType {
   user: User | null;
@@ -44,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(currentSession.user);
         }
       } catch (error) {
-        console.error("Error checking session:", error);
+        devError("Error checking session:", error);
       } finally {
         setIsLoading(false);
       }
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { success: result.success, message: result.message };
     } catch (error) {
-      console.error("Login error:", error);
+      devError("Login error:", error);
       return {
         success: false,
         message: "An error occurred during login. Please try again.",
@@ -88,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       router.push("/");
     } catch (error) {
-      console.error("Logout error:", error);
+      devError("Logout error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return result;
     } catch (error) {
-      console.error("Registration error:", error);
+      devError("Registration error:", error);
       return {
         success: false,
         message: "An error occurred during registration. Please try again.",
@@ -138,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return result;
     } catch (error) {
-      console.error("Profile update error:", error);
+      devError("Profile update error:", error);
       return { success: false };
     }
   };

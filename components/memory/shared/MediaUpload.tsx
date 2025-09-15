@@ -15,6 +15,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { devError } from "@/lib/client-debug";
 import { supabase } from "@/lib/supabase";
 
 interface MediaUploadProps {
@@ -121,7 +122,7 @@ export function MediaUpload({
       try {
         await Promise.all(uploadPromises);
       } catch (error) {
-        console.error("Upload error:", error);
+        devError("Upload error:", error);
       }
     },
     [value.length, maxFiles, accept, toast],
@@ -174,7 +175,7 @@ export function MediaUpload({
       const totalProgress = (completedCount / uploadingFiles.length) * 100;
       onProgress(totalProgress);
     } catch (error) {
-      console.error("File upload error:", error);
+      devError("File upload error:", error);
 
       setUploadingFiles((prev) =>
         prev.map((item) =>

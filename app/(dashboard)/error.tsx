@@ -1,5 +1,7 @@
 "use client";
 
+import { devError } from "@/lib/client-debug";
+
 /**
  * Dashboard Error Boundary
  * Catches errors in the dashboard route group and provides fail-safe UI
@@ -27,7 +29,7 @@ export default function DashboardError({
   useEffect(() => {
     // Log error to console in development
     if (process.env.NODE_ENV === "development") {
-      console.error("[Dashboard Error Boundary]:", error);
+      devError("[Dashboard Error Boundary]:", error);
     }
 
     // TODO: Send error to error reporting service in production

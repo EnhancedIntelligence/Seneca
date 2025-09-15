@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -121,6 +122,7 @@ function useUsernameSuggestions(username: string) {
   return { data, isPending, limited };
 }
 
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -152,6 +154,7 @@ export function OnboardingForm() {
   );
   const [usernameDraft, setUsernameDraft] = useState("");
   const { data: suggest, isPending: suggestPending, limited } = useUsernameSuggestions(usernameDraft);
+
 
   // Field error checking with clear variable names and strong typing
   const fieldErrors =
@@ -274,6 +277,7 @@ export function OnboardingForm() {
           )}
           
           {/* Server-side error */}
+
           {hasError("username") && (
             <p
               id="username-error"

@@ -698,6 +698,7 @@ document.head.removeChild(style);
 }, []);
 
 return (
+
 <div style={styles.container}>
 {/_ Main Capture Screen _/}
 <div style={styles.captureScreen}>

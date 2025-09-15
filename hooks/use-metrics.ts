@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { devError } from "@/lib/client-debug";
 
 interface MetricsData {
   total_memories: number;
@@ -29,7 +32,7 @@ export function useMetrics(familyId: string | null): UseMetricsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     if (!familyId) {
       setIsLoading(false);
       return;
@@ -53,7 +56,7 @@ export function useMetrics(familyId: string | null): UseMetricsReturn {
 
       setMetrics(data.metrics);
     } catch (err) {
-      console.error("Error fetching metrics:", err);
+      devError("Error fetching metrics:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch metrics");
 
       // Set fallback data for development
@@ -78,7 +81,7 @@ export function useMetrics(familyId: string | null): UseMetricsReturn {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [familyId]);
 
   useEffect(() => {
     fetchMetrics();
@@ -87,7 +90,7 @@ export function useMetrics(familyId: string | null): UseMetricsReturn {
     const interval = setInterval(fetchMetrics, 30000);
 
     return () => clearInterval(interval);
-  }, [familyId]);
+  }, [fetchMetrics]);
 
   return {
     metrics,

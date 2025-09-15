@@ -3,14 +3,15 @@ import { createClient } from "@/utils/supabase/server";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.generated";
 
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Accept the common variants across Supabase versions
 // Note: Some providers send "email", others send "magiclink" - both are allowed
 const AllowedTypes = [
-  "email",        // magic link often arrives as "email"
-  "magiclink",    // alternative magic link type
+  "email", // magic link often arrives as "email"
+  "magiclink", // alternative magic link type
   "signup",
   "recovery",
   "email_change",
@@ -48,6 +49,7 @@ function sanitizeNext(nextParam: string | null | undefined): string {
     }
 
     // Normalize trailing slashes  
+
     const path = u.pathname.replace(/\/+$/, "") || SAFE;
     return path + (u.search || "") + (u.hash || "");
   } catch {
@@ -62,7 +64,7 @@ function sanitizeNext(nextParam: string | null | undefined): string {
  */
 function verifyOtpCompat(
   auth: SupabaseClient["auth"],
-  params: { token_hash: string; type: string }
+  params: { token_hash: string; type: string },
 ) {
   // @ts-expect-error — supabase-js@2.53.0 may not include "email" in the union;
   // runtime accepts it for magic links. Remove when SDK updates.
@@ -102,6 +104,7 @@ async function redirectAfterAuth(
   } catch (err) {
     /* eslint-disable-next-line no-console -- non-PII RPC warning */
     console.warn('[AUTH_CALLBACK] ensure_member RPC failed:', err);
+
     // Continue anyway - the member might already exist
   }
 
@@ -127,6 +130,7 @@ async function redirectAfterAuth(
 
   const done = !!member?.onboarding_completed_at;
   const redirectTo = done ? safeNext : '/onboarding';
+
   return NextResponse.redirect(new URL(redirectTo, url.origin));
 }
 
@@ -141,8 +145,11 @@ export async function GET(req: NextRequest) {
   // Decode next parameter for later use
   const nextParam = url.searchParams.get("next");
   const decodedNext = (() => {
-    try { return nextParam ? decodeURIComponent(nextParam) : null; }
-    catch { return null; }
+    try {
+      return nextParam ? decodeURIComponent(nextParam) : null;
+    } catch {
+      return null;
+    }
   })();
 
   const code = url.searchParams.get("code");
@@ -154,7 +161,10 @@ export async function GET(req: NextRequest) {
   // Provider error (e.g., user denied OAuth)
   if (error && !code && !tokenHash) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(errorDescription || error)}`, url.origin)
+      new URL(
+        `/login?error=${encodeURIComponent(errorDescription || error)}`,
+        url.origin,
+      ),
     );
   }
 
@@ -163,17 +173,25 @@ export async function GET(req: NextRequest) {
   // OAuth flow
   if (code) {
     try {
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      const { error: exchangeError } =
+        await supabase.auth.exchangeCodeForSession(code);
       if (exchangeError) {
         return NextResponse.redirect(
-          new URL(`/login?error=${encodeURIComponent(exchangeError.message ?? "Authentication failed")}`, url.origin)
+          new URL(
+            `/login?error=${encodeURIComponent(exchangeError.message ?? "Authentication failed")}`,
+            url.origin,
+          ),
         );
       }
-      
+
       // Verify session was created
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
-        return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin));
+        return NextResponse.redirect(
+          new URL("/login?error=Session%20creation%20failed", url.origin),
+        );
       }
       
       // Handle post-auth redirect with onboarding check
@@ -184,9 +202,12 @@ export async function GET(req: NextRequest) {
         decodedNext,
         session.user.email ?? null,
         session.user.user_metadata ?? {}
+
       );
     } catch {
-      return NextResponse.redirect(new URL("/login?error=Authentication%20failed", url.origin));
+      return NextResponse.redirect(
+        new URL("/login?error=Authentication%20failed", url.origin),
+      );
     }
   }
 
@@ -195,19 +216,27 @@ export async function GET(req: NextRequest) {
     try {
       // Use computed key to avoid ESLint naming-convention warning
       const otpParams = { ["token_hash"]: tokenHash, type };
-      const { error: otpError } = await verifyOtpCompat(supabase.auth, otpParams);
+      const { error: otpError } = await verifyOtpCompat(
+        supabase.auth,
+        otpParams,
+      );
       if (otpError) {
-        const msg =
-          /rate|seconds/i.test(otpError.message ?? "")
-            ? "Too%20many%20attempts.%20Please%20wait%2030%20seconds"
-            : encodeURIComponent(otpError.message ?? "Verification failed");
-        return NextResponse.redirect(new URL(`/login?error=${msg}`, url.origin));
+        const msg = /rate|seconds/i.test(otpError.message ?? "")
+          ? "Too%20many%20attempts.%20Please%20wait%2030%20seconds"
+          : encodeURIComponent(otpError.message ?? "Verification failed");
+        return NextResponse.redirect(
+          new URL(`/login?error=${msg}`, url.origin),
+        );
       }
-      
+
       // Verify session was created
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
-        return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin));
+        return NextResponse.redirect(
+          new URL("/login?error=Session%20creation%20failed", url.origin),
+        );
       }
       
       // Handle post-auth redirect with onboarding check
@@ -218,14 +247,18 @@ export async function GET(req: NextRequest) {
         decodedNext,
         session.user.email ?? null,
         session.user.user_metadata ?? {}
+
       );
     } catch (err) {
-      /* eslint-disable-next-line no-console */
-      console.error("OTP verification error:", err);
-      return NextResponse.redirect(new URL("/login?error=Verification%20failed", url.origin));
+      log.error(err, { op: "verifyOtp" });
+      return NextResponse.redirect(
+        new URL("/login?error=Verification%20failed", url.origin),
+      );
     }
   }
 
   // No valid auth parameters
-  return NextResponse.redirect(new URL("/login?error=Invalid%20authentication%20link", url.origin));
+  return NextResponse.redirect(
+    new URL("/login?error=Invalid%20authentication%20link", url.origin),
+  );
 }

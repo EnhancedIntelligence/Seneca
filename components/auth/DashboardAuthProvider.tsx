@@ -11,6 +11,7 @@ import {
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import type { User, Session } from "@supabase/supabase-js";
+import { devLog, devError } from "@/lib/client-debug";
 
 interface DashboardAuthContextValue {
   user: User | null;
@@ -99,7 +100,7 @@ export function DashboardAuthProvider({
 
         if (error || !session) {
           // No valid session - redirect to login with return URL
-          console.log("No valid session found, redirecting to login");
+          devLog("No valid session found, redirecting to login");
           router.replace(createRedirectUrl());
           return;
         }
@@ -108,7 +109,7 @@ export function DashboardAuthProvider({
         setSession(session);
         setUser(session.user);
       } catch (error) {
-        console.error("Error checking session:", error);
+        devError("Error checking session:", error);
         router.replace("/login");
       } finally {
         if (mounted) {
@@ -125,7 +126,7 @@ export function DashboardAuthProvider({
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!mounted) return;
 
-      console.log("Auth state changed:", event);
+      devLog("Auth state changed:", event);
 
       switch (event) {
         case "SIGNED_OUT":

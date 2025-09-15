@@ -6,6 +6,9 @@
 
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server/subscription";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.auth-status" });
 
 // Force Node.js runtime (required for Supabase SSR)
 export const runtime = "nodejs";
@@ -41,7 +44,10 @@ export async function GET() {
     return response;
   } catch (error) {
     // Log error but don't expose details to client
-    console.error("[AUTH_STATUS] Error checking auth status:", error);
+    log.error("Auth status check failed", {
+      op: "auth-check",
+      error: error
+    });
 
     // Return safe error response
     const errorResponse = NextResponse.json(

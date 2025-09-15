@@ -7,7 +7,12 @@ import {
   useNavigation,
   useAppStore,
 } from "@/lib/stores/useAppStore";
-import { route, isStoreView, type RouteKey, type StoreView } from "@/lib/navigation";
+import {
+  route,
+  isStoreView,
+  type RouteKey,
+  type StoreView,
+} from "@/lib/navigation";
 import { TopBar } from "./TopBar";
 import { SideMenu } from "./SideMenu";
 
@@ -57,13 +62,13 @@ function HydratedShell({ children, className }: AppShellProps) {
       router.push(route(view));
       closeAllMenus();
     },
-    [navigate, router, closeAllMenus]
+    [navigate, router, closeAllMenus],
   );
 
   // Ensure currentView is always a valid StoreView (with fallback)
-  const safeCurrentView: StoreView = isStoreView(currentView) 
-    ? currentView 
-    : 'overview';
+  const safeCurrentView: StoreView = isStoreView(currentView)
+    ? currentView
+    : "overview";
 
   return (
     <div

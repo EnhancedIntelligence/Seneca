@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { devLog } from "@/lib/client-debug";
 import { MemoryCreateForm } from "@/components/memory/MemoryCreateForm";
 import { MemoryFeed } from "@/components/memory/MemoryFeed";
 import { Button } from "@/components/ui/button";
@@ -33,10 +34,10 @@ interface HomeClientProps {
 
 export default function HomeClient({ families }: HomeClientProps) {
   const [selectedFamily, setSelectedFamily] = useState<FetchedFamily | null>(
-    () => families[0] ?? null
+    () => families[0] ?? null,
   );
-  const [currentView, setCurrentView] = useState<DashboardView>(
-    () => (families.length > 0 ? "memories" : "setup")
+  const [currentView, setCurrentView] = useState<DashboardView>(() =>
+    families.length > 0 ? "memories" : "setup",
   );
   const { toast } = useToast();
 
@@ -187,7 +188,7 @@ export default function HomeClient({ families }: HomeClientProps) {
             familyId={selectedFamily.id}
             onCreateMemory={() => handleViewChange("create")}
             onMemoryClick={(memoryId) => {
-              console.log("Memory clicked:", memoryId);
+              devLog("Memory clicked:", memoryId);
             }}
           />
         )}

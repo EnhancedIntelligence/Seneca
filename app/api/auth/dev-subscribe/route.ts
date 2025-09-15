@@ -12,6 +12,9 @@ import {
   SUBSCRIPTION_COLUMNS,
   type SubscriptionTier,
 } from "@/lib/server/subscription";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.auth-dev-subscribe" });
 
 // Force Node.js runtime for Supabase
 export const runtime = "nodejs";
@@ -96,7 +99,12 @@ export async function POST(req: Request) {
       .eq("id", session.user.id);
 
     if (updateError) {
-      console.error("[DEV_SUBSCRIBE] Update error:", updateError);
+      log.error("Failed to update subscription in dev mode", {
+        op: "update",
+        userId: session.user.id,
+        tier: tier,
+        error: updateError
+      });
       const errorResponse = NextResponse.json(
         { error: `Failed to update subscription: ${updateError.message}` },
         { status: 500 },
@@ -107,11 +115,12 @@ export async function POST(req: Request) {
     }
 
     // Log the change for debugging
-    console.log("[DEV_SUBSCRIBE] Updated subscription:", {
+    log.info("Dev subscription updated", {
+      op: "update",
       userId: session.user.id,
       email: session.user.email,
-      tier,
-      expiresAt,
+      tier: tier,
+      expiresAt: expiresAt
     });
 
     // Return success response with full state (saves a follow-up status call)
@@ -129,7 +138,10 @@ export async function POST(req: Request) {
 
     return response;
   } catch (error) {
-    console.error("[DEV_SUBSCRIBE] Unexpected error:", error);
+    log.error("Unexpected error in dev subscribe", {
+      op: "dev-subscribe",
+      error: error
+    });
     const errorResponse = NextResponse.json(
       { error: "An unexpected error occurred" },
       { status: 500 },

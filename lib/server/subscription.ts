@@ -8,6 +8,8 @@ import "server-only";
 import { createClient } from "@/utils/supabase/server";
 import { AuthError, ForbiddenError } from "@/lib/server/errors";
 import type { User } from "@supabase/supabase-js";
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.server.subscription" });
 
 // Configuration constants - easy to change if we move to family-level billing
 export const SUBSCRIPTION_TABLE = "members" as const;
@@ -51,7 +53,7 @@ export async function requireAuth(): Promise<AuthResult> {
 
     if (sessionError) {
       // Log session errors (but not missing sessions which are normal)
-      console.error("[AUTH] Session retrieval error:", {
+      log.error("Session retrieval error", {
         error: sessionError.message,
         timestamp: new Date().toISOString(),
       });
@@ -82,7 +84,7 @@ export async function requireAuth(): Promise<AuthResult> {
     if (memberError || !member) {
       // User exists but no member row or fetch error
       // This shouldn't happen with our trigger, but fail closed
-      console.error("[AUTH] Member subscription fetch error:", {
+      log.error("Member subscription fetch error", {
         userId: session.user.id,
         error: memberError?.message || "No member record found",
         timestamp: new Date().toISOString(),
@@ -112,7 +114,7 @@ export async function requireAuth(): Promise<AuthResult> {
     };
   } catch (error) {
     // Log unexpected errors but fail closed
-    console.error("[AUTH] Unexpected error in requireAuth:", {
+    log.error("Unexpected error in requireAuth", {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),

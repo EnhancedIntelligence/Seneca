@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import React from "react";
 import { isDevelopment, isDebug } from "./env";
+import { devError } from "@/lib/client-debug";
 
 // Error types
 export type ErrorCode =
@@ -136,9 +137,9 @@ class ConsoleErrorLogger implements ErrorLogger {
     };
 
     if (isDevelopment || isDebug) {
-      console.error("🚨 Error:", JSON.stringify(logData, null, 2));
+      devError("🚨 Error:", JSON.stringify(logData, null, 2));
     } else {
-      console.error("Error:", JSON.stringify(logData));
+      devError("Error:", JSON.stringify(logData));
     }
   }
 }

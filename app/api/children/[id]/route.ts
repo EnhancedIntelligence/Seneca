@@ -1,4 +1,3 @@
- 
 /**
  * Child Individual Route Handler
  * Handles operations on specific children
@@ -11,6 +10,9 @@ import { NotFoundError } from "@/lib/server/errors";
 import { checkRateLimit } from "@/lib/server/middleware/rate-limit";
 import { createAdminClient } from "@/lib/server-only/admin-client";
 import { z } from "zod";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.children-id" });
 
 // Validation schema for child updates
 const childUpdateSchema = z.object({
@@ -125,7 +127,12 @@ export async function PATCH(
       .single();
 
     if (updateError) {
-      console.error("Child update error:", updateError);
+      log.error("Failed to update child", {
+        op: "update",
+        resourceId: childId,
+        error: updateError,
+        userId: user.id
+      });
       throw new Error("Failed to update child");
     }
 
@@ -202,7 +209,12 @@ export async function DELETE(
       .eq("id", childId);
 
     if (updateError) {
-      console.error("Child soft delete error:", updateError);
+      log.error("Failed to soft delete child", {
+        op: "delete",
+        resourceId: childId,
+        error: updateError,
+        userId: user.id
+      });
       throw new Error("Failed to delete child");
     }
 

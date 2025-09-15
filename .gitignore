@@ -47,3 +47,6 @@ next-env.d.ts
 # Keep all AI documentation
 !.ai/docs/**
 .env.local
+
+# ESLint cache
+.eslintcache

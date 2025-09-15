@@ -7,6 +7,8 @@ import { MemoryQueue, ProcessingJob } from "./queue";
 import { aiProcessor } from "./ai-processor";
 import { createAdminClient } from "./server-only/admin-client";
 import { ProcessingError, handleError, errorLogger } from "./errors";
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.background-worker" });
 
 export interface WorkerConfig {
   maxConcurrentJobs: number;
@@ -66,7 +68,7 @@ export class BackgroundWorker {
 
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.warn("Worker is already running");
+      log.warn("Worker is already running");
       return;
     }
 
@@ -74,8 +76,10 @@ export class BackgroundWorker {
     this.stats.status = "idle";
     this.stats.uptime = Date.now();
 
-    console.log(`🚀 Starting Seneca background worker: ${this.workerId}`);
-    console.log(`📊 Worker config:`, this.config);
+    log.info("Starting Seneca background worker", {
+      workerId: this.workerId,
+      config: this.config
+    });
 
     // Start health check monitoring
     this.startHealthCheck();
@@ -89,7 +93,7 @@ export class BackgroundWorker {
       return;
     }
 
-    console.log(`🛑 Stopping Seneca background worker: ${this.workerId}`);
+    log.info("Stopping Seneca background worker", { workerId: this.workerId });
     this.stats.status = "stopping";
     this.isRunning = false;
 
@@ -103,7 +107,7 @@ export class BackgroundWorker {
     await this.shutdownPromise;
 
     this.stats.status = "stopped";
-    console.log(`✅ Worker stopped: ${this.workerId}`);
+    log.info("Worker stopped", { workerId: this.workerId });
   }
 
   private async processJobs(): Promise<void> {
@@ -148,9 +152,10 @@ export class BackgroundWorker {
     this.stats.last_activity = new Date().toISOString();
 
     try {
-      console.log(
-        `📝 Processing job ${jobId} for memory ${job.payload.memoryId}`,
-      );
+      log.info("Processing job", {
+        jobId,
+        memoryId: job.payload.memoryId
+      });
 
       // Set up timeout for job processing
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -174,9 +179,15 @@ export class BackgroundWorker {
       this.stats.jobs_processed++;
 
       const processingTime = Date.now() - startTime;
-      console.log(`✅ Completed job ${jobId} in ${processingTime}ms`);
+      log.info("Job completed successfully", {
+        jobId,
+        processingTime
+      });
     } catch (error) {
-      console.error(`❌ Failed to process job ${jobId}:`, error);
+      log.error("Failed to process job", {
+        jobId,
+        error
+      });
 
       this.stats.jobs_failed++;
 
@@ -232,7 +243,7 @@ export class BackgroundWorker {
         created_at: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Failed to log job success:", error);
+      log.error("Failed to log job success", { error, jobId: job.id });
     }
   }
 
@@ -253,7 +264,10 @@ export class BackgroundWorker {
         created_at: new Date().toISOString(),
       });
     } catch (analyticsError) {
-      console.error("Failed to log job failure:", analyticsError);
+      log.error("Failed to log job failure", {
+        error: analyticsError,
+        jobId: job.id
+      });
     }
   }
 
@@ -262,7 +276,7 @@ export class BackgroundWorker {
       try {
         await this.performHealthCheck();
       } catch (error) {
-        console.error("Health check failed:", error);
+        log.error("Health check failed", { error });
       }
     }, this.config.healthCheckInterval);
   }
@@ -270,28 +284,29 @@ export class BackgroundWorker {
   private async performHealthCheck(): Promise<void> {
     try {
       // Log worker status to console (worker_status table doesn't exist yet)
-      console.log(`💓 Worker ${this.workerId} health check:`, {
+      log.info("Worker health check", {
+        workerId: this.workerId,
         status: this.stats.status,
         jobs_processed: this.stats.jobs_processed,
         jobs_failed: this.stats.jobs_failed,
         current_jobs: this.stats.current_jobs,
-        uptime: Date.now() - this.stats.uptime,
+        uptime: Date.now() - this.stats.uptime
       });
 
       // Check queue health
       const queueStats = await this.queue.getQueueStats();
 
       if (queueStats.queue_health === "critical") {
-        console.warn("⚠️ Queue health is critical:", queueStats);
+        log.warn("Queue health is critical", { queueStats });
       }
 
       // Cleanup stuck jobs
       const cleanedJobs = await this.queue.cleanupStuckJobs();
       if (cleanedJobs > 0) {
-        console.log(`🧹 Cleaned up ${cleanedJobs} stuck jobs`);
+        log.info("Cleaned up stuck jobs", { cleanedJobs });
       }
     } catch (error) {
-      console.error("Health check failed:", error);
+      log.error("Health check failed", { error });
     }
   }
 
@@ -300,22 +315,22 @@ export class BackgroundWorker {
 
     while (this.currentJobs.size > 0) {
       if (Date.now() - startTime > this.config.shutdownTimeout) {
-        console.warn(
-          `⏰ Shutdown timeout reached, forcibly stopping ${this.currentJobs.size} jobs`,
-        );
+        log.warn("Shutdown timeout reached, forcibly stopping jobs", {
+          jobCount: this.currentJobs.size
+        });
         break;
       }
 
-      console.log(
-        `⏳ Waiting for ${this.currentJobs.size} jobs to complete...`,
-      );
+      log.info("Waiting for jobs to complete", {
+        jobCount: this.currentJobs.size
+      });
       await this.sleep(1000);
     }
   }
 
   private setupShutdownHandlers(): void {
     const shutdownHandler = async (signal: string) => {
-      console.log(`📡 Received ${signal}, shutting down worker...`);
+      log.info("Received shutdown signal", { signal });
       await this.stop();
       process.exit(0);
     };
@@ -325,13 +340,13 @@ export class BackgroundWorker {
 
     // Handle uncaught exceptions
     process.on("uncaughtException", (error) => {
-      console.error("Uncaught exception:", error);
+      log.error("Uncaught exception", { error });
       errorLogger.log(error, { worker_id: this.workerId });
       this.stop();
     });
 
     process.on("unhandledRejection", (reason, promise) => {
-      console.error("Unhandled rejection at:", promise, "reason:", reason);
+      log.error("Unhandled rejection", { promise, reason });
       errorLogger.log(reason as Error, { worker_id: this.workerId });
     });
   }

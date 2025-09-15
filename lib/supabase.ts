@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./database.generated";
 import { supabaseConfig } from "./env";
+import { devLog, devWarn } from "@/lib/client-debug";
 
 // Debug logging in development to help troubleshoot connection issues
 if (process.env.NODE_ENV !== "production") {
@@ -8,11 +9,9 @@ if (process.env.NODE_ENV !== "production") {
   if (url) {
     // Redact the project reference for security
     const redacted = url.replace(/:\/\/([^.]*)\./, "://***.");
-    console.log("[Supabase] Connecting to:", redacted);
+    devLog("[Supabase] Connecting to:", redacted);
   } else {
-    console.warn(
-      "[Supabase] No URL configured - check NEXT_PUBLIC_SUPABASE_URL",
-    );
+    devWarn("[Supabase] No URL configured - check NEXT_PUBLIC_SUPABASE_URL");
   }
 }
 

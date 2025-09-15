@@ -9,6 +9,7 @@ import type { UIMemory, UIChild } from "@/lib/types";
 import { dbToUiMemory } from "@/lib/adapters/memory";
 import { apiChildToUi } from "@/lib/adapters/api";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { devError } from "@/lib/client-debug";
 
 interface MemoryFeedProps {
   familyId: string;
@@ -58,7 +59,7 @@ export function MemoryFeed({
       const uiMemories = (items || []).map(dbToUiMemory);
       setMemories(uiMemories);
     } catch (error) {
-      console.error("Error loading memories:", error);
+      devError("Error loading memories:", error);
       setMemories([]);
     } finally {
       setLoading(false);
@@ -77,7 +78,7 @@ export function MemoryFeed({
       const uiChildren = (items || []).map(apiChildToUi);
       setChildren(uiChildren);
     } catch (error) {
-      console.error("Error loading children:", error);
+      devError("Error loading children:", error);
       setChildren([]);
     }
   };

@@ -1,4 +1,3 @@
- 
 /**
  * AI Processing Analytics Route Handler
  * Provides insights into AI processing performance and costs

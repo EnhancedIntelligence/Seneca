@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { devError } from "@/lib/client-debug";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -55,9 +56,7 @@ export default function BillingError({
     // A11y: move focus to the title
     headingRef.current?.focus();
 
-    if (process.env.NODE_ENV === "development") {
-      console.error("[Billing Error Boundary]:", error);
-    }
+    devError("[Billing Error Boundary]:", error);
 
     // Optional telemetry - only import if Sentry is configured
     // Uncomment when Sentry is installed:
@@ -80,9 +79,7 @@ export default function BillingError({
         router.push("/home");
       }
     } catch (e) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("Failed to refresh auth status:", e);
-      }
+      devError("Failed to refresh auth status:", e);
     } finally {
       setLoading(false);
     }
@@ -98,7 +95,7 @@ export default function BillingError({
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch {
-      console.error("Failed to copy to clipboard");
+      devError("Failed to copy to clipboard");
     }
   }
 

@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAppOrigin } from "@/lib/server/origin";
 import { createClient } from "@/utils/supabase/server";
+import { createLogger, hashId } from "@/lib/logger";
+
+const log = createLogger({ where: "auth.login.actions" });
 
 /**
  * Magic Link Login
@@ -26,12 +29,18 @@ export async function loginWithOtp(formData: FormData) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/login/confirm?next=${encodeURIComponent(next)}`,
+      emailRedirectTo: next
+        ? `${origin}/auth/callback?next=${encodeURIComponent(next)}`
+        : `${origin}/auth/callback`,
     },
   });
 
   if (error) {
-    console.error("OTP login error:", error);
+    const emailHash = email ? await hashId(email) : undefined;
+    log.error(error, {
+      op: "otpLogin",
+      emailHash,
+    });
 
     // Check for SMTP configuration issues
     if (
@@ -61,7 +70,7 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
 
   if (error) {
-    console.error("Sign out error:", error);
+    log.error(error, { op: "signOut" });
     return { success: false, error: error.message };
   }
 

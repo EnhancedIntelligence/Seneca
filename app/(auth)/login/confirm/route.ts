@@ -1,28 +1,22 @@
-import { type EmailOtpType } from "@supabase/supabase-js";
-import { type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+// Pass-through route to maintain compatibility with old magic links
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const token_hash = searchParams.get("token_hash");
-  const type = searchParams.get("type") as EmailOtpType;
-  const next = searchParams.get("next") ?? "/";
+  const { origin } = request.nextUrl;
+  const queryString = request.nextUrl.search; // Preserves ?token_hash=...&type=...&next=...
+  const callbackUrl = new URL("/auth/callback", origin);
 
-  if (token_hash && type) {
-    const supabase = await createClient();
-
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash,
-      type,
-    });
-    if (!error) {
-      // redirect user to specified redirect URL or root of app
-      redirect(next);
-    }
+  // Preserve exact query string (encoding, duplicates, order)
+  if (queryString) {
+    callbackUrl.search = queryString;
   }
 
-  // redirect the user to an error page with some instructions
-  redirect("/error");
+  // 307 for explicit method preservation, no-store to prevent caching
+  const response = NextResponse.redirect(callbackUrl, 307);
+  response.headers.set("Cache-Control", "no-store");
+
+  return response;
 }

@@ -38,10 +38,10 @@ jobs:
       - name: Install dependencies with native rebuild
         uses: ./.github/actions/setup-deps
         with:
-          module: 'lightningcss/node/index.js'
-          rebuild: 'lightningcss'
-          optional: 'true'
-          audit: 'false'
+          module: "lightningcss/node/index.js"
+          rebuild: "lightningcss"
+          optional: "true"
+          audit: "false"
 
       - name: Generate Supabase types (safe)
         env:
@@ -99,10 +99,10 @@ jobs:
       - name: Install dependencies with native rebuild
         uses: ./.github/actions/setup-deps
         with:
-          module: 'lightningcss/node/index.js'
-          rebuild: 'lightningcss'
-          optional: 'true'
-          audit: 'false'
+          module: "lightningcss/node/index.js"
+          rebuild: "lightningcss"
+          optional: "true"
+          audit: "false"
 
       - name: Build (prod)
         env:
@@ -170,10 +170,10 @@ jobs:
       - name: Install dependencies with native rebuild
         uses: ./.github/actions/setup-deps
         with:
-          module: 'lightningcss/node/index.js'
-          rebuild: 'lightningcss'
-          optional: 'true'
-          audit: 'false'
+          module: "lightningcss/node/index.js"
+          rebuild: "lightningcss"
+          optional: "true"
+          audit: "false"
 
       - name: Run security audit (non-blocking)
         run: npm audit --audit-level=critical

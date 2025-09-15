@@ -1,4 +1,3 @@
- 
 /**
  * Memories Collection Route Handler
  * Handles listing and creating memories with proper auth and rate limiting
@@ -18,6 +17,9 @@ import { MemoryQueue } from "@/lib/queue";
 import { validateRequestBody, memorySchema } from "@/lib/validation";
 import { StatusCompat } from "@/lib/database-compatibility";
 import type { Database } from "@/lib/types";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.memories" });
 
 /**
  * GET /api/memories
@@ -116,7 +118,7 @@ export async function GET(request: NextRequest) {
     const { data: memories, error: memoriesError } = await query;
 
     if (memoriesError) {
-      console.error("Error fetching memories:", memoriesError);
+      log.error(memoriesError, { op: "fetch", familyId, childId });
       throw new Error("Failed to fetch memories");
     }
 
@@ -180,7 +182,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (createError) {
-      console.error("Memory creation error:", createError);
+      log.error(createError, { op: "create", familyId, childId });
       throw new Error("Failed to create memory");
     }
 
@@ -191,7 +193,10 @@ export async function POST(request: NextRequest) {
       jobId = await queue.addJob(memory.id, familyId);
     } catch (queueError) {
       // Log but don't fail the request if queue is unavailable
-      console.error("Queue error (non-blocking):", queueError);
+      log.warn("Queue unavailable (non-blocking)", { 
+        error: queueError instanceof Error ? queueError.message : String(queueError),
+        memoryId: memory.id 
+      });
     }
 
     return ok(

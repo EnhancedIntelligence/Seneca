@@ -1,5 +1,8 @@
 "use client";
 
+import { devError } from "@/lib/client-debug";
+import { toast } from "sonner";
+
 /**
  * Dashboard Overview
  * Analytics and insights display
@@ -72,7 +75,7 @@ interface InsightData {
 // Adapter: wire format -> UI model
 function adaptInsightsToUI(rawData: unknown): InsightData[] {
   const validated = ApiInsightListSchema.parse(rawData);
-  
+
   return validated.map((raw) => ({
     id: raw.id,
     type: normalizeInsightType(raw.type),
@@ -99,7 +102,12 @@ function normalizeInsightType(type: string): InsightType {
 }
 
 function normalizeInsightSeverity(severity: string): InsightSeverity {
-  const validSeverities: InsightSeverity[] = ["info", "success", "warning", "error"];
+  const validSeverities: InsightSeverity[] = [
+    "info",
+    "success",
+    "warning",
+    "error",
+  ];
   return validSeverities.includes(severity as InsightSeverity)
     ? (severity as InsightSeverity)
     : "info"; // Safe default
@@ -115,6 +123,8 @@ export default function OverviewPage() {
   const api = useApi();
 
   useEffect(() => {
+    let aborted = false;
+
     const loadDashboardData = async () => {
       setIsLoading(true);
       try {
@@ -124,25 +134,37 @@ export default function OverviewPage() {
           api.getInsights(),
         ]);
 
-        // Use actual analytics data from API
-        setAnalytics(analyticsData);
+        if (!aborted) {
+          // Use actual analytics data from API
+          setAnalytics(analyticsData);
 
-        // Parse and adapt insights with validation
-        try {
-          const adaptedInsights = adaptInsightsToUI(insightsData);
-          setInsights(adaptedInsights);
-        } catch (error) {
-          console.error("Failed to parse insights:", error);
-          setInsights([]); // Graceful fallback
+          // Parse and adapt insights with validation
+          try {
+            const adaptedInsights = adaptInsightsToUI(insightsData);
+            setInsights(adaptedInsights);
+          } catch (error) {
+            devError("Failed to parse insights:", error);
+            setInsights([]); // Graceful fallback
+          }
         }
       } catch (error) {
-        console.error("Error loading dashboard data:", error);
+        devError("Error loading dashboard data:", error);
+        if (!aborted) {
+          toast.error("Couldn't load dashboard", {
+            description: "Try refreshing the page",
+          });
+        }
       } finally {
-        setIsLoading(false);
+        if (!aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadDashboardData();
+    return () => {
+      aborted = true;
+    };
   }, [api]);
 
   if (isLoading) {

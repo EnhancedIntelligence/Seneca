@@ -16,6 +16,8 @@ import {
   handleError,
 } from "./errors";
 import { requireUser } from "./server/auth";
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.api-utils" });
 
 // Types
 export interface AuthenticatedUser {
@@ -308,7 +310,7 @@ export function logRequest(
     }),
   };
 
-  console.log("🔍 API Request:", JSON.stringify(logData));
+  log.info("API request", logData);
 }
 
 // API route wrapper with error handling

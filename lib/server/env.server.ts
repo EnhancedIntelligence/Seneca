@@ -8,6 +8,8 @@
 
 import { z } from "zod";
 import { coreConfig } from "./env-core";
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.server.env.server" });
 
 // Parse optional server features (won't crash if missing in dev)
 const serverEnvSchema = z.object({
@@ -48,18 +50,18 @@ const serverEnv = (() => {
   } catch (error) {
     // In development, be permissive - optional features can be missing
     if (coreConfig.app.nodeEnv === "development") {
-      console.log(
-        "ℹ️ Optional server features not configured (this is OK in dev)",
-      );
+      log.info("Optional server features not configured (this is OK in dev)");
       return {} as z.infer<typeof serverEnvSchema>;
     }
     // In production/staging, fail fast to catch misconfigurations
-    console.error("❌ Server environment validation failed in production:");
-    if (error instanceof z.ZodError) {
-      error.issues.forEach((issue) => {
-        console.error(`  - ${issue.path.join(".")}: ${issue.message}`);
-      });
-    }
+    log.error("Server environment validation failed in production", {
+      error: error instanceof z.ZodError ? {
+        issues: error.issues.map(issue => ({
+          path: issue.path.join('.'),
+          message: issue.message
+        }))
+      } : String(error)
+    });
     throw error;
   }
 })();
@@ -130,19 +132,12 @@ export const serverOrigin = serverEnv.APP_ORIGIN;
  */
 export function logServerEnvStatus() {
   if (coreConfig.app.nodeEnv === "development" || serverEnv.DEBUG) {
-    console.log("🔧 Server Environment Status:");
-    console.log(
-      `  - Supabase Admin: ${supabaseAdmin.hasServiceRole ? "✅" : "⚠️ No service role"}`,
-    );
-    console.log(`  - AI Features: ${ai.isEnabled ? "✅" : "⚠️ Disabled"}`);
-    console.log(
-      `  - Rate Limiting: ${rateLimit.isEnabled ? "✅" : "⚠️ Disabled"}`,
-    );
-    console.log(
-      `  - Internal API: ${security.hasInternalApi ? "✅" : "⚠️ Disabled"}`,
-    );
-    console.log(
-      `  - Monitoring: ${monitoring.isEnabled ? "✅" : "⚠️ Disabled"}`,
-    );
+    log.info("Server environment status", {
+      supabaseAdmin: supabaseAdmin.hasServiceRole ? "enabled" : "no service role",
+      aiFeatures: ai.isEnabled ? "enabled" : "disabled",
+      rateLimiting: rateLimit.isEnabled ? "enabled" : "disabled",
+      internalApi: security.hasInternalApi ? "enabled" : "disabled",
+      monitoring: monitoring.isEnabled ? "enabled" : "disabled"
+    });
   }
 }

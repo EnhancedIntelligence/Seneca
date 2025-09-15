@@ -234,44 +234,68 @@ export type Database = {
         Row: {
           active_subscription: boolean;
           avatar_url: string | null;
+          bio: string | null;
           created_at: string | null;
+          date_of_birth: string | null;
           email: string;
           full_name: string | null;
           id: string;
+          notification_preferences: Json;
+          onboarding_completed_at: string | null;
+          onboarding_step: number;
+          phone_e164: string | null;
+          preferences: Json;
           stripe_customer_id: string | null;
           stripe_price_id: string | null;
           stripe_subscription_id: string | null;
           subscription_expires_at: string | null;
           subscription_tier: string;
           updated_at: string | null;
+          username: string | null;
         };
         Insert: {
           active_subscription?: boolean;
           avatar_url?: string | null;
+          bio?: string | null;
           created_at?: string | null;
+          date_of_birth?: string | null;
           email: string;
           full_name?: string | null;
           id: string;
+          notification_preferences?: Json;
+          onboarding_completed_at?: string | null;
+          onboarding_step?: number;
+          phone_e164?: string | null;
+          preferences?: Json;
           stripe_customer_id?: string | null;
           stripe_price_id?: string | null;
           stripe_subscription_id?: string | null;
           subscription_expires_at?: string | null;
           subscription_tier?: string;
           updated_at?: string | null;
+          username?: string | null;
         };
         Update: {
           active_subscription?: boolean;
           avatar_url?: string | null;
+          bio?: string | null;
           created_at?: string | null;
+          date_of_birth?: string | null;
           email?: string;
           full_name?: string | null;
           id?: string;
+          notification_preferences?: Json;
+          onboarding_completed_at?: string | null;
+          onboarding_step?: number;
+          phone_e164?: string | null;
+          preferences?: Json;
           stripe_customer_id?: string | null;
           stripe_price_id?: string | null;
           stripe_subscription_id?: string | null;
           subscription_expires_at?: string | null;
           subscription_tier?: string;
           updated_at?: string | null;
+          username?: string | null;
         };
         Relationships: [];
       };
@@ -550,6 +574,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      reserved_usernames: {
+        Row: {
+          created_at: string;
+          reason: string | null;
+          username: string;
+        };
+        Insert: {
+          created_at?: string;
+          reason?: string | null;
+          username: string;
+        };
+        Update: {
+          created_at?: string;
+          reason?: string | null;
+          username?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -744,9 +786,49 @@ export type Database = {
         Args: { "": string } | { "": unknown };
         Returns: unknown;
       };
+      check_username_availability: {
+        Args: { p_username: string };
+        Returns: Json;
+      };
+      citext: {
+        Args: { "": boolean } | { "": string } | { "": unknown };
+        Returns: string;
+      };
+      citext_hash: {
+        Args: { "": string };
+        Returns: number;
+      };
+      citextin: {
+        Args: { "": unknown };
+        Returns: string;
+      };
+      citextout: {
+        Args: { "": string };
+        Returns: unknown;
+      };
+      citextrecv: {
+        Args: { "": unknown };
+        Returns: string;
+      };
+      citextsend: {
+        Args: { "": string };
+        Returns: string;
+      };
       cleanup_stuck_jobs: {
         Args: { p_timeout?: unknown };
         Returns: number;
+      };
+      complete_onboarding: {
+        Args: {
+          p_bio?: string;
+          p_date_of_birth: string;
+          p_full_name: string;
+          p_notification_preferences?: Json;
+          p_phone_e164: string;
+          p_preferences?: Json;
+          p_username: string;
+        };
+        Returns: Json;
       };
       enqueue_job: {
         Args: {
@@ -757,6 +839,10 @@ export type Database = {
           p_type: string;
         };
         Returns: string;
+      };
+      ensure_member: {
+        Args: { p_email?: string; p_full_name?: string; p_id: string };
+        Returns: undefined;
       };
       get_job_statistics: {
         Args: Record<PropertyKey, never>;
@@ -928,6 +1014,10 @@ export type Database = {
           p_status: string;
         };
         Returns: undefined;
+      };
+      update_onboarding_step: {
+        Args: { p_step: number };
+        Returns: Json;
       };
       user_belongs_to_family: {
         Args: { fam: string };

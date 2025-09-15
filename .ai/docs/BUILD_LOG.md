@@ -4,8 +4,8 @@
 **Name:** Seneca Protocol  
 **Type:** Family Memory Capture Platform with AI Processing  
 **Stack:** Next.js 15, React 19, TypeScript, Supabase, OpenAI  
-**Status:** Authentication Gate Complete (Production Ready Security)  
-**Last Updated:** 2025-09-02
+**Status:** Onboarding Gates Implemented (Ready for UI)  
+**Last Updated:** 2025-09-04
 
 ---
 
@@ -126,6 +126,38 @@
    - Moved AI scripts to `.ai/scripts/` directory
    - Created documentation for script purposes
    - Cleaned root directory for production readiness
+
+### Phase 9: Onboarding Flow Architecture (Session 027)
+- **Date:** 2025-09-03
+- **Database Migration:** Complete profile schema with CITEXT usernames
+- **Security:** RLS-first design, SECURITY DEFINER RPCs
+- **Features:**
+  - Reserved username protection
+  - Age verification (COPPA 13+)
+  - Phone E.164 validation
+  - Atomic onboarding completion
+
+### Phase 10: Onboarding Gates Implementation (Session 028)
+- **Date:** 2025-09-04
+- **Achievement:** Production-ready gates without middleware
+- **Architecture:** Layout-based protection pattern
+
+#### Auth Callback Enhancements:
+- **Redirect Sanitization:** Prevents open redirects, protocol-relative URLs
+- **Loop Prevention:** Blocks /onboarding, /auth/* redirects
+- **Security Hardening:** Length cap, internal path blocking
+- **Unified Flow:** Both OAuth and magic link use same helper
+
+#### Dashboard Layout Gate:
+- **Priority Order:** Onboarding → Subscription → Render
+- **Feature Flag:** SENECA_ONBOARDING_V1 for safe rollout
+- **Conservative Behavior:** Errors default to onboarding redirect
+- **Performance:** Single DB query, narrow column selection
+
+#### Key Architecture Decision:
+- **NO Middleware Pattern:** Full Node.js runtime vs Edge limitations
+- **Layout-Based Gates:** Better performance, simpler debugging
+- **Reusable Logic:** protectRoute() for subscription remains centralized
 
 ---
 

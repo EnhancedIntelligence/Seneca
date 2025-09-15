@@ -5,11 +5,11 @@
  */
 
 import { RateLimitError } from "../errors";
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.server.middleware.rate-limit" });
 
 // Type for rate limit function
-type RateLimitFunction = (
-  key: string,
-) => Promise<{
+type RateLimitFunction = (key: string) => Promise<{
   success: boolean;
   limit?: number;
   remaining?: number;
@@ -41,7 +41,7 @@ if (
 
       return (key: string) => ratelimit.limit(key);
     } catch (error) {
-      console.warn("Failed to initialize rate limiting:", error);
+      log.warn("Failed to initialize rate limiting", { error });
       // Return no-op if initialization fails
       return async () => ({ success: true });
     }
@@ -62,7 +62,7 @@ if (
   checkRateLimitImpl = async () => ({ success: true });
 
   if (process.env.NODE_ENV === "development") {
-    console.log("[Rate Limit] Disabled - Upstash not configured");
+    log.info("Rate limiting disabled - Upstash not configured");
   }
 }
 

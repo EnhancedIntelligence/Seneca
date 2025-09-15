@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run full Next.js build before push
+echo "Running full build check before push..."
+NEXT_TELEMETRY_DISABLED=1 npm run build:check

@@ -4,8 +4,9 @@
 **Name:** Seneca Protocol  
 **Type:** Family Memory Capture Platform with AI Processing  
 **Stack:** Next.js 15, React 19, TypeScript, Supabase, OpenAI  
-**Status:** Onboarding Gates Implemented (Ready for UI)  
-**Last Updated:** 2025-09-04
+**Status:** Member Auto-Creation Fixed, Test Infrastructure Complete  
+**Last Updated:** 2025-09-07
+
 
 ---
 
@@ -158,6 +159,158 @@
 - **NO Middleware Pattern:** Full Node.js runtime vs Edge limitations
 - **Layout-Based Gates:** Better performance, simpler debugging
 - **Reusable Logic:** protectRoute() for subscription remains centralized
+
+### Phase 11: Complete Onboarding Implementation (Session 029)
+- **Date:** 2025-09-05
+- **Branch:** feature/onboarding-implementation
+- **Achievement:** Full onboarding flow with validation, forms, and server actions
+
+#### Components Implemented:
+1. **Validation Schemas** (`lib/validation/onboarding.ts`):
+   - Zod schemas matching DB constraints exactly
+   - Username regex: `^[a-z0-9_][a-z0-9_-]{2,29}$`
+   - COPPA 13+ age verification
+   - E.164 phone validation
+   - Timezone-safe date parsing
+
+2. **Server Actions** (`app/(auth)/onboarding/actions.ts`):
+   - Username availability checking
+   - Complete onboarding RPC integration
+   - Field-level error handling
+   - Type-safe with proper casting
+
+3. **Form Component** (`app/(auth)/onboarding/components/OnboardingForm.tsx`):
+   - React 19 useActionState (replacing deprecated useFormState)
+   - Full accessibility with ARIA attributes
+   - Loading states with useFormStatus
+   - HTML constraints matching validation
+
+4. **Auth Flow Fix**:
+   - Magic links now route to `/auth/callback` (not `/login/confirm`)
+   - Pass-through route for backward compatibility
+   - Unified auth callback for all methods
+
+#### Critical Issues Resolved:
+- **React 19 Migration:** Updated to useActionState API
+- **RPC Type Fix:** Use empty string for optional params (not null)
+- **Zod Transform Order:** Apply transforms after validations
+- **Environment Fix:** Corrected malformed .env.local file
+- **Rate Limiting:** Increased Supabase email limits
+
+#### Testing Completed:
+- New user signup → onboarding → dashboard flow ✅
+- Existing user login → direct to dashboard ✅
+- Validation constraints enforced ✅
+- Error handling and loading states ✅
+- Accessibility with screen readers ✅
+
+### Phase 12: Critical Member Auto-Creation Fix (Session 030)
+- **Date:** 2025-09-07
+- **Branch:** main
+- **Achievement:** Fixed production-critical member record creation failure
+
+#### Problem Discovered:
+- **Issue:** Member records not auto-creating for new auth users
+- **Impact:** Redirect loops preventing user onboarding
+- **Root Cause:** Two competing triggers causing race conditions
+  - `handle_new_user_members()` from subscription migration
+  - `handle_new_user()` from profile fields migration
+
+#### Solution Implemented:
+1. **Unified Trigger Migration** (`20250905_fix_member_trigger_conflict.sql`):
+   - Consolidated into single authoritative trigger
+   - Role switching for auth.users permissions (supabase_auth_admin)
+   - NULL email handling for phone/OAuth providers
+   - Email synchronization trigger for consistency
+   - Idempotent backfill for existing orphaned users
+
+2. **Permission Architecture Fix**:
+   ```sql
+   BEGIN;
+   SET LOCAL ROLE supabase_auth_admin;
+   -- Trigger DDL operations
+   COMMIT; -- Role auto-resets
+   ```
+
+3. **Safety Net in Auth Callback**:
+   - Added `ensure_member` RPC call as fallback
+   - Graceful error handling if trigger fails
+   - Dual protection strategy (database + application)
+
+#### Additional Infrastructure:
+1. **Rate Limiting** (`lib/server/rate-limit-policies.ts`):
+   - Per-user and per-IP protection
+   - Configurable policies with graceful degradation
+   - Integrated into username checking
+
+2. **Username Suggestions** (`lib/utils/username-suggestions.ts`):
+   - Smart name normalization
+   - Reserved list support
+   - Deterministic mode for testing
+
+3. **E2E Test Infrastructure**:
+   - Real magic link authentication (no mocks)
+   - Playwright configuration optimized for CI/CD
+   - Auth helpers for test user management
+
+#### Results:
+- ✅ Member records created reliably for all users
+- ✅ No more redirect loops on signup
+- ✅ NULL email providers properly supported
+- ✅ Race conditions eliminated
+- ✅ 11 unit tests + E2E tests passing
+
+### Phase 13: Senior Dev Review & Implementation (Session 031)
+- **Date:** 2025-09-07
+- **Branch:** feature/onboarding-implementation
+- **Achievement:** Comprehensive review and 8-point action plan implementation
+
+#### Senior Review Findings:
+1. **Code Quality:** RPC parameters already follow p_ convention correctly
+2. **Security:** Rate limiting already implemented for auth endpoints
+3. **UX Gap:** Username suggestions exist but not wired to UI
+4. **Validation Gap:** Phone validation needs E.164 formatter
+5. **CI/CD Gap:** Playwright needs CI-specific configuration
+6. **Production Gap:** Manual trigger script needed for orphaned users
+7. **Rollout Strategy:** Feature flag system needed for staged deployment
+8. **CRITICAL SECURITY:** Supabase access token exposed in chat (sbp_7060ba36d0cae06c71669d54df64fe5c00316bf5)
+
+#### Database Type Generation Process Documented:
+- **Tool:** Supabase CLI (never manual edits)
+- **Command:** `npx supabase gen types typescript --project-id ilrrlvhpsyomddvlszyu > lib/database.generated.ts`
+- **Authentication:** Requires SUPABASE_ACCESS_TOKEN environment variable
+- **Important:** Generated files should never be manually edited
+
+#### Migration Fixes Applied:
+1. **Trigger Dependency Resolution:**
+   - Drop triggers before functions to avoid dependency errors
+   - Use CASCADE carefully (only where appropriate)
+   - Role switching required for auth.users operations
+
+2. **SQL Syntax Corrections:**
+   - Changed `RAISE WARNING E'\n\n' ||` to `RAISE WARNING '%',`
+   - Used format() for complex string interpolation
+   - Fixed permission issues with proper BEGIN/COMMIT blocks
+
+#### Testing Verification:
+- ✅ Unit tests passing (11 tests)
+- ✅ E2E tests passing (auth callback redirect)
+- ✅ Build successful with no errors
+- ✅ Lint passing with no issues
+- ✅ Types generated correctly via CLI
+
+#### Tasks Completed:
+1. ✅ RPC parameter verification (already correct)
+2. ✅ Rate limiting verification (already implemented)
+
+#### Tasks Pending:
+3. ⏳ Wire username suggestions into UI
+4. ⏳ Implement toE164 phone validation
+5. ⏳ Configure CI Playwright setup
+6. ⏳ Run manual trigger script in production
+7. ⏳ Plan staged rollout with feature flag
+8. 🔴 **URGENT: Rotate exposed Supabase access token**
+
 
 ---
 
@@ -326,6 +479,33 @@ lib/
 
 ## Next Steps
 
+### Immediate Actions (Session 031 Priority)
+1. **🔴 CRITICAL: Rotate Supabase Access Token**
+   - Token exposed: sbp_7060ba36d0cae06c71669d54df64fe5c00316bf5
+   - Generate new token in Supabase dashboard immediately
+   - Update SUPABASE_ACCESS_TOKEN in .env.local
+
+2. **Complete Username Suggestions UI**
+   - Wire `suggestUsernames` utility into OnboardingForm
+   - Display suggestions when username is taken
+   - Add click-to-fill functionality
+
+3. **Implement Phone Validation**
+   - Create toE164 formatter utility
+   - Integrate with onboarding form
+   - Support international formats
+
+4. **Configure CI/CD Playwright**
+   - Review existing playwright.config.ts
+   - Add CI-specific settings
+   - Ensure GitHub Actions compatibility
+
+### Production Deployment
+1. **Deploy Migration**: Apply `20250905_fix_member_trigger_conflict.sql` to staging/production
+2. **Manual Trigger Script**: Create and run for orphaned users
+3. **Feature Flag System**: Implement for staged rollout
+4. **Monitor**: Check member creation success rate
+
 ### MVP Features (Deadline: AWS Credits 28th)
 1. **Families**: Complete CRUD operations
 2. **Children**: Profile management
@@ -339,16 +519,28 @@ lib/
 - Implement offline-first sync
 - Add performance monitoring
 
+### Onboarding Enhancements
+- ✅ Username suggestions (utility complete, UI pending)
+- ⏳ Phone number formatter (E.164 validation)
+- Add profile photo upload
+- Create welcome email flow
+- Add progress indicator for multi-step form
+
 ### Documentation
 - API endpoint documentation
 - Component storybook
 - Deployment guide
 - Contributing guidelines
+- Onboarding flow documentation
+- Session handover documents
 
 ---
 
 ## Version History
 
+- **v0.8.0** (2025-09-07 Session 031): Senior dev review, 8-point action plan, security token rotation needed
+- **v0.7.0** (2025-09-07 Session 030): Critical member auto-creation fix, test infrastructure
+- **v0.6.0** (2025-09-05): Complete onboarding implementation on feature branch
 - **v0.5.0** (2025-09-02): CI/CD ready, zero lint issues, feat/auth-gate complete
 - **v0.4.0** (2025-08-22): Environment system refactor
 - **v0.3.0** (2025-08-20): Authentication hardening

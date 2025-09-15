@@ -1,10 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { createLogger } from "@/lib/logger";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.generated";
 
-const log = createLogger({ where: "auth.callback" });
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,15 +44,12 @@ function sanitizeNext(nextParam: string | null | undefined): string {
       "/static",
       "/images",
     ];
-    if (
-      blockedPrefixes.some(
-        (p) => u.pathname === p || u.pathname.startsWith(p + "/"),
-      )
-    ) {
+    if (blockedPrefixes.some(p => u.pathname === p || u.pathname.startsWith(p + "/"))) {
       return SAFE;
     }
 
-    // Normalize trailing slashes
+    // Normalize trailing slashes  
+
     const path = u.pathname.replace(/\/+$/, "") || SAFE;
     return path + (u.search || "") + (u.hash || "");
   } catch {
@@ -91,28 +86,25 @@ async function redirectAfterAuth(
   url: URL,
   nextParam: string | null,
   userEmail?: string | null,
-  userMetadata?: User["user_metadata"],
+  userMetadata?: User['user_metadata']
 ): Promise<NextResponse> {
   // First, ensure member record exists (safety net for trigger failures)
   try {
-    const fullName =
+    const fullName = 
       userMetadata?.full_name ??
       userMetadata?.display_name ??
-      (userEmail ? userEmail.split("@")[0] : null) ??
+      (userEmail ? userEmail.split('@')[0] : null) ??
       `user_${userId.slice(0, 8)}`;
 
-    await supabase.rpc("ensure_member", {
+    await supabase.rpc('ensure_member', {
       p_id: userId,
       p_email: userEmail || undefined,
-      p_full_name: fullName || undefined,
+      p_full_name: fullName || undefined
     });
   } catch (err) {
-    log.warn("ensure_member RPC failed", {
-      op: "ensureMember",
-      errorName: err instanceof Error ? err.name : "UnknownError",
-      errorMessage: err instanceof Error ? err.message : String(err),
-      stackTop: err instanceof Error ? err.stack?.split("\n")[0] : undefined,
-    });
+    /* eslint-disable-next-line no-console -- non-PII RPC warning */
+    console.warn('[AUTH_CALLBACK] ensure_member RPC failed:', err);
+
     // Continue anyway - the member might already exist
   }
 
@@ -128,21 +120,17 @@ async function redirectAfterAuth(
 
   // Onboarding enabled → gate by completion
   const { data: member, error } = await supabase
-    .from("members")
-    .select("onboarding_completed_at")
-    .eq("id", userId)
+    .from('members')
+    .select('onboarding_completed_at')
+    .eq('id', userId)
     .maybeSingle();
 
-  if (error) {
-    log.warn("Member fetch error", {
-      op: "fetchMember",
-      errorCode: error?.code,
-      errorMessage: error?.message,
-    });
-  }
+  /* eslint-disable-next-line no-console -- non-PII fetch warning */
+  if (error) console.warn('[AUTH_CALLBACK] Member fetch error:', error?.code ?? error?.message);
 
   const done = !!member?.onboarding_completed_at;
-  const redirectTo = done ? safeNext : "/onboarding";
+  const redirectTo = done ? safeNext : '/onboarding';
+
   return NextResponse.redirect(new URL(redirectTo, url.origin));
 }
 
@@ -205,15 +193,16 @@ export async function GET(req: NextRequest) {
           new URL("/login?error=Session%20creation%20failed", url.origin),
         );
       }
-
+      
       // Handle post-auth redirect with onboarding check
       return redirectAfterAuth(
-        supabase,
-        session.user.id,
-        url,
+        supabase, 
+        session.user.id, 
+        url, 
         decodedNext,
         session.user.email ?? null,
-        session.user.user_metadata ?? {},
+        session.user.user_metadata ?? {}
+
       );
     } catch {
       return NextResponse.redirect(
@@ -249,15 +238,16 @@ export async function GET(req: NextRequest) {
           new URL("/login?error=Session%20creation%20failed", url.origin),
         );
       }
-
+      
       // Handle post-auth redirect with onboarding check
       return redirectAfterAuth(
-        supabase,
-        session.user.id,
-        url,
+        supabase, 
+        session.user.id, 
+        url, 
         decodedNext,
         session.user.email ?? null,
-        session.user.user_metadata ?? {},
+        session.user.user_metadata ?? {}
+
       );
     } catch (err) {
       log.error(err, { op: "verifyOtp" });

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,102 @@ const toLocalYMD = (d = new Date()) =>
 // Helper to merge aria-describedby targets
 const describedBy = (...ids: Array<string | undefined>) =>
   ids.filter(Boolean).join(" ") || undefined;
+
+// Hook for username suggestions with debouncing and safeguards
+function useUsernameSuggestions(username: string) {
+  const [data, setData] = useState<{ available: boolean; suggestions: string[] }>();
+  const [limited, setLimited] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const abortRef = useRef<AbortController | null>(null);
+  const lastValueRef = useRef<string>("");
+  const limitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const trimmed = username.trim().toLowerCase();
+
+    // Early exit if we're rate limited
+    if (limited) {
+      setData(prev => prev ?? { available: false, suggestions: [] });
+      return;
+    }
+
+    // guard + skip identical values (prevents StrictMode double-fetch)
+    // Only check minimum length - let server handle validation and generate suggestions
+    if (!trimmed || trimmed.length < 2 || trimmed === lastValueRef.current) {
+      if (!trimmed || trimmed.length < 2) {
+        setData(undefined);
+        setLimited(false);
+      }
+      abortRef.current?.abort();
+      return;
+    }
+    lastValueRef.current = trimmed;
+
+    // cancel previous
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const timeoutId = setTimeout(() => {
+      startTransition(async () => {
+        try {
+          const res = await fetch(
+            `/api/onboarding/username-suggestions?q=${encodeURIComponent(trimmed)}`,
+            { signal: controller.signal, cache: "no-store" }
+          );
+
+          if (res.status === 429) {
+            const retryAfter = Number(res.headers.get('retry-after') ?? '60');
+            setLimited(true);
+            
+            // Clear any existing timer before setting a new one
+            if (limitTimerRef.current) {
+              clearTimeout(limitTimerRef.current);
+            }
+            
+            // Automatically clear the rate limit flag after the retry period (capped at 5 minutes)
+            limitTimerRef.current = setTimeout(() => {
+              setLimited(false);
+              limitTimerRef.current = null;
+            }, Math.min(retryAfter, 300) * 1000);
+            
+            setData({ available: false, suggestions: [] });
+            return;
+          }
+          setLimited(false);
+          
+          if (!res.ok) {
+            setData({ available: false, suggestions: [] });
+            return;
+          }
+
+          const json = await res.json().catch(() => ({}));
+          const available = Boolean(json?.available);
+          const suggestions = Array.isArray(json?.suggestions) ? json.suggestions.slice(0, 5) : [];
+          setData({ available, suggestions });
+        } catch {
+          if (!controller.signal.aborted) {
+            setData({ available: false, suggestions: [] });
+            setLimited(false);
+          }
+        }
+      });
+    }, 300);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+      // Clean up the rate limit timer
+      if (limitTimerRef.current) {
+        clearTimeout(limitTimerRef.current);
+        limitTimerRef.current = null;
+      }
+    };
+  }, [username, limited]);
+
+  return { data, isPending, limited };
+}
+
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -55,6 +152,9 @@ export function OnboardingForm() {
     completeOnboarding,
     null,
   );
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const { data: suggest, isPending: suggestPending, limited } = useUsernameSuggestions(usernameDraft);
+
 
   // Field error checking with clear variable names and strong typing
   const fieldErrors =
@@ -128,14 +228,56 @@ export function OnboardingForm() {
             inputMode="text"
             className="w-full px-3 py-2 border rounded-md"
             placeholder="johndoe"
+            value={usernameDraft}
+            onChange={(e) => setUsernameDraft(e.target.value)}
             onBlur={(e) => {
-              e.currentTarget.value = e.currentTarget.value
-                .toLowerCase()
-                .trim();
+              const normalized = e.target.value.toLowerCase().trim();
+              setUsernameDraft(normalized);
             }}
             aria-invalid={hasError("username") || undefined}
             aria-errormessage={getErrorId("username")}
+            aria-describedby={usernameDraft && suggest ? "username-status" : undefined}
           />
+          
+          {/* Availability status */}
+          {usernameDraft && suggest && (
+            <p 
+              id="username-status"
+              className="mt-1 text-sm text-muted-foreground" 
+              role="status" 
+              aria-live="polite"
+            >
+              {suggestPending
+                ? "Checking availability…"
+                : limited
+                ? "You're checking too fast—please try again in a moment."
+                : suggest.available
+                ? "Nice—this username is available."
+                : "That username is taken. Try one of these:"}
+            </p>
+          )}
+          
+          {/* Suggestion chips - simplified ARIA without listbox semantics */}
+          {usernameDraft && suggest && !suggest.available && !limited && suggest.suggestions.length > 0 && (
+            <div 
+              className="mt-2 flex flex-wrap gap-2" 
+              aria-label="Username suggestions"
+            >
+              {suggest.suggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="rounded-full border px-3 py-1 text-sm hover:bg-muted transition-colors"
+                  onClick={() => setUsernameDraft(s)}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {/* Server-side error */}
+
           {hasError("username") && (
             <p
               id="username-error"

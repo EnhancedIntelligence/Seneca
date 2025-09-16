@@ -5,170 +5,152 @@ import React, {
   useContext,
   useState,
   useEffect,
-  ReactNode,
+  useMemo,
+  useCallback,
+  type ReactNode,
 } from "react";
-import { authService, User, AuthSession } from "@/lib/services/mockAuth";
 import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
+import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
+import { envClient } from "@/env.client";
+import type { Database } from "@/lib/database.generated";
 
-interface AuthContextType {
-  user: User | null;
-  session: AuthSession | null;
+export interface AuthContextType {
+  user: SupabaseUser | null;
+  session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string) => Promise<{ success: boolean; message: string }>;
-  logout: () => Promise<void>;
-  register: (
-    email: string,
-    name: string,
-  ) => Promise<{ success: boolean; message: string }>;
-  updateProfile: (
-    updates: Partial<User>,
-  ) => Promise<{ success: boolean; user?: User }>;
+  signInWithOtp: (email: string, redirect?: string) => Promise<{ success: boolean; message?: string }>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<AuthSession | null>(null);
+  const supabase = useMemo(
+    () => createBrowserClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ),
+    []
+  );
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Check for existing session on mount
+  // Check for existing session and set up auth listener
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const currentSession = await authService.getSession();
-        if (currentSession) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-        }
-      } catch (error) {
-        console.error("Error checking session:", error);
-      } finally {
-        setIsLoading(false);
+    let mounted = true;
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session ?? null);
+      setUser(data.session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    // Listen for auth changes - only refresh on meaningful events
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      setSession(newSession ?? null);
+      setUser(newSession?.user ?? null);
+      setIsLoading(false);
+
+      // Only refresh SSR on significant auth events
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        router.refresh();
       }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
     };
+  }, [supabase, router]);
 
-    checkSession();
-  }, []);
-
-  const login = async (email: string) => {
+  const signInWithOtp = useCallback(async (email: string, redirect: string = "/capture") => {
     setIsLoading(true);
     try {
-      const result = await authService.login(email);
+      const emailRedirectTo = `${envClient.NEXT_PUBLIC_APP_URL}/auth/callback?redirect=${encodeURIComponent(redirect)}`;
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo },
+      });
 
-      if (result.success && result.session) {
-        setSession(result.session);
-        setUser(result.session.user);
-
-        // Redirect after successful login
-        setTimeout(() => {
-          router.push("/capture");
-        }, 500);
+      if (error) {
+        console.error("Sign in error:", error);
+        return {
+          success: false,
+          message: error.message || "Failed to send magic link"
+        };
       }
 
-      return { success: result.success, message: result.message };
+      return {
+        success: true,
+        message: "Check your email for the magic link!"
+      };
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Sign in error:", error);
       return {
         success: false,
-        message: "An error occurred during login. Please try again.",
+        message: "An error occurred during sign in. Please try again."
       };
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const logout = async () => {
+  const signOut = useCallback(async () => {
     setIsLoading(true);
     try {
-      await authService.logout();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
       setSession(null);
       setUser(null);
+      router.refresh(); // Ensure SSR content updates
       router.push("/");
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Sign out error:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [supabase, router]);
 
-  const register = async (email: string, name: string) => {
-    setIsLoading(true);
-    try {
-      const result = await authService.register(email, name);
 
-      if (result.success) {
-        // Auto-login happens in the service
-        const currentSession = await authService.getSession();
-        if (currentSession) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-
-          // Redirect after successful registration
-          setTimeout(() => {
-            router.push("/capture");
-          }, 500);
-        }
-      }
-
-      return result;
-    } catch (error) {
-      console.error("Registration error:", error);
-      return {
-        success: false,
-        message: "An error occurred during registration. Please try again.",
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateProfile = async (updates: Partial<User>) => {
-    try {
-      const result = await authService.updateProfile(updates);
-
-      if (result.success && result.user) {
-        setUser(result.user);
-        if (session) {
-          setSession({ ...session, user: result.user });
-        }
-      }
-
-      return result;
-    } catch (error) {
-      console.error("Profile update error:", error);
-      return { success: false };
-    }
-  };
-
-  const value: AuthContextType = {
-    user,
-    session,
-    isLoading,
-    isAuthenticated: !!session,
-    login,
-    logout,
-    register,
-    updateProfile,
-  };
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      session,
+      isLoading,
+      isAuthenticated: Boolean(user?.id),
+      signInWithOtp,
+      signOut,
+    }),
+    [user, session, isLoading, signInWithOtp, signOut]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuthContext() {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
 
+// Back-compat alias - remove after migration sprint
+export const useAuthContext = useAuth;
+
 // Higher-order component for protecting routes
 export function withAuth<P extends object>(Component: React.ComponentType<P>) {
   return function AuthenticatedComponent(props: P) {
-    const { isAuthenticated, isLoading } = useAuthContext();
+    const { isAuthenticated, isLoading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -177,6 +159,7 @@ export function withAuth<P extends object>(Component: React.ComponentType<P>) {
       }
     }, [isAuthenticated, isLoading, router]);
 
+    // Explicit loading state - never flash protected content
     if (isLoading) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-black">
@@ -185,6 +168,7 @@ export function withAuth<P extends object>(Component: React.ComponentType<P>) {
       );
     }
 
+    // Not authenticated after loading completes
     if (!isAuthenticated) {
       return null;
     }

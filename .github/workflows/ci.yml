@@ -149,6 +149,81 @@ jobs:
           path: .next/server.log
           if-no-files-found: ignore
 
+  test-migrations:
+    name: Test Migrations & RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: seneca_test
+        # No ports needed - use service name as hostname
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      # Use 'postgres' as hostname (service name)
+      TEST_DATABASE_URL: postgres://postgres:postgres@postgres:5432/seneca_test
+      TEST_DB_CLEAN: "1"
+      PSQL_STATEMENT_TIMEOUT: "300000"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 with npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies (minimal)
+        run: npm ci --omit=dev
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Show psql version
+        run: |
+          which psql || true
+          psql --version
+
+      - name: Wait for DB
+        run: |
+          for i in {1..30}; do
+            if psql "$TEST_DATABASE_URL" -c "select 1;" >/dev/null 2>&1; then
+              echo "✅ Postgres is ready"
+              exit 0
+            fi
+            echo "Waiting for Postgres ($i/30)..."
+            sleep 1
+          done
+          echo "❌ Postgres did not become ready in time" >&2
+          exit 1
+
+      - name: Run migrations
+        run: |
+          set -o pipefail
+          npm run migrate:testdb 2>&1 | tee migrate.log
+
+      - name: Upload migration log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migrate-log
+          path: migrate.log
+          if-no-files-found: ignore
+
+      - name: Test RLS policies
+        run: npm run test:rls
+
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest

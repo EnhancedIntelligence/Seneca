@@ -3,9 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { useAuthContext } from "@/lib/contexts/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import {
   ArrowRight,
   Mic,
@@ -17,14 +15,9 @@ import {
 } from "lucide-react";
 
 export default function Home() {
-  const { isAuthenticated, isLoading } = useAuthContext();
-  const router = useRouter();
+  const { isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.push("/capture");
-    }
-  }, [isAuthenticated, isLoading, router]);
+  // Removed automatic redirect - let users stay on landing page until they explicitly sign in
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-900 via-black to-zinc-900">

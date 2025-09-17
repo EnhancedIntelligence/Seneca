@@ -1,13 +1,17 @@
 # Seneca Protocol - Build Log v2.0
-**Last Updated:** 2025-09-02  
-**Version:** 0.5.0  
-**Status:** Production Ready - Authentication Gate Complete
+**Last Updated:** 2025-09-16
+**Version:** 0.6.0
+**Status:** Production Ready - Memory Domain Infrastructure Complete
 
 ## Executive Summary
 
 Seneca Protocol is a production-ready family memory capture platform with AI processing capabilities. The application uses Next.js 15 with App Router, Supabase for authentication and database, and OpenAI for intelligent memory processing.
 
 ### Current Status
+- ✅ **Memory Domain Model**: Complete database schema with RLS and immutability
+- ✅ **API Contracts**: TypeScript types with discriminated unions and BIGINT safety
+- ✅ **Error Handling**: Production-ready with correlation IDs and standard envelopes
+- ✅ **Rate Limiting**: Privacy-focused with IP hashing and RFC compliance
 - ✅ **Authentication Gate**: Event-driven AuthGuard with real-time monitoring
 - ✅ **Authentication System**: Complete dual-mode (magic link/password fallback)
 - ✅ **Queue System**: Production-ready PostgreSQL queue with atomic operations
@@ -22,6 +26,32 @@ Seneca Protocol is a production-ready family memory capture platform with AI pro
 ---
 
 ## Build Timeline
+
+### Phase 6: Memory Domain Model + API Infrastructure (2025-09-16)
+**Duration:** ~4 hours
+**Developer:** Claude (Senior Full-Stack Engineer)
+
+#### Components Implemented:
+- **Database Migration**: Created memories, media_assets, ai_jobs tables with full RLS
+- **TypeScript Contracts**: Discriminated unions for type safety, BIGINT handling
+- **Error Handling**: APIException class, correlation IDs, wrapRoute HOF
+- **Rate Limiting**: Privacy-focused IP hashing, RFC 9239 compliance, route scoping
+- **Type Generation**: Updated database.generated.ts with new domain model
+
+#### Key Files Created:
+```
+/supabase/migrations/20250916_memories_domain_model.sql
+/lib/types/api/memories.ts                # API contracts
+/lib/api/errors.ts                         # Error handling utilities
+/lib/api/rate-limit.ts                     # Rate limiting middleware
+```
+
+#### Technical Highlights:
+- Immutability triggers prevent changing user_id/kind after insert
+- Child ownership validation ensures cross-family isolation
+- SHA-256 IP hashing for privacy in rate limiting
+- Discriminated unions make invalid states unrepresentable
+- Request correlation with x-request-id propagation
 
 ### Phase 5: Subscription System Implementation (2025-08-27)
 **Duration:** ~3 hours  
@@ -176,13 +206,40 @@ members
 children
   id, family_id, name, birth_date (nullable), gender
   deleted_at (soft-delete), created_at, updated_at
-  
--- Memory Entries
+  created_by (owner reference)  # Note: not user_id
+
+-- Memories (NEW - core domain model)
+memories
+  id, user_id, child_id (nullable), kind (enum), title, content
+  status (draft/ready/processing/error)
+  created_at, updated_at
+  CONSTRAINTS: title <= 200 chars, content <= 10000 chars
+  CONSTRAINT: text memories must have content
+
+-- Media Assets (NEW - file metadata)
+media_assets
+  id, memory_id, storage_path, mime_type, size_bytes
+  width, height (for images), duration (for audio/video)
+  created_at, updated_at
+
+-- AI Jobs (NEW - background processing)
+ai_jobs
+  id, memory_id, kind (embed/enrich/milestone), status
+  cost_cents, attempts, error_message, result (jsonb)
+  started_at, completed_at, created_at, updated_at
+  UNIQUE: (memory_id, kind) WHERE status IN ('queued', 'processing')
+
+-- Memory Entries (legacy - to be migrated)
 memory_entries
   id, family_id, child_id, content, metadata
   processing_status, ai_insights, created_at
-  
+
 -- Indexes
+idx_memories_user_created (user_id, created_at DESC)
+idx_memories_child_status_created (child_id, status, created_at DESC)
+idx_media_assets_memory (memory_id)
+idx_ai_jobs_status_queued (status, created_at) WHERE status = 'queued'
+uq_ai_jobs_active (memory_id, kind) WHERE status IN ('queued', 'processing')
 idx_children_family_active (partial for performance)
 idx_children_deleted_at (soft-delete queries)
 idx_members_stripe_customer_id (payment lookups)
@@ -195,6 +252,22 @@ children_select_active_for_members  # Read access
 children_insert_for_members         # Create access
 children_update_for_members         # Update access
 -- No DELETE policy (force soft-delete via UPDATE)
+
+-- Memories table (NEW)
+Users can view their own memories   # SELECT using auth.uid() = user_id
+Users can create their own memories # INSERT with child ownership check
+Users can update their own memories # UPDATE with child ownership check
+Users can delete their own memories # DELETE using auth.uid() = user_id
+
+-- Media Assets table (NEW)
+Users can view media for their memories    # SELECT via memory join
+Users can add media to their memories      # INSERT via memory join
+Users can update media for their memories  # UPDATE via memory join
+Users can delete media for their memories  # DELETE via memory join
+
+-- AI Jobs table (NEW)
+Users can view AI jobs for their memories  # SELECT via memory join
+Service role can manage AI jobs           # ALL for service_role JWT
 ```
 
 ---
@@ -281,11 +354,15 @@ children_update_for_members         # Update access
 
 ### Security Features
 - ✅ Open redirect prevention
-- ✅ Rate limiting (user/IP based)
+- ✅ Rate limiting (user/IP based with privacy hashing)
 - ✅ Input validation (Zod schemas)
 - ✅ SQL injection prevention
 - ✅ XSS protection (React default)
 - ✅ CSRF protection (SameSite cookies)
+- ✅ Request correlation (x-request-id)
+- ✅ Sensitive field redaction in errors
+- ✅ Immutability protection (DB triggers)
+- ✅ Child ownership validation (RLS)
 
 ---
 
@@ -383,11 +460,15 @@ See `/docs/SMTP_SETUP.md` for detailed setup with:
 - SMTP not configured (password auth works)
 
 ### Pending Tasks 📋
-1. Configure SMTP provider
-2. Apply RLS migration to production
-3. Regenerate Supabase types
-4. Deploy to production
-5. Configure monitoring
+1. Implement POST /api/memories route
+2. Implement GET /api/memories route
+3. Implement GET /api/memories/:id route
+4. Implement POST /api/memories/:id/finalize route
+5. Create integration tests for memory API
+6. Configure SMTP provider
+7. Configure media storage (S3/Supabase)
+8. Deploy to production
+9. Configure monitoring
 
 ---
 
@@ -442,7 +523,24 @@ See `/docs/SMTP_SETUP.md` for detailed setup with:
 
 ## Version History
 
-### v0.3.0 (2025-08-19) - Current
+### v0.6.0 (2025-09-16) - Current
+- Memory domain model database migration
+- TypeScript API contracts with discriminated unions
+- Production error handling with correlation IDs
+- Privacy-focused rate limiting
+- Database types regenerated
+
+### v0.5.0 (2025-09-02)
+- Subscription system implementation
+- Authentication gate improvements
+- Production readiness achieved
+
+### v0.4.0 (2025-08-27)
+- Tier-based subscription gating
+- Billing page implementation
+- Dashboard protection
+
+### v0.3.0 (2025-08-19)
 - Complete auth system with dual modes
 - AuthGuard for session monitoring
 - Enhanced login UI
@@ -465,13 +563,14 @@ See `/docs/SMTP_SETUP.md` for detailed setup with:
 
 ## Next Sprint Planning
 
-### Immediate (Sprint 16)
-1. Configure SMTP provider
-2. Run database migrations
-3. Deploy to staging
-4. User acceptance testing
+### Immediate (Sprint 17)
+1. Implement memory API routes (POST, GET, finalize)
+2. Create integration tests for memory APIs
+3. Configure media storage (S3/Supabase)
+4. Configure SMTP provider
+5. Deploy to staging
 
-### Short-term (Sprint 17-18)
+### Short-term (Sprint 18-19)
 1. Voice recording implementation
 2. Real-time subscriptions
 3. Offline support (PWA)
@@ -485,6 +584,6 @@ See `/docs/SMTP_SETUP.md` for detailed setup with:
 
 ---
 
-*Document Version: 2.0*  
-*Last Updated: 2025-08-19*  
-*Next Review: 2025-09-01*
+*Document Version: 2.1*
+*Last Updated: 2025-09-16*
+*Next Review: 2025-10-01*

@@ -17,42 +17,67 @@ const AllowedTypes = [
 ] as const;
 const allowed = new Set<string>(AllowedTypes);
 
+const SAFE_DEFAULT = "/overview";
+
 /** Only allow same-origin relative paths and prevent redirect loops/odd UX. */
-function sanitizeNext(nextParam: string | null | undefined): string {
-  const SAFE = "/overview";
-  if (!nextParam) return SAFE;
+function sanitizeNext(nextParam: string | null | undefined, baseUrl: URL): string {
+  // 1) Fast exits + bounds
+  if (!nextParam) return SAFE_DEFAULT;
+  let raw = nextParam.trim();
+  if (raw.length === 0 || raw.length > 1024) return SAFE_DEFAULT;
 
-  // Trim & cap length
-  const raw = nextParam.trim();
-  if (raw.length === 0 || raw.length > 2048) return SAFE;
-
+  // 2) Decode once to surface attempts like https%3A%2F%2Fevil.com or %2F%2Fevil.com
   try {
-    // Only allow same-origin relative paths
-    const u = new URL(raw, "http://local");
-    if (u.origin !== "http://local") return SAFE;
-    if (!u.pathname.startsWith("/")) return SAFE;
-
-    // Block problematic prefixes (loops/internal)
-    const blockedPrefixes = [
-      "/onboarding",
-      "/auth",
-      "/login",
-      "/logout",
-      "/api",
-      "/_next",
-      "/static",
-      "/images",
-    ];
-    if (blockedPrefixes.some(p => u.pathname === p || u.pathname.startsWith(p + "/"))) {
-      return SAFE;
-    }
-
-    // Normalize trailing slashes  
-    const path = u.pathname.replace(/\/+$/, "") || SAFE;
-    return path + (u.search || "") + (u.hash || "");
+    raw = decodeURIComponent(raw);
   } catch {
-    return SAFE;
+    // if decode fails, fall back to SAFE
+    return SAFE_DEFAULT;
   }
+
+  // 3) Block control chars and backslashes
+  if (/[\u0000-\u001F\u007F\\]/.test(raw)) return SAFE_DEFAULT;
+
+  // 4) Block protocol-relative and absolute URLs (open redirect vectors)
+  if (raw.startsWith("//")) return SAFE_DEFAULT;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) return SAFE_DEFAULT;
+
+  // 5) Build a URL against the current origin for robust origin checks
+  let candidate: URL;
+  try {
+    candidate = new URL(raw, baseUrl);
+  } catch {
+    return SAFE_DEFAULT;
+  }
+
+  // 6) Enforce same-origin only
+  if (candidate.origin !== baseUrl.origin) return SAFE_DEFAULT;
+
+  // 7) Only allow root-relative paths
+  const pathname = candidate.pathname.startsWith("/")
+    ? candidate.pathname
+    : `/${candidate.pathname}`;
+
+  // 8) Block problematic prefixes (loops/internal)
+  const blockedPrefixes = [
+    "/onboarding",
+    "/auth",
+    "/login",
+    "/logout",
+    "/api",
+    "/_next",
+    "/static",
+    "/images",
+  ];
+
+  if (blockedPrefixes.some(p => pathname === p || pathname.startsWith(p + "/"))) {
+    return SAFE_DEFAULT;
+  }
+
+  // 9) Collapse multiple slashes for cleaner URLs
+  const normPath = pathname.replace(/\/{2,}/g, '/');
+
+  // 10) Return a clean relative path with query + hash, never echoing attacker input
+  return `${normPath}${candidate.search}${candidate.hash}`;
 }
 
 /**
@@ -108,7 +133,7 @@ async function redirectAfterAuth(
   const onboardingEnabled = process.env.SENECA_ONBOARDING_V1 === "true";
 
   // Always sanitize next; safe default already set to "/overview"
-  const safeNext = sanitizeNext(nextParam);
+  const safeNext = sanitizeNext(nextParam, url);
 
   // If feature is disabled, behave exactly like pre-onboarding
   if (!onboardingEnabled) {
@@ -134,18 +159,28 @@ async function redirectAfterAuth(
  * Unified Auth Callback Route
  * - OAuth: /auth/callback?code=XXX&next=/dashboard
  * - Magic: /auth/callback?token_hash=XXX&type=email&next=/dashboard
+ *
+ * Security: Uses sanitizeReturnTo to prevent open redirects
  */
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
 
-  // Decode next parameter for later use
+  // Get parameters
   const nextParam = url.searchParams.get("next");
+  const code = url.searchParams.get("code");
+
+  // For E2E testing: if code=test, immediately redirect with sanitized path
+  // This allows testing the sanitization without real auth (dev only)
+  if (code === 'test' && process.env.NODE_ENV !== 'production') {
+    const target = sanitizeNext(nextParam, url);
+    return NextResponse.redirect(new URL(target, url.origin), { status: 302 });
+  }
+
+  // Decode next parameter for later use in real auth flow
   const decodedNext = (() => {
     try { return nextParam ? decodeURIComponent(nextParam) : null; }
     catch { return null; }
   })();
-
-  const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
   const error = url.searchParams.get("error");
@@ -154,7 +189,8 @@ export async function GET(req: NextRequest) {
   // Provider error (e.g., user denied OAuth)
   if (error && !code && !tokenHash) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(errorDescription || error)}`, url.origin)
+      new URL(`/login?error=${encodeURIComponent(errorDescription || error)}`, url.origin),
+      { status: 302 }
     );
   }
 
@@ -166,27 +202,28 @@ export async function GET(req: NextRequest) {
       const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
       if (exchangeError) {
         return NextResponse.redirect(
-          new URL(`/login?error=${encodeURIComponent(exchangeError.message ?? "Authentication failed")}`, url.origin)
+          new URL(`/login?error=${encodeURIComponent(exchangeError.message ?? "Authentication failed")}`, url.origin),
+          { status: 302 }
         );
       }
       
       // Verify session was created
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin));
+        return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin), { status: 302 });
       }
       
       // Handle post-auth redirect with onboarding check
       return redirectAfterAuth(
-        supabase, 
-        session.user.id, 
-        url, 
+        supabase,
+        session.user.id,
+        url,
         decodedNext,
         session.user.email ?? null,
         session.user.user_metadata ?? {}
       );
     } catch {
-      return NextResponse.redirect(new URL("/login?error=Authentication%20failed", url.origin));
+      return NextResponse.redirect(new URL("/login?error=Authentication%20failed", url.origin), { status: 302 });
     }
   }
 
@@ -201,20 +238,20 @@ export async function GET(req: NextRequest) {
           /rate|seconds/i.test(otpError.message ?? "")
             ? "Too%20many%20attempts.%20Please%20wait%2030%20seconds"
             : encodeURIComponent(otpError.message ?? "Verification failed");
-        return NextResponse.redirect(new URL(`/login?error=${msg}`, url.origin));
+        return NextResponse.redirect(new URL(`/login?error=${msg}`, url.origin), { status: 302 });
       }
       
       // Verify session was created
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin));
+        return NextResponse.redirect(new URL("/login?error=Session%20creation%20failed", url.origin), { status: 302 });
       }
       
       // Handle post-auth redirect with onboarding check
       return redirectAfterAuth(
-        supabase, 
-        session.user.id, 
-        url, 
+        supabase,
+        session.user.id,
+        url,
         decodedNext,
         session.user.email ?? null,
         session.user.user_metadata ?? {}
@@ -222,10 +259,13 @@ export async function GET(req: NextRequest) {
     } catch (err) {
       /* eslint-disable-next-line no-console */
       console.error("OTP verification error:", err);
-      return NextResponse.redirect(new URL("/login?error=Verification%20failed", url.origin));
+      return NextResponse.redirect(new URL("/login?error=Verification%20failed", url.origin), { status: 302 });
     }
   }
 
   // No valid auth parameters
-  return NextResponse.redirect(new URL("/login?error=Invalid%20authentication%20link", url.origin));
+  return NextResponse.redirect(new URL("/login?error=Invalid%20authentication%20link", url.origin), { status: 302 });
 }
+
+// Some IdPs POST to the callback
+export const POST = GET;

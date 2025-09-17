@@ -29,6 +29,59 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_jobs: {
+        Row: {
+          attempts: number | null
+          completed_at: string | null
+          cost_cents: number | null
+          created_at: string
+          error_message: string | null
+          id: string
+          kind: Database["public"]["Enums"]["ai_job_kind"]
+          memory_id: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["ai_job_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number | null
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["ai_job_kind"]
+          memory_id: string
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ai_job_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number | null
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["ai_job_kind"]
+          memory_id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ai_job_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_jobs_memory_id_fkey"
+            columns: ["memory_id"]
+            isOneToOne: false
+            referencedRelation: "memories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       children: {
         Row: {
           birth_date: string
@@ -230,6 +283,53 @@ export type Database = {
           },
         ]
       }
+      media_assets: {
+        Row: {
+          created_at: string
+          duration: number | null
+          height: number | null
+          id: string
+          memory_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration?: number | null
+          height?: number | null
+          id?: string
+          memory_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration?: number | null
+          height?: number | null
+          id?: string
+          memory_id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_assets_memory_id_fkey"
+            columns: ["memory_id"]
+            isOneToOne: false
+            referencedRelation: "memories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       members: {
         Row: {
           active_subscription: boolean
@@ -331,6 +431,50 @@ export type Database = {
           old_full_name?: string | null
         }
         Relationships: []
+      }
+      memories: {
+        Row: {
+          child_id: string | null
+          content: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["memory_kind"]
+          status: Database["public"]["Enums"]["memory_status"]
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          child_id?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["memory_kind"]
+          status?: Database["public"]["Enums"]["memory_status"]
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          child_id?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["memory_kind"]
+          status?: Database["public"]["Enums"]["memory_status"]
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memories_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       memory_entries: {
         Row: {
@@ -1057,7 +1201,11 @@ export type Database = {
       }
     }
     Enums: {
+      ai_job_kind: "embed" | "enrich" | "milestone"
+      ai_job_status: "queued" | "processing" | "done" | "error"
       family_role_enum: "admin" | "parent" | "guardian" | "viewer"
+      memory_kind: "text" | "audio" | "image" | "video"
+      memory_status: "draft" | "ready" | "processing" | "error"
       processing_status_enum:
         | "queued"
         | "processing_classification"
@@ -1201,7 +1349,11 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_job_kind: ["embed", "enrich", "milestone"],
+      ai_job_status: ["queued", "processing", "done", "error"],
       family_role_enum: ["admin", "parent", "guardian", "viewer"],
+      memory_kind: ["text", "audio", "image", "video"],
+      memory_status: ["draft", "ready", "processing", "error"],
       processing_status_enum: [
         "queued",
         "processing_classification",

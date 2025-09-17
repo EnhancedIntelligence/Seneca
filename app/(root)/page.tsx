@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { useAuth } from "@/lib/contexts/AuthContext";
 import {
   ArrowRight,
   Mic,
@@ -15,8 +14,6 @@ import {
 } from "lucide-react";
 
 export default function Home() {
-  const { isAuthenticated } = useAuth();
-
   // Removed automatic redirect - let users stay on landing page until they explicitly sign in
 
   return (

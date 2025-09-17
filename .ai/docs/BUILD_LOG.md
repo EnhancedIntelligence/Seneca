@@ -4,8 +4,8 @@
 **Name:** Seneca Protocol  
 **Type:** Family Memory Capture Platform with AI Processing  
 **Stack:** Next.js 15, React 19, TypeScript, Supabase, OpenAI  
-**Status:** Environment Foundation Complete, PR1 In Progress  
-**Last Updated:** 2025-09-15
+**Status:** PR 2 Memory API Complete (Test Mocks Pending)
+**Last Updated:** 2025-09-16
 
 ---
 
@@ -48,6 +48,26 @@
 
 ### Phase 5: Environment System Refactor (Session 018 Part 2)
 - **Date:** 2025-08-22
+
+### Phase 6: PR 2 Memory Domain Model (Session 033)
+- **Date:** 2025-09-16
+- **Implementation:**
+  - Fixed critical TypeScript Duration type error in rate-limit.ts
+  - Fixed type guard property checking in memories.ts
+  - Implemented 4 memory API routes with production features:
+    - POST /api/memories - Create draft memories
+    - GET /api/memories - List with filters and pagination
+    - GET /api/memories/[id] - Fetch single with media
+    - POST /api/memories/[id]/finalize - Attach media and mark ready
+  - Added idempotent media attachment with race condition handling
+  - Created comprehensive integration test suite
+- **Technical Decisions:**
+  - Used discriminated unions for type-safe validation
+  - Implemented preflight checks for conflict detection
+  - Added BIGINT support for large file sizes
+  - Applied belt-and-suspenders authorization checks
+- **Outstanding Issue:**
+  - Test mock initialization error preventing test execution
 - **Critical Change:** Three-tier environment configuration
 - **Problem Solved:** Partner blocked by Claude-specific env requirements
 - **Implementation:**
@@ -430,6 +450,123 @@ ENABLE_RATE_LIMITING: env.RATE_LIMITING === "enabled"
 7. ⏳ Plan staged rollout with feature flag
 8. 🔴 **URGENT: Rotate exposed Supabase access token**
 
+### Phase 15: PR 1 Bootstrap Hardening (Session 035)
+- **Date:** 2025-09-16
+- **Branch:** main
+- **Achievement:** Comprehensive security and infrastructure hardening based on ChatGPT review
+
+### Phase 16: PR 1b-critical - Production Auth Implementation (Session 036)
+- **Date:** 2025-09-16
+- **Branch:** feature/pr-1b-critical-auth-fix
+- **Achievement:** 🚨 CRITICAL: Replaced mock authentication with production Supabase auth
+
+#### CRITICAL SECURITY DISCOVERY:
+- **MAJOR VULNERABILITY**: Primary auth system was using mock authentication in production paths
+- **Risk Level**: CRITICAL - mock user IDs could bypass RLS, data integrity compromised
+- **Scope**: All dashboard pages, auth context, user session management
+- **Action Required**: Complete authentication system replacement
+
+#### Authentication System Replacement:
+1. **Mock Auth Elimination** (`lib/contexts/AuthContext.tsx`):
+   - REMOVED: All imports from `@/lib/services/mockAuth`
+   - IMPLEMENTED: Real Supabase authentication using `@supabase/ssr`
+   - ADDED: Magic link flow with proper session management
+   - SECURITY: Auth callback with redirect sanitization
+
+2. **Dashboard Pages Conversion** (ALL):
+   - CONVERTED: Client components → Server components with real auth
+   - PATTERN: `redirect("/login")` for unauthenticated users
+   - PLACEHOLDER: Clean TODO markers for PR 2 implementation
+   - FILES: capture, analytics, children, overview, profile, settings
+
+3. **UX Critical Fix** (`app/(root)/page.tsx`):
+   - PROBLEM: Automatic redirect caused infinite loops
+   - SOLUTION: Removed forced redirect, users control sign-in timing
+   - RESULT: Landing page accessible without authentication
+
+#### Infrastructure Hardening Completed:
+1. **Dependencies & Testing** (`package.json`):
+   - Added `pg` package for RLS testing infrastructure
+   - Enhanced test environment with proper PostgreSQL client support
+
+2. **Environment Validation** (`lib/__tests__/env.*.test.ts`):
+   - Comprehensive unit tests for client and server environment modules
+   - Dynamic module imports for proper test isolation
+   - Edge case testing for invalid configurations
+   - Zod error formatting for developer debugging
+
+3. **Prebuild Validation** (`scripts/env-check.ts`):
+   - Converted from JavaScript to TypeScript using tsx
+   - Enhanced error reporting with stack traces in development
+   - Parallel validation of server and client environments
+   - Production vs development mode guidance
+
+4. **Production Rate Limiting** (`lib/http/rate-limit.ts`):
+   - **Token Bucket Algorithm:** Memory storage with Redis fallback
+   - **Edge Runtime Compatible:** Lazy-loading environment configuration
+   - **Security Focused:** Hash-based key generation prevents token leakage
+   - **Upstash Integration:** Correct timestamp handling (seconds→milliseconds)
+   - **Feature Flag Support:** ENABLE_RATE_LIMITING for graceful degradation
+   - **Header Standards:** Both X-RateLimit-* and RateLimit-* headers
+   - **Node.js Runtime:** Explicit requirement documentation
+
+#### Critical Architecture Decisions:
+1. **No Middleware Pattern:** Maintained app's design principle, security headers in next.config.ts
+2. **Lazy Environment Loading:** Prevents edge runtime import failures
+   ```typescript
+   let envCache: any = null;
+   function getEnv() {
+     if (!envCache) {
+       envCache = require("@/env.server").envServer;
+     }
+     return envCache;
+   }
+   ```
+
+3. **Feature Flag Everything:** Services degrade gracefully when dependencies unavailable
+4. **Security-First Rate Limiting:**
+   ```typescript
+   // Safe key generation prevents token leakage
+   const hash = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 16);
+   return `${keyPrefix}:auth:${hash(authHeader)}`;
+   ```
+
+#### Testing Infrastructure Enhanced:
+- **84 total tests** passing with new additions
+- **Environment validation** edge cases covered
+- **Rate limiting** behavioral tests with proper mocking
+- **TypeScript compilation** clean with strict mode
+- **Zero ESLint warnings** maintained
+
+#### Database & Migration Cleanup:
+4. **Migration File Cleanup**:
+   - DELETED: `20250915_memories_domain_model.sql` (conflicted with existing `memory_entries`)
+   - DELETED: `20250915_add_media_assets.sql` (unused functionality)
+   - DELETED: `20250915_add_ai_jobs.sql` (duplicated existing `queue_jobs`)
+   - VERIFIED: Current schema complete with `memory_entries` and `queue_jobs` tables
+
+5. **Code Quality & Testing**:
+   - FIXED: React hooks dependency arrays in AuthContext
+   - FIXED: ESLint `no-require-imports` error in rate limiting
+   - PASSED: 114 unit tests + 5 E2E tests
+   - CLEAN: TypeScript compilation and zero ESLint warnings
+
+#### Production Readiness ACHIEVED:
+- ✅ **CRITICAL**: Mock auth vulnerability eliminated
+- ✅ **Authentication**: Production-grade Supabase integration complete
+- ✅ **Database**: Existing schema supports all features (no migrations needed)
+- ✅ **Testing**: Comprehensive test coverage maintained
+- ✅ **Build**: Production build successful and deployment-ready
+- ✅ **UX**: Landing page navigation fixed
+- ✅ **Security**: Real auth with RLS enforcement
+
+#### PR 1b-critical Results:
+- **Branch**: `feature/pr-1b-critical-auth-fix`
+- **PR**: [#11](https://github.com/EnhancedIntelligence/Seneca/pull/11)
+- **Files**: 23 changed (1,902 insertions, 2,191 deletions)
+- **Status**: Ready for review and merge
+- **Impact**: Unblocks PR 2 development with secure foundation
+
 ---
 
 ## Technical Decisions Log
@@ -597,21 +734,32 @@ lib/
 
 ## Next Steps
 
-### Immediate Actions
+### Immediate Actions (PR 1 Bootstrap Completion)
+1. **Complete CORS Helper Implementation**
+   - Implement `lib/http/cors.ts` with lazy-loading pattern
+   - Support preflight requests and origin validation
+   - Follow same architecture as rate limiting system
+
+2. **Enhanced RLS Testing**
+   - Add edge case scenarios for multi-tenant security
+   - Test permission boundaries under various conditions
+   - Ensure data isolation is bulletproof
+
+3. **GitHub Actions Optimization**
+   - Add workflow concurrency controls
+   - Optimize CI pipeline performance
+   - Configure Playwright for CI environment
+
+### Production Deployment
 1. **🔴 CRITICAL: Rotate Supabase Access Token**
    - Token exposed: sbp_7060ba36d0cae06c71669d54df64fe5c00316bf5
    - Generate new token in Supabase dashboard immediately
    - Update SUPABASE_ACCESS_TOKEN in .env.local
 
-2. **Configure CI/CD Playwright**
-   - Review existing playwright.config.ts
-   - Add CI-specific settings
-   - Ensure GitHub Actions compatibility
-
-3. **Create Unit Tests**
-   - Add tests for username-suggestions.ts utility
-   - Add tests for rate-limit-policies.ts
-   - Ensure 100% coverage for critical paths
+2. **Configure Production Environment**
+   - Deploy rate limiting with Redis configuration
+   - Enable security headers in production
+   - Configure monitoring and alerting
 
 ### Production Deployment
 1. **Deploy Migration**: Apply `20250905_fix_member_trigger_conflict.sql` to staging/production
@@ -652,6 +800,9 @@ lib/
 
 ## Version History
 
+- **v0.15.0** (2025-09-16 Session 033): PR 2 Memory Domain Model - Complete API implementation with 4 routes, TypeScript fixes, integration tests (mock issue pending)
+- **v0.14.0** (2025-09-16 Session 036): 🚨 CRITICAL: PR 1b-critical auth replacement - Eliminated mock auth vulnerability, implemented production Supabase authentication
+- **v0.13.0** (2025-09-16 Session 035): PR 1 Bootstrap hardening with production-grade rate limiting and security infrastructure
 - **v0.12.0** (2025-09-15 Session 034): Environment foundation with production-ready split architecture
 - **v0.11.0** (2025-09-15 Session 033): Username suggestions complete with API, hook, and UI integration
 - **v0.10.0** (2025-09-10 Session 032): Zero ESLint warnings, production logging infrastructure

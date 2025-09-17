@@ -1,213 +1,163 @@
- 
 /**
- * Memories Collection Route Handler
- * Handles listing and creating memories with proper auth and rate limiting
+ * Memories API Routes
+ * - POST /api/memories: create draft memory
+ * - GET  /api/memories: list memories (with filters + pagination)
  */
 
-import { NextRequest } from "next/server";
-import { ok, err, readJson, paginatedResponse } from "@/lib/server/api";
+import { z } from 'zod';
+import { createClient } from '@/utils/supabase/server';
 import {
-  requireUser,
-  requireFamilyAccess,
-  requireSubscription,
-} from "@/lib/server/auth";
-import { ValidationError, ForbiddenError } from "@/lib/server/errors";
-import { checkRateLimit } from "@/lib/server/middleware/rate-limit";
-import { createAdminClient } from "@/lib/server-only/admin-client";
-import { MemoryQueue } from "@/lib/queue";
-import { validateRequestBody, memorySchema } from "@/lib/validation";
-import { StatusCompat } from "@/lib/database-compatibility";
-import type { Database } from "@/lib/types";
+  wrapRoute,
+  jsonResponse,
+  createSuccessResponse,
+  APIException,
+  ErrorCode,
+  mapZodError,
+  mapDbError,
+  parseJsonBody,
+} from '@/lib/api/errors';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/api/rate-limit';
+import {
+  MemoryKindValues,
+  MemoryStatusValues,
+  DEFAULT_MEMORIES_PER_PAGE,
+  MAX_TITLE_LENGTH,
+  MAX_CONTENT_LENGTH,
+} from '@/lib/types/api/memories';
 
-/**
- * GET /api/memories
- * List memories with filtering and pagination
- */
-export async function GET(request: NextRequest) {
-  try {
-    const user = await requireSubscription(request);
+/* ----------------------------- Validation Schemas ---------------------------- */
 
-    const { searchParams } = new URL(request.url);
-    const familyId = searchParams.get("family_id");
-    const search = searchParams.get("search");
-    const childId = searchParams.get("child_id");
-    const category = searchParams.get("category");
-    const processingStatus = searchParams.get("processing_status");
-    const limitParam = parseInt(searchParams.get("limit") || "20", 10);
-    const offset = parseInt(searchParams.get("offset") || "0", 10);
+const zCreate = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('text'),
+    title: z.string().max(MAX_TITLE_LENGTH).nullable().optional(),
+    child_id: z.string().uuid().nullable().optional(),
+    content: z.string().min(1).max(MAX_CONTENT_LENGTH), // required for text
+  }),
+  z.object({
+    kind: z.enum(['audio', 'image', 'video']),
+    title: z.string().max(MAX_TITLE_LENGTH).nullable().optional(),
+    child_id: z.string().uuid().nullable().optional(),
+    content: z.string().max(MAX_CONTENT_LENGTH).nullable().optional(), // optional caption/notes
+  }),
+]);
 
-    // Validate required parameters
-    if (!familyId) {
-      throw new ValidationError("family_id parameter is required");
-    }
+/* --------------------------------- POST / ---------------------------------- */
 
-    const limit = Number.isFinite(limitParam)
-      ? Math.min(Math.max(limitParam, 1), 50)
-      : 20;
+export const POST = wrapRoute(async (req, { requestId }) => {
+  const supabase = await createClient();
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  const user = auth?.user;
+  if (authError || !user) {
+    throw new APIException(ErrorCode.UNAUTHORIZED, 'Authentication required', undefined, 401);
+  }
 
-    // Verify user has access to this family
-    await requireFamilyAccess(user.id, familyId);
+  // Apply rate limiting (user-scoped)
+  const rateHeaders = await withRateLimit(RATE_LIMIT_CONFIGS.createMemory)(req, user.id);
 
-    const adminClient = createAdminClient();
+  // Validate body
+  const body = await parseJsonBody<unknown>(req);
+  const parsed = zCreate.safeParse(body);
+  if (!parsed.success) throw mapZodError(parsed.error);
 
-    // Build query for memories
-    let query = adminClient
-      .from("memory_entries")
-      .select(
-        `
-        id,
-        title,
-        content,
-        category,
-        tags,
-        memory_date,
-        created_at,
-        updated_at,
-        processing_status,
-        milestone_detected,
-        milestone_type,
-        milestone_confidence,
-        classification_confidence,
-        image_urls,
-        video_urls,
-        location_name,
-        location_lat,
-        location_lng,
-        child_id,
-        family_id,
-        created_by,
-        needs_review,
-        error_message,
-        app_context
-      `,
-      )
-      .eq("family_id", familyId)
-      .order("created_at", { ascending: false });
-
-    // Apply filters
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
-    }
-
-    if (childId) {
-      query = query.eq("child_id", childId);
-    }
-
-    if (category) {
-      query = query.eq("category", category);
-    }
-
-    if (processingStatus) {
-      query = query.eq(
-        "processing_status",
-        processingStatus as Database["public"]["Enums"]["processing_status_enum"],
+  // Optional: pre-check child ownership for clearer errors (RLS will enforce anyway)
+  if (parsed.data.child_id) {
+    const { data: child, error: childErr } = await supabase
+      .from('children')
+      .select('id')
+      .eq('id', parsed.data.child_id)
+      .eq('created_by', user.id)
+      .maybeSingle();
+    if (childErr) throw mapDbError(childErr);
+    if (!child) {
+      throw new APIException(
+        ErrorCode.FORBIDDEN,
+        'Child not found or access denied',
+        { child_id: parsed.data.child_id },
+        403
       );
     }
-
-    // Apply pagination
-    if (limit > 0) {
-      query = query.limit(limit);
-    }
-
-    if (offset > 0) {
-      query = query.range(offset, offset + limit - 1);
-    }
-
-    const { data: memories, error: memoriesError } = await query;
-
-    if (memoriesError) {
-      console.error("Error fetching memories:", memoriesError);
-      throw new Error("Failed to fetch memories");
-    }
-
-    // Filter out items the current user has soft-deleted (hidden)
-    const visibleMemories = (memories || []).filter((m: any) => {
-      const ctx = m.app_context as Record<string, any> | null;
-      const hiddenBy = ctx?.hidden_by;
-      return !(hiddenBy && typeof hiddenBy === "object" && hiddenBy[user.id]);
-    });
-
-    // Get total count for pagination (excluding hidden is approximated)
-    const { count: totalCount } = await adminClient
-      .from("memory_entries")
-      .select("id", { count: "exact" })
-      .eq("family_id", familyId);
-
-    return paginatedResponse(visibleMemories, totalCount || 0, limit, offset);
-  } catch (error) {
-    return err(error);
   }
-}
 
-/**
- * POST /api/memories
- * Create a new memory with optional AI processing
- */
-export async function POST(request: NextRequest) {
-  try {
-    const user = await requireSubscription(request);
+  // Insert draft memory (RLS WITH CHECK enforces ownership)
+  const { data: memory, error: insErr } = await supabase
+    .from('memories')
+    .insert([{ user_id: user.id, status: 'draft', ...parsed.data }])
+    .select('*')
+    .single();
 
-    // Rate limit memory creation
-    await checkRateLimit(`${user.id}:memory-create`);
+  if (insErr) throw mapDbError(insErr);
 
-    // Validate request body
-    const body = await readJson(request);
-    const validation = validateRequestBody(memorySchema, body);
+  return jsonResponse(
+    createSuccessResponse({ memory }, requestId),
+    { status: 201, headers: { ...rateHeaders } }
+  );
+}, ['POST']);
 
-    if (!validation.success) {
-      throw new ValidationError("Validation failed", validation.errors);
-    }
+/* ---------------------------------- GET / ---------------------------------- */
 
-    const { content, childId, familyId, location, category } = validation.data;
+export const GET = wrapRoute(async (req, { requestId }) => {
+  const supabase = await createClient();
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  const user = auth?.user;
+  if (authError || !user) {
+    throw new APIException(ErrorCode.UNAUTHORIZED, 'Authentication required', undefined, 401);
+  }
 
-    // Verify user has access to this family
-    await requireFamilyAccess(user.id, familyId);
+  // Apply rate limiting (user-scoped for GET as well)
+  const rateHeaders = await withRateLimit(RATE_LIMIT_CONFIGS.get)(req, user.id);
 
-    // Create memory entry
-    const adminClient = createAdminClient();
-    const { data: memory, error: createError } = await adminClient
-      .from("memory_entries")
-      .insert({
-        content,
-        child_id: childId,
-        family_id: familyId,
-        location,
-        category,
-        processing_status: StatusCompat.toNew("pending"),
-        created_by: user.id,
-      })
-      .select()
-      .single();
+  const url = new URL(req.url);
+  // Support both ?per_page and ?limit; cap at 100
+  const perPageRaw = url.searchParams.get('per_page') ?? url.searchParams.get('limit') ?? `${DEFAULT_MEMORIES_PER_PAGE}`;
+  const limit = Math.min(Math.max(parseInt(perPageRaw, 10) || DEFAULT_MEMORIES_PER_PAGE, 1), 100);
+  const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0);
 
-    if (createError) {
-      console.error("Memory creation error:", createError);
-      throw new Error("Failed to create memory");
-    }
+  const status = url.searchParams.get('status');
+  const childId = url.searchParams.get('child_id');
+  const kind   = url.searchParams.get('kind');
+  const search = url.searchParams.get('search'); // title/content
 
-    // Add to processing queue (optional, non-blocking)
-    let jobId: string | undefined;
-    try {
-      const queue = new MemoryQueue();
-      jobId = await queue.addJob(memory.id, familyId);
-    } catch (queueError) {
-      // Log but don't fail the request if queue is unavailable
-      console.error("Queue error (non-blocking):", queueError);
-    }
+  // Build RLS-protected query with stable ordering
+  let q = supabase
+    .from('memories')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false }); // Secondary sort for stability
 
-    return ok(
+  // Apply filters with type-safe enum checks
+  if (status && (MemoryStatusValues as readonly string[]).includes(status)) {
+    q = q.eq('status', status as 'draft' | 'ready' | 'processing' | 'error');
+  }
+  if (kind && (MemoryKindValues as readonly string[]).includes(kind)) {
+    q = q.eq('kind', kind as 'text' | 'audio' | 'image' | 'video');
+  }
+  if (childId) {
+    q = q.eq('child_id', childId);
+  }
+  if (search) {
+    q = q.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+  }
+
+  q = q.range(offset, offset + limit - 1);
+
+  const { data, error, count } = await q;
+  if (error) throw mapDbError(error);
+
+  return jsonResponse(
+    createSuccessResponse(
       {
-        id: memory.id,
-        content: memory.content,
-        processing_status: memory.processing_status,
-        created_at: memory.created_at,
-        jobId,
-        message: jobId
-          ? "Memory created and queued for processing"
-          : "Memory created (processing queue unavailable)",
+        memories: data ?? [],
+        pagination: {
+          total: count ?? 0,
+          page: Math.floor(offset / limit) + 1,
+          per_page: limit,
+          has_next: (count ?? 0) > offset + limit,
+          has_prev: offset > 0,
+        },
       },
-      201,
-    ); // 201 Created for POST
-  } catch (error) {
-    return err(error);
-  }
-}
+      requestId
+    ),
+    { headers: { ...rateHeaders } }
+  );
+}, ['GET']);

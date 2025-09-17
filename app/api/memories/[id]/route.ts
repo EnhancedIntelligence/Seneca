@@ -1,203 +1,90 @@
- 
 /**
- * Memory Individual Route Handler
- * Template for refactored API routes using centralized utilities
+ * Individual Memory API Routes
+ * - GET /api/memories/[id]: fetch single memory (with media assets)
  */
 
-import { NextRequest } from "next/server";
-import { ok, err, readJson, paginatedResponse } from "@/lib/server/api";
-import { requireUser, requireFamilyAccess } from "@/lib/server/auth";
+import { createClient } from '@/utils/supabase/server';
 import {
-  NotFoundError,
-  ForbiddenError,
-  ValidationError,
-} from "@/lib/server/errors";
-import { checkRateLimit } from "@/lib/server/middleware/rate-limit";
-import { createAdminClient } from "@/lib/server-only/admin-client";
-import { z } from "zod";
-import type { Database } from "@/lib/types";
+  wrapRoute,
+  jsonResponse,
+  createSuccessResponse,
+  APIException,
+  ErrorCode,
+  mapDbError,
+} from '@/lib/api/errors';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/api/rate-limit';
 
-// Validation schema for updates
-const memoryUpdateSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  content: z.string().min(1).max(10000).optional(),
-  category: z.string().max(50).optional(),
-  tags: z.array(z.string().max(50)).max(50).optional(),
-  memory_date: z.string().datetime().optional(),
-  location_name: z.string().max(200).optional().nullable(),
-  location_lat: z.number().min(-90).max(90).optional().nullable(),
-  location_lng: z.number().min(-180).max(180).optional().nullable(),
-});
-
-type MemoryUpdate = z.infer<typeof memoryUpdateSchema>;
-
-/**
- * GET /api/memories/[id]
- * Fetch a specific memory if the user has access
- */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await requireUser(req);
-    const adminClient = createAdminClient();
-    const resolvedParams = await params;
-
-    // Fetch memory
-    const { data: memory, error } = await adminClient
-      .from("memory_entries")
-      .select("*")
-      .eq("id", resolvedParams.id)
-      .single();
-
-    if (error || !memory) {
-      throw new NotFoundError("Memory not found");
-    }
-
-    if (!memory.family_id) {
-      throw new NotFoundError("Memory has no associated family");
-    }
-
-    // Verify user has access to this family
-    await requireFamilyAccess(user.id, memory.family_id);
-
-    // Check if user has soft-deleted this memory
-    const ctx = memory.app_context as Record<string, any> | null;
-    if (ctx?.hidden_by && ctx.hidden_by[user.id]) {
-      throw new NotFoundError("Memory not found");
-    }
-
-    return ok(memory);
-  } catch (error) {
-    return err(error);
+export const GET = wrapRoute(async (req, { requestId }) => {
+  const supabase = await createClient();
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  const user = auth?.user;
+  if (authError || !user) {
+    throw new APIException(ErrorCode.UNAUTHORIZED, 'Authentication required', undefined, 401);
   }
-}
 
-/**
- * PATCH /api/memories/[id]
- * Update a memory with partial data
- */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await requireUser(req);
-    const resolvedParams = await params;
+  // Rate limit (user-scoped)
+  const rateHeaders = await withRateLimit(RATE_LIMIT_CONFIGS.get)(req, user.id);
 
-    // Rate limit updates
-    await checkRateLimit(`${user.id}:memory-update`);
-
-    // Parse and validate request body
-    const body = await readJson<MemoryUpdate>(req);
-    const validatedData = memoryUpdateSchema.parse(body);
-
-    const adminClient = createAdminClient();
-
-    // Verify memory exists and user has access
-    const { data: existing, error: fetchError } = await adminClient
-      .from("memory_entries")
-      .select("id, family_id")
-      .eq("id", resolvedParams.id)
-      .single();
-
-    if (fetchError || !existing || !existing.family_id) {
-      throw new NotFoundError("Memory not found");
-    }
-
-    await requireFamilyAccess(user.id, existing.family_id);
-
-    // Update memory
-    const { data: updated, error: updateError } = await adminClient
-      .from("memory_entries")
-      .update({
-        ...validatedData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", resolvedParams.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error("Memory update error:", updateError);
-      throw new Error("Failed to update memory");
-    }
-
-    return ok(updated);
-  } catch (error) {
-    return err(error);
+  // Robust id extraction (handles trailing slashes)
+  const segments = new URL(req.url).pathname.replace(/\/+$/, '').split('/');
+  const id = segments[segments.length - 1];
+  if (!id) {
+    throw new APIException(
+      ErrorCode.INVALID_REQUEST,
+      'Invalid memory ID',
+      { id },
+      400
+    );
   }
-}
 
-/**
- * PUT /api/memories/[id]
- * Full update (delegates to PATCH for now)
- */
-export async function PUT(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> },
-) {
-  return PATCH(req, ctx);
-}
+  // Fetch memory (RLS enforces ownership)
+  const { data: memory, error: memErr } = await supabase
+    .from('memories')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
 
-/**
- * DELETE /api/memories/[id]
- * Soft delete - mark as hidden for current user
- */
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await requireUser(req);
-    const resolvedParams = await params;
-
-    // Rate limit deletes to prevent abuse
-    await checkRateLimit(`${user.id}:memory-delete`);
-
-    const adminClient = createAdminClient();
-
-    // Fetch memory to verify access and get current app_context
-    const { data: existing, error: fetchErr } = await adminClient
-      .from("memory_entries")
-      .select("id, family_id, app_context")
-      .eq("id", resolvedParams.id)
-      .single();
-
-    if (fetchErr || !existing || !existing.family_id) {
-      throw new NotFoundError("Memory not found");
-    }
-
-    await requireFamilyAccess(user.id, existing.family_id);
-
-    // Update app_context to mark as hidden for this user
-    const ctx = (existing.app_context as any) || {};
-    const hidden_by = {
-      ...(ctx.hidden_by || {}),
-      [user.id]: new Date().toISOString(),
-    };
-    const newContext = { ...ctx, hidden_by };
-
-    const { error: updateError } = await adminClient
-      .from("memory_entries")
-      .update({
-        app_context: newContext,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", resolvedParams.id);
-
-    if (updateError) {
-      console.error("Memory soft delete error:", updateError);
-      throw new Error("Failed to delete memory");
-    }
-
-    return ok({
-      id: resolvedParams.id,
-      deleted: true,
-      message: "Memory hidden for this user",
-    });
-  } catch (error) {
-    return err(error);
+  if (memErr) throw mapDbError(memErr);
+  if (!memory) {
+    // 404 for not found OR not owned (avoid leaking tenancy)
+    throw new APIException(
+      ErrorCode.NOT_FOUND,
+      'Memory not found',
+      { id },
+      404
+    );
   }
-}
+
+  // Belt & suspenders: ensure child ownership for legacy rows
+  if (memory.child_id) {
+    const { data: child, error: childErr } = await supabase
+      .from('children')
+      .select('id')
+      .eq('id', memory.child_id)
+      .eq('created_by', user.id)
+      .maybeSingle();
+    if (childErr) throw mapDbError(childErr);
+    if (!child) {
+      throw new APIException(
+        ErrorCode.NOT_FOUND,
+        'Memory not found',
+        { id },
+        404
+      );
+    }
+  }
+
+  // Include media assets (sorted for stable UX)
+  const { data: media, error: mediaErr } = await supabase
+    .from('media_assets')
+    .select('*')
+    .eq('memory_id', id)
+    .order('created_at', { ascending: true });
+
+  if (mediaErr) throw mapDbError(mediaErr);
+
+  return jsonResponse(
+    createSuccessResponse({ memory, media_assets: media ?? [] }, requestId),
+    { headers: { ...rateHeaders } }
+  );
+}, ['GET']);

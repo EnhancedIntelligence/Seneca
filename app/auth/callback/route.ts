@@ -2,6 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.generated";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "auth.callback" });
 
 
 export const runtime = "nodejs";

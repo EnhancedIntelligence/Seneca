@@ -4,12 +4,7 @@ import {
   generateUsernameSuggestions,
   normalizeForUsername,
 } from '@/lib/utils/username-suggestions';
-import { USERNAME_REGEX } from '@/lib/validation/onboarding';
-
-// Keep in sync with validation policy (swap for imports if you export these)
-const USERNAME_MIN = 3;
-const USERNAME_MAX = 30;
-
+import { USERNAME_REGEX, USERNAME_MIN, USERNAME_MAX } from '@/lib/validation/onboarding';
 describe('username-suggestions', () => {
   describe('normalizeForUsername', () => {
     it('converts to lowercase', () => {

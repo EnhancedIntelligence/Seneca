@@ -1,13 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-  CheckCircle,
-  Circle,
-  AlertCircle,
-  Calendar,
-  User,
-} from "lucide-react";
+import { CheckCircle, Circle, AlertCircle, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**

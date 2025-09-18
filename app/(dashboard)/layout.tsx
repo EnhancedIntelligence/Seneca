@@ -15,8 +15,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { protectRoute } from "@/lib/server/subscription";
 import { AuthError, ForbiddenError } from "@/lib/server/errors";
+import { createLogger, hashId } from "@/lib/logger";
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardAuthProvider } from "@/components/auth/DashboardAuthProviderV2";
+
+const log = createLogger({ where: "dashboard.layout" });
 
 // Force Node.js runtime to avoid Edge + Supabase issues
 export const runtime = "nodejs";
@@ -56,7 +59,7 @@ export default async function DashboardLayout({
         return redirect("/onboarding");
       }
     }
-    
+
     // Then check authentication and subscription (reuse existing logic)
     // protectRoute() checks:
     // 1. User is authenticated (has valid session)
@@ -64,6 +67,7 @@ export default async function DashboardLayout({
     // 3. User has required tier (defaults to basic/premium)
     await protectRoute();
     
+
   } catch (err: unknown) {
     // Use instanceof for type-safe error checking
     if (err instanceof AuthError) {
@@ -78,6 +82,7 @@ export default async function DashboardLayout({
     return redirect("/login");
   }
   
+
   // All checks passed - render dashboard with providers
   // The DashboardAuthProvider will:
   // - Monitor session changes

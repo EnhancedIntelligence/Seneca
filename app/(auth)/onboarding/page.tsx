@@ -21,6 +21,7 @@ export default async function OnboardingPage() {
   //   .eq("id", user.id)
   //   .maybeSingle();
 
+
   return (
     <main className="container mx-auto max-w-2xl py-8">
       <h1 className="text-2xl font-semibold">Finish setting up your profile</h1>
@@ -31,3 +32,4 @@ export default async function OnboardingPage() {
     </main>
   );
 }
+

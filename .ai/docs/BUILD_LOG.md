@@ -4,8 +4,9 @@
 **Name:** Seneca Protocol  
 **Type:** Family Memory Capture Platform with AI Processing  
 **Stack:** Next.js 15, React 19, TypeScript, Supabase, OpenAI  
-**Status:** Environment Foundation Complete, PR1 In Progress  
-**Last Updated:** 2025-09-15
+**Status:** Member Auto-Creation Fixed, Test Infrastructure Complete  
+**Last Updated:** 2025-09-07
+
 
 ---
 
@@ -259,7 +260,7 @@
 - ✅ Race conditions eliminated
 - ✅ 11 unit tests + E2E tests passing
 
-### Phase 11: Senior Dev Review & Implementation (Session 031)
+### Phase 13: Senior Dev Review & Implementation (Session 031)
 - **Date:** 2025-09-07
 - **Branch:** feature/onboarding-implementation
 - **Achievement:** Comprehensive review and 8-point action plan implementation
@@ -273,126 +274,6 @@
 6. **Production Gap:** Manual trigger script needed for orphaned users
 7. **Rollout Strategy:** Feature flag system needed for staged deployment
 8. **CRITICAL SECURITY:** Supabase access token exposed in chat (sbp_7060ba36d0cae06c71669d54df64fe5c00316bf5)
-
-### Phase 12: Complete Logging Infrastructure (Session 032)
-- **Date:** 2025-09-10
-- **Branch:** feature/onboarding-implementation
-- **Achievement:** Zero ESLint warnings, production-grade logging system
-
-#### Implementation:
-1. **Server Logger** (`lib/logger.ts`):
-   - Structured logging with metadata
-   - PII protection with hashId
-   - Environment-based configuration
-   - "server-only" import guard
-
-2. **ESLint Configuration**:
-   - Import boundaries enforced
-   - Client/server separation
-   - 141 console warnings eliminated
-
-3. **Testing Infrastructure**:
-   - 11 unit tests passing
-   - TypeScript compilation clean
-   - Zero ESLint warnings achieved
-
-### Phase 13: Environment Foundation & PR1 Bootstrap (Session 034)
-- **Date:** 2025-09-15
-- **Branch:** feature/onboarding-part-2-continued → main
-- **Achievement:** Production-ready environment configuration with split architecture
-
-#### Environment Architecture Implemented:
-1. **Split Configuration** (`env.server.ts` & `env.client.ts`):
-   - Server-only with runtime guards against browser/Edge imports
-   - Client-safe with only NEXT_PUBLIC_* variables exposed
-   - Runtime origin mismatch detection in production
-   - Feature flags for optional services (AI, rate limiting)
-
-2. **Production Validation**:
-   - Zod schemas with environment-specific requirements
-   - LOG_SALT security enforcement (not 'dev-salt' in prod)
-   - Required NEXT_PUBLIC_APP_URL in production
-   - Safe redaction helpers for debugging
-
-3. **Test Suite Completion**:
-   - 84 comprehensive unit tests added
-   - Username suggestions: 33 tests with property-based testing
-   - Phone validation: 51 E.164 tests with Unicode support
-   - Rate limiting: Behavioral tests with proper mocking
-   - API routes: Full coverage with error cases
-
-4. **Production Fixes Applied**:
-   - Moved server-only to production dependencies
-   - Fixed memory leak in rate limit backoff timer
-   - Removed overly restrictive USERNAME_REGEX from client
-   - Added production logger with PII protection
-
-#### Key Architecture Decisions:
-```typescript
-// Runtime guards prevent secret exposure
-if (typeof window !== "undefined") {
-  throw new Error("env.server was imported in a browser bundle");
-}
-
-// Feature flags allow graceful degradation
-ENABLE_AI_PROCESSING: env.ENABLE_AI_PROCESSING === "true"
-ENABLE_RATE_LIMITING: env.RATE_LIMITING === "enabled"
-```
-
-#### PR Creation:
-- **PR #10**: Onboarding Part 2 with comprehensive test coverage
-- **Next PR**: Bootstrap foundation (Types, Env, RLS Baseline)
-
-### Phase 14: Username Suggestions Complete Integration (Session 033)
-- **Date:** 2025-09-15
-- **Branch:** feature/onboarding-implementation
-- **Achievement:** Complete username suggestions feature with API, hook, and UI
-
-#### Components Integrated from `feature/onboarding-part-2-continued`:
-1. **Phone Validation** (`lib/utils/phone.ts`):
-   - E.164 normalization with Unicode support
-   - Handles all dash types, extensions, pause/wait chars
-   - 51 comprehensive unit tests
-
-2. **Username Suggestions** (`lib/utils/username-suggestions.ts`):
-   - Smart name normalization and generation
-   - Deduplication and collision avoidance
-   - Deterministic mode for testing
-
-3. **Rate Limiting** (`lib/server/rate-limit-policies.ts`):
-   - Per-user and per-IP protection
-   - Configurable policies with graceful degradation
-   - Upstash Redis integration
-
-#### API Route Implementation:
-- **Endpoint:** `/api/onboarding/username-suggestions`
-- **Features:**
-  - Rate limiting with 429 status
-  - MAX_PROBES cap of 25 queries
-  - Availability checking
-  - Safe logging with masking
-  - Cache-Control headers
-
-#### Client Hook (`useUsernameSuggestions`):
-- 300ms debouncing
-- AbortController for cancellation
-- Auto-recovery from rate limits
-- StrictMode compatibility
-- Clean timer management
-
-#### UI Integration:
-- Controlled input with normalization
-- Real-time availability status
-- Rate limit messaging
-- Click-to-fill suggestions
-- Simplified ARIA semantics
-
-#### Testing Results:
-- ✅ 62/62 unit tests passing
-- ✅ 5/5 E2E tests passing
-- ✅ Zero TypeScript errors
-- ✅ Zero ESLint warnings
-- ✅ Development server stable
 
 #### Database Type Generation Process Documented:
 - **Tool:** Supabase CLI (never manual edits)
@@ -421,14 +302,15 @@ ENABLE_RATE_LIMITING: env.RATE_LIMITING === "enabled"
 #### Tasks Completed:
 1. ✅ RPC parameter verification (already correct)
 2. ✅ Rate limiting verification (already implemented)
-3. ✅ Wire username suggestions into UI (Session 033)
-4. ✅ Implement toE164 phone validation (Session 033)
 
 #### Tasks Pending:
+3. ⏳ Wire username suggestions into UI
+4. ⏳ Implement toE164 phone validation
 5. ⏳ Configure CI Playwright setup
 6. ⏳ Run manual trigger script in production
 7. ⏳ Plan staged rollout with feature flag
 8. 🔴 **URGENT: Rotate exposed Supabase access token**
+
 
 ---
 
@@ -597,21 +479,26 @@ lib/
 
 ## Next Steps
 
-### Immediate Actions
+### Immediate Actions (Session 031 Priority)
 1. **🔴 CRITICAL: Rotate Supabase Access Token**
    - Token exposed: sbp_7060ba36d0cae06c71669d54df64fe5c00316bf5
    - Generate new token in Supabase dashboard immediately
    - Update SUPABASE_ACCESS_TOKEN in .env.local
 
-2. **Configure CI/CD Playwright**
+2. **Complete Username Suggestions UI**
+   - Wire `suggestUsernames` utility into OnboardingForm
+   - Display suggestions when username is taken
+   - Add click-to-fill functionality
+
+3. **Implement Phone Validation**
+   - Create toE164 formatter utility
+   - Integrate with onboarding form
+   - Support international formats
+
+4. **Configure CI/CD Playwright**
    - Review existing playwright.config.ts
    - Add CI-specific settings
    - Ensure GitHub Actions compatibility
-
-3. **Create Unit Tests**
-   - Add tests for username-suggestions.ts utility
-   - Add tests for rate-limit-policies.ts
-   - Ensure 100% coverage for critical paths
 
 ### Production Deployment
 1. **Deploy Migration**: Apply `20250905_fix_member_trigger_conflict.sql` to staging/production
@@ -633,9 +520,8 @@ lib/
 - Add performance monitoring
 
 ### Onboarding Enhancements
-- ✅ Username suggestions (complete with API and UI)
-- ✅ Phone number formatter (E.164 validation complete)
-- ✅ Rate limiting for all onboarding endpoints
+- ✅ Username suggestions (utility complete, UI pending)
+- ⏳ Phone number formatter (E.164 validation)
 - Add profile photo upload
 - Create welcome email flow
 - Add progress indicator for multi-step form
@@ -652,13 +538,9 @@ lib/
 
 ## Version History
 
-- **v0.12.0** (2025-09-15 Session 034): Environment foundation with production-ready split architecture
-- **v0.11.0** (2025-09-15 Session 033): Username suggestions complete with API, hook, and UI integration
-- **v0.10.0** (2025-09-10 Session 032): Zero ESLint warnings, production logging infrastructure
-- **v0.9.0** (2025-09-07 Session 031): Senior dev review, 8-point action plan, security token rotation needed
-- **v0.8.0** (2025-09-07 Session 030): Critical member auto-creation fix, test infrastructure
-- **v0.7.0** (2025-09-05): Complete onboarding implementation on feature branch
-- **v0.6.0** (2025-09-04): Onboarding gates without middleware
+- **v0.8.0** (2025-09-07 Session 031): Senior dev review, 8-point action plan, security token rotation needed
+- **v0.7.0** (2025-09-07 Session 030): Critical member auto-creation fix, test infrastructure
+- **v0.6.0** (2025-09-05): Complete onboarding implementation on feature branch
 - **v0.5.0** (2025-09-02): CI/CD ready, zero lint issues, feat/auth-gate complete
 - **v0.4.0** (2025-08-22): Environment system refactor
 - **v0.3.0** (2025-08-20): Authentication hardening

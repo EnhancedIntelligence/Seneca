@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/server-only/admin-client";
 import type { MemoryEntryInsert } from "@/lib/types";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.test-memory" });
 
 export async function GET() {
   try {
     const adminClient = createAdminClient();
 
-    console.log("🧪 Testing memory entry retrieval...");
+    log.info("Testing memory entry retrieval", { op: "test" });
 
     // Test basic memory retrieval
     const { data: memories, error } = await adminClient
@@ -36,7 +39,10 @@ export async function GET() {
       .limit(10);
 
     if (error) {
-      console.error("Database error:", error);
+      log.error("Database error during memory retrieval test", {
+        op: "fetch",
+        error: error
+      });
       return NextResponse.json(
         {
           status: "error",
@@ -77,7 +83,10 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("API error:", error);
+    log.error("API error during memory test", {
+      op: "test",
+      error: error
+    });
     return NextResponse.json(
       {
         status: "error",
@@ -142,7 +151,10 @@ export async function POST() {
       ],
     });
   } catch (error) {
-    console.error("Memory creation error:", error);
+    log.error("Memory creation error during test", {
+      op: "create",
+      error: error
+    });
     return NextResponse.json(
       {
         status: "error",

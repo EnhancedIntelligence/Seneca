@@ -1,6 +1,7 @@
 "use server";
 
 import "server-only";
+
 import { createClient } from "@/utils/supabase/server";
 import {
   onboardingFormSchema,
@@ -9,6 +10,7 @@ import {
 import { createLogger } from "@/lib/logger";
 import { rateLimitUsernameCheck, rateLimitOnboardingComplete } from "@/lib/server/rate-limit-policies";
 import { toE164 } from "@/lib/utils/phone";
+
 import { redirect } from "next/navigation";
 
 const log = createLogger({ where: "onboarding.actions" });
@@ -67,6 +69,7 @@ export async function checkUsername(
 
   // Type the RPC - cast the result since Supabase returns Json type
   // Username already lowercased above in line 53
+
   const { data, error } = await supabase.rpc("check_username_availability", {
     p_username: u,
   });
@@ -111,6 +114,7 @@ export async function completeOnboarding(
     };
   }
 
+
   const raw = {
     fullName: String(formData.get("fullName") ?? ""),
     username: String(formData.get("username") ?? ""),
@@ -149,6 +153,7 @@ export async function completeOnboarding(
     p_username: parsed.data.username.toLowerCase(), // Ensure lowercase
     p_date_of_birth: dobIso,
     p_phone_e164: phoneE164 ?? "", // RPC expects string, SQL NULLIF will handle empty string
+
     p_bio: undefined,
     p_preferences: undefined,
     p_notification_preferences: undefined,
@@ -177,6 +182,7 @@ export async function completeOnboarding(
       };
     }
 
+
     const code = result?.code ?? "UNKNOWN_ERROR";
     const message =
       code === "USERNAME_TAKEN"
@@ -191,6 +197,7 @@ export async function completeOnboarding(
       log.error("complete_onboarding_failed", { userId: user.id, error: error.message });
     }
     
+
     return {
       success: false,
       error: code,

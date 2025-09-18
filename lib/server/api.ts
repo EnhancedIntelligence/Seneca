@@ -6,6 +6,8 @@
 import { NextResponse } from "next/server";
 import { ApiError } from "./errors";
 import { ZodError } from "zod";
+import { createLogger } from "@/lib/logger";
+const log = createLogger({ where: "lib.server.api" });
 
 /**
  * Success response wrapper
@@ -52,7 +54,7 @@ export function err(error: unknown) {
   }
 
   // Log unexpected errors
-  console.error("Unexpected error:", error);
+  log.error("Unexpected error in API handler", { error });
 
   // Generic error response
   return NextResponse.json(

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { devError } from "@/lib/client-debug";
 
 type PlanTier = "free" | "basic" | "premium";
 
@@ -141,7 +142,7 @@ export default function BillingPage() {
         throw new Error(data.error || "Subscription failed");
       }
     } catch (error) {
-      console.error("Subscription error:", error);
+      devError("Subscription error:", error);
       toast({
         title: "Subscription failed",
         description:

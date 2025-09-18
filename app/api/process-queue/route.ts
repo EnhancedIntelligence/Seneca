@@ -6,6 +6,9 @@ import {
   authenticateInternalRequest,
   createSuccessResponse,
 } from "@/lib/api-utils";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.process-queue" });
 
 // This endpoint should be called by a cron job or background worker
 export const POST = withApiHandler(async (request: NextRequest) => {
@@ -38,7 +41,12 @@ export const POST = withApiHandler(async (request: NextRequest) => {
       },
     });
   } catch (processingError) {
-    console.error("Job processing failed:", processingError);
+    log.error("Job processing failed", {
+      op: "process",
+      jobId: job.id,
+      memoryId: job.payload.memoryId,
+      error: processingError
+    });
 
     const errorMessage =
       processingError instanceof Error
@@ -96,7 +104,11 @@ export const PATCH = withApiHandler(async (request: NextRequest) => {
         retriedCount++;
       }
     } catch (error) {
-      console.error(`Failed to retry job ${job.id}:`, error);
+      log.error("Failed to retry job", {
+        op: "retry",
+        jobId: job.id,
+        error: error
+      });
     }
   }
 

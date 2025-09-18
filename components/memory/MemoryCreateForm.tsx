@@ -44,6 +44,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { devError } from "@/lib/client-debug";
 import { MediaUpload } from "./shared/MediaUpload";
 import { LocationPicker } from "./shared/LocationPicker";
 import { TagSelector } from "./shared/TagSelector";
@@ -64,7 +65,7 @@ const MEMORY_CATEGORIES = [
   "play",
 ] as const;
 
-type MemoryCategory = typeof MEMORY_CATEGORIES[number];
+type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
 
 // Memory Creation Schema - UI layer uses camelCase
 export const memoryCreateSchema = z
@@ -261,7 +262,10 @@ export function MemoryCreateForm({
       );
     }
 
-    if (agentSuggestions.category && isValidCategory(agentSuggestions.category)) {
+    if (
+      agentSuggestions.category &&
+      isValidCategory(agentSuggestions.category)
+    ) {
       setValue("category", agentSuggestions.category, { shouldValidate: true });
       improvements.push("Applied AI-suggested category");
     }
@@ -336,7 +340,7 @@ export function MemoryCreateForm({
 
       onSuccess?.(adaptMemoryToUI(memoryDTO));
     } catch (error) {
-      console.error("Memory creation error:", error);
+      devError("Memory creation error:", error);
       toast({
         title: "❌ Error Creating Memory",
         description:

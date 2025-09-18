@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/server-only/admin-client";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.health-simple" });
 
 export async function GET() {
   try {
@@ -31,7 +34,7 @@ export async function GET() {
         healthCheck.status = "healthy";
       }
     } catch (dbError) {
-      console.error("Database health check failed:", dbError);
+      log.error(dbError, { op: "healthCheck", target: "database" });
       healthCheck.services.database = "unhealthy";
       healthCheck.status = "degraded";
     }
@@ -40,7 +43,7 @@ export async function GET() {
 
     return NextResponse.json(healthCheck, { status: statusCode });
   } catch (error) {
-    console.error("Health check error:", error);
+    log.error(error, { op: "healthCheck" });
 
     return NextResponse.json(
       {

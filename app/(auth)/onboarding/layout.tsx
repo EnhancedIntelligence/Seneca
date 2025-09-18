@@ -15,6 +15,7 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) return redirect("/login");
 
   const { data: member, error } = await supabase
@@ -30,3 +31,4 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
 
   return <>{children}</>;
 }
+

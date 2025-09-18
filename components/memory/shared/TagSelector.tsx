@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { X, Plus, Tag, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { devError } from "@/lib/client-debug";
 
 interface TagSelectorProps {
   value: string[];
@@ -106,7 +107,7 @@ export function TagSelector({
         ];
         setFamilyTags(mockFamilyTags);
       } catch (error) {
-        console.error("Failed to load family tags:", error);
+        devError("Failed to load family tags:", error);
       }
     };
 

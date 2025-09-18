@@ -1,4 +1,3 @@
- 
 /**
  * Memory Individual Route Handler
  * Template for refactored API routes using centralized utilities
@@ -16,6 +15,9 @@ import { checkRateLimit } from "@/lib/server/middleware/rate-limit";
 import { createAdminClient } from "@/lib/server-only/admin-client";
 import { z } from "zod";
 import type { Database } from "@/lib/types";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.memories-id" });
 
 // Validation schema for updates
 const memoryUpdateSchema = z.object({
@@ -120,7 +122,12 @@ export async function PATCH(
       .single();
 
     if (updateError) {
-      console.error("Memory update error:", updateError);
+      log.error("Failed to update memory", {
+        op: "update",
+        resourceId: resolvedParams.id,
+        error: updateError,
+        userId: user.id
+      });
       throw new Error("Failed to update memory");
     }
 
@@ -188,7 +195,12 @@ export async function DELETE(
       .eq("id", resolvedParams.id);
 
     if (updateError) {
-      console.error("Memory soft delete error:", updateError);
+      log.error("Failed to soft delete memory", {
+        op: "delete",
+        resourceId: resolvedParams.id,
+        error: updateError,
+        userId: user.id
+      });
       throw new Error("Failed to delete memory");
     }
 

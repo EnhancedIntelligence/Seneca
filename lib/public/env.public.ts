@@ -7,6 +7,8 @@
  * WARNING: Never put secrets here! Only NEXT_PUBLIC_* variables
  */
 
+import { devLog, devError, devWarn } from "@/lib/client-debug";
+
 // Extract and validate public variables
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -60,17 +62,17 @@ if (NODE_ENV !== "production" && !publicEnv.supabase.hasSupabase) {
   // Only warn in development to help teammates
   if (typeof window !== "undefined") {
     // Client-side warning
-    console.warn(
+    devWarn(
       "[publicEnv] ⚠️ Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY.\n" +
         "The UI may not function properly until these are set in .env.local\n" +
-        "See .env.example for guidance.",
+        "See .env.example for guidance."
     );
   } else {
     // Server-side warning (during SSR)
-    console.log(
+    devLog(
       "ℹ️ Public Supabase vars not configured. Add to .env.local:\n" +
         "   NEXT_PUBLIC_SUPABASE_URL=...\n" +
-        "   NEXT_PUBLIC_SUPABASE_ANON_KEY=...",
+        "   NEXT_PUBLIC_SUPABASE_ANON_KEY=..."
     );
   }
 }

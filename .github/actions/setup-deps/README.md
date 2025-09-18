@@ -19,7 +19,7 @@ Ensure the `node-version` matches your local/runtime version (e.g., `'20'`).
 ```yaml
 - uses: actions/setup-node@v4
   with:
-    node-version: '20'
+    node-version: "20"
     cache: npm
 ```
 
@@ -36,20 +36,20 @@ Ensure the `node-version` matches your local/runtime version (e.g., `'20'`).
 ```yaml
 - uses: ./.github/actions/setup-deps
   with:
-    module: 'lightningcss/node/index.js'  # Module to verify
-    rebuild: 'lightningcss'               # Package to rebuild
-    optional: 'true'                      # Install optional deps
-    audit: 'false'                        # Skip npm audit/fund
+    module: "lightningcss/node/index.js" # Module to verify
+    rebuild: "lightningcss" # Package to rebuild
+    optional: "true" # Install optional deps
+    audit: "false" # Skip npm audit/fund
 ```
 
 ## Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `module` | Module path to sanity-check (require.resolve path) | No | `lightningcss/node/index.js` |
-| `rebuild` | Package name to rebuild with `npm rebuild` | No | `lightningcss` |
-| `optional` | Whether to install optional dependencies | No | `'true'` |
-| `audit` | Whether to run npm audit and fund checks | No | `'false'` |
+| Input      | Description                                        | Required | Default                      |
+| ---------- | -------------------------------------------------- | -------- | ---------------------------- |
+| `module`   | Module path to sanity-check (require.resolve path) | No       | `lightningcss/node/index.js` |
+| `rebuild`  | Package name to rebuild with `npm rebuild`         | No       | `lightningcss`               |
+| `optional` | Whether to install optional dependencies           | No       | `'true'`                     |
+| `audit`    | Whether to run npm audit and fund checks           | No       | `'false'`                    |
 
 _Note:_ Inputs are strings (`'true'` / `'false'`) due to GitHub Actions input semantics.
 
@@ -83,6 +83,7 @@ This is the exact error this action fixes. Ensure you're using it in all jobs th
 ### Running on Alpine/musl
 
 The action will warn you if running on musl. You may need to:
+
 ```bash
 npm i -D lightningcss-linux-x64-musl
 ```
@@ -99,20 +100,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js 20 with npm cache
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
           cache: npm
-      
+
       - name: Install dependencies with native rebuild (Linux/macOS)
         if: runner.os != 'Windows'
         uses: ./.github/actions/setup-deps
         with:
-          module: 'lightningcss/node/index.js'
-          rebuild: 'lightningcss'
-      
+          module: "lightningcss/node/index.js"
+          rebuild: "lightningcss"
+
       - name: Build
         run: npm run build
 ```
@@ -122,16 +123,17 @@ jobs:
 To add support for additional native modules, either:
 
 1. Call the action multiple times with different inputs:
+
    ```yaml
    - uses: ./.github/actions/setup-deps
      with:
-       module: 'lightningcss/node/index.js'
-       rebuild: 'lightningcss'
-   
+       module: "lightningcss/node/index.js"
+       rebuild: "lightningcss"
+
    - uses: ./.github/actions/setup-deps
      with:
-       module: 'sharp/build/Release/sharp-linux-x64.node'
-       rebuild: 'sharp'
+       module: "sharp/build/Release/sharp-linux-x64.node"
+       rebuild: "sharp"
    ```
 
 2. Extend the action to accept arrays of modules (future enhancement)
@@ -139,6 +141,7 @@ To add support for additional native modules, either:
 ## Testing
 
 After implementing, verify success by checking for this log message in your CI output:
+
 ```
 ✓ Native binding verified: lightningcss/node/index.js
 ```

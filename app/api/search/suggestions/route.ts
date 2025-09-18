@@ -8,6 +8,9 @@ import {
   createSuccessResponse,
 } from "@/lib/api-utils";
 import { createAdminClient } from "@/lib/server-only/admin-client";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "api.search-suggestions" });
 
 // Search suggestions request validation schema
 const suggestionsQuerySchema = z.object({
@@ -166,7 +169,12 @@ async function getSearchSuggestions(params: SuggestionsQuery): Promise<
       })
       .slice(0, params.limit);
   } catch (error) {
-    console.error("Search suggestions error:", error);
+    log.error("Failed to get search suggestions", {
+      op: "fetch",
+      familyId: params.familyId,
+      query: params.query,
+      error: error
+    });
     return [];
   }
 }

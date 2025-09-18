@@ -129,7 +129,7 @@ class MockAuthService {
             localStorage.removeItem("seneca-mock-session");
           }
         } catch (e) {
-          console.error("Failed to parse session:", e);
+          // Failed to parse session, will return null
         }
       }
     }

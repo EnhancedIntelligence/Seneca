@@ -299,6 +299,7 @@ export type Database = {
         }
         Relationships: []
       }
+
       members_history: {
         Row: {
           changed_at: string | null
@@ -593,6 +594,7 @@ export type Database = {
         Relationships: []
       }
     }
+
     Views: {
       [_ in never]: never
     }
@@ -844,6 +846,7 @@ export type Database = {
         Args: { p_email?: string; p_full_name?: string; p_id: string }
         Returns: undefined
       }
+
       get_job_statistics: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1019,6 +1022,7 @@ export type Database = {
         Args: { p_step: number }
         Returns: Json
       }
+
       user_belongs_to_family: {
         Args: { fam: string }
         Returns: boolean

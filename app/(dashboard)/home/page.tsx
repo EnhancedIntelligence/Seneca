@@ -1,6 +1,9 @@
 import HomeClient from "./HomeClient";
 import { apiFetchServer } from "@/lib/server/apiFetch";
 import { redirect } from "next/navigation";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger({ where: "dashboard.home.page" });
 
 export default async function DashboardPage() {
   let families = [];
@@ -14,14 +17,17 @@ export default async function DashboardPage() {
     }
 
     if (!response.ok) {
-      console.error("Failed to load families:", response.status);
+      log.error(new Error(`Failed to load families: ${response.status}`), {
+        op: "fetchFamilies",
+        status: response.status,
+      });
       // We'll let the client component handle the empty state
     } else {
       const { items } = await response.json();
       families = items || [];
     }
   } catch (error) {
-    console.error("Error fetching families:", error);
+    log.error(error, { op: "fetchFamilies" });
     // Continue with empty families array
   }
 

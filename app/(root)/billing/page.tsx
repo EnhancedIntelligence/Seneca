@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import {
   Card,
@@ -101,15 +101,68 @@ export default function BillingPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState<PlanTier | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Prefetch onboarding route for better performance
+  useEffect(() => {
+    router.prefetch("/onboarding?plan=free");
+  }, [router]);
 
   const isUpgrade = searchParams.get("upgrade") === "true";
-  const redirectTo = searchParams.get("redirect") || "/home";
+
+  // SSR-safe redirect sanitization to prevent open redirects
+  const safePath = (next: string): string => {
+    try {
+      // Length check to prevent abuse
+      if (!next || next.length > 1024) return "/overview";
+
+      // SSR-safe origin detection
+      const origin = typeof window !== "undefined"
+        ? window.location.origin
+        : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+      const u = new URL(next, origin);
+
+      // Enforce same-origin
+      if (u.origin !== origin) return "/overview";
+
+      // Must be absolute-relative path
+      if (!u.pathname.startsWith("/")) return "/overview";
+
+      // Block sensitive paths
+      const BLOCKED = ["/api", "/auth", "/_next", "/logout"];
+      if (BLOCKED.some(p => u.pathname.startsWith(p))) return "/overview";
+
+      return u.pathname + u.search + u.hash;
+    } catch {
+      return "/overview";
+    }
+  };
+
+  const rawRedirect = searchParams.get("redirect") || "/overview";
+  const redirectTo = safePath(rawRedirect);
 
   async function handleSubscribe(tier: PlanTier) {
+    // Prevent double-submission with clear boolean conversion
+    if (submitting || !!loading) return;
+
+    setSubmitting(true);
+
     try {
+      // Free tier fast path - no API call needed
+      if (tier === "free") {
+        setLoading(tier); // Visual feedback
+        toast({
+          title: "Free plan selected",
+          description: "Setting up your account...",
+        });
+        // Use replace to prevent back-button loop
+        router.replace("/onboarding?plan=free");
+        return;
+      }
+
+      // Paid tier path - requires API call
       setLoading(tier);
 
-      // Call the dev-subscribe endpoint
       const headers = new Headers({ "Content-Type": "application/json" });
       const res = await fetch("/api/auth/dev-subscribe", {
         method: "POST",
@@ -122,19 +175,10 @@ export default function BillingPage() {
       if (res.ok) {
         toast({
           title: "Subscription activated!",
-          description:
-            tier === "free"
-              ? "You are on the free tier. Upgrade anytime for more features."
-              : `You now have ${tier} tier access. Redirecting to dashboard...`,
+          description: `You now have ${tier} tier access. Redirecting to dashboard...`,
         });
 
-        // Avoid redirect loop for Free tier (no active subscription)
-        // Free tier users stay on billing page since they don't have dashboard access
-        if (tier === "free") {
-          return; // Stay on billing page
-        }
-
-        // Only redirect for paid tiers (basic/premium)
+        // Redirect for paid tiers (using push for navigable history)
         setTimeout(() => {
           router.push(redirectTo);
         }, 500);
@@ -144,13 +188,13 @@ export default function BillingPage() {
     } catch (error) {
       devError("Subscription error:", error);
       toast({
-        title: "Subscription failed",
-        description:
-          error instanceof Error ? error.message : "Please try again",
+        title: "Payment failed",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
       setLoading(null);
+      setSubmitting(false);
     }
   }
 
@@ -236,10 +280,11 @@ export default function BillingPage() {
                       : ""
                   }`}
                   variant={plan.recommended ? "default" : "outline"}
-                  disabled={loading === plan.tier} // Only disable the clicked button
+                  disabled={submitting || !!loading}
                   onClick={() => handleSubscribe(plan.tier)}
-                  aria-busy={loading === plan.tier}
+                  aria-busy={submitting || !!loading}
                   aria-label={`Subscribe to ${plan.name} plan`}
+                  data-tier={plan.tier}
                 >
                   {loading === plan.tier ? (
                     <>

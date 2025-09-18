@@ -39,6 +39,10 @@ export interface TopBarProps {
   notificationCount?: number;
   /** Whether the menu button is in open state */
   isMenuOpen?: boolean;
+  /** Whether the profile menu is open */
+  isProfileMenuOpen?: boolean;
+  /** Ref for the profile button */
+  profileButtonRef?: React.RefObject<HTMLButtonElement>;
   /** Additional CSS classes */
   className?: string;
   /** Whether to use transparent background */
@@ -54,6 +58,8 @@ export function TopBar({
   showNotificationBadge = false,
   notificationCount,
   isMenuOpen = false,
+  isProfileMenuOpen = false,
+  profileButtonRef,
   className,
   transparent = false,
 }: TopBarProps) {
@@ -146,6 +152,7 @@ export function TopBar({
 
         {/* Profile Button */}
         <button
+          ref={profileButtonRef}
           onClick={onProfileClick}
           className={cn(
             "relative w-10 h-10 rounded-full",
@@ -158,6 +165,11 @@ export function TopBar({
             "active:scale-95",
           )}
           aria-label="Profile menu"
+          aria-haspopup="menu"
+          aria-expanded={isProfileMenuOpen}
+          aria-controls="profile-menu"
+          id="avatar-button"
+          data-testid="avatar-button"
         >
           <User className="w-5 h-5 text-white" />
         </button>

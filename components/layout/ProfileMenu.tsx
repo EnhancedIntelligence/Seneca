@@ -69,6 +69,8 @@ export interface ProfileMenuProps {
   className?: string;
   /** Anchor element to position relative to */
   anchorEl?: HTMLElement | null;
+  /** Ref for the menu element (for portal-aware outside clicks) */
+  menuRef?: React.RefObject<HTMLDivElement>;
 }
 
 interface MenuItem {
@@ -130,43 +132,13 @@ export function ProfileMenu({
   theme = "dark",
   className,
   anchorEl,
+  menuRef,
 }: ProfileMenuProps) {
-  const menuRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
+  const activeRef = menuRef || internalRef;
 
-  // Handle click outside
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    // Add slight delay to prevent immediate close on open
-    const timer = setTimeout(() => {
-      document.addEventListener("mousedown", handleClickOutside);
-    }, 100);
-
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose]);
-
-  // Handle escape key
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
+  // Remove internal event handlers since parent handles them
+  // This prevents double handling and conflicts
 
   const handleItemClick = (action: ProfileAction) => {
     onNavigate?.(action);
@@ -217,7 +189,8 @@ export function ProfileMenu({
 
   return (
     <div
-      ref={menuRef}
+      ref={activeRef}
+      id="profile-menu"
       className={cn(
         "fixed z-50 w-80",
         "bg-zinc-900/98 backdrop-blur-xl",
@@ -230,7 +203,9 @@ export function ProfileMenu({
       )}
       style={positionStyle}
       role="menu"
+      aria-labelledby="avatar-button"
       aria-expanded={isOpen}
+      data-testid="profile-menu"
     >
       {/* User Info Header */}
       {user && (
@@ -286,6 +261,7 @@ export function ProfileMenu({
                   item.id === "logout" && "text-red-400 hover:bg-red-500/10",
                 )}
                 role="menuitem"
+                data-action={item.id}
               >
                 <Icon
                   className={cn(

@@ -1,13 +1,13 @@
 -- Fix conflicting member auto-creation triggers (NO ROLE SWITCHING VERSION)
 -- This migration works without needing supabase_auth_admin role permissions
 --
--- STEP 1: Run this command FIRST in SQL Editor to clean up the legacy trigger:
--- DROP FUNCTION IF EXISTS public.handle_new_user_members() CASCADE;
--- DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+-- STEP 1: Run this command FIRST in SQL Editor to clean up legacy triggers:
+-- DROP FUNCTION IF EXISTS public.handle_new_user_members() CASCADE; -- (legacy function, safe to drop if present)
+-- DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE; -- (current function, will be recreated below)
 --
 -- STEP 2: Then run the rest of this migration
 
--- 1) Drop any remaining functions (already dropped with CASCADE above)
+-- 1) Drop any remaining functions (already dropped with CASCADE above, including both legacy and current versions)
 DROP FUNCTION IF EXISTS public.sync_member_email();
 
 -- 2) Create unified insert function with NULL email handling

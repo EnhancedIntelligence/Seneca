@@ -1,0 +1,117 @@
+name: Legacy Schema Guard
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+jobs:
+  check-legacy-references:
+    name: Prevent Legacy Database References
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for memory_entries references
+        run: |
+          echo "Checking for legacy memory_entries table references..."
+
+          # Exclude migration files, generated types, and backup files
+          if rg -n "\bmemory_entries\b" \
+            --glob '!**/migrations/**' \
+            --glob '!**/*.generated.ts' \
+            --glob '!**/*.backup.ts' \
+            --glob '!**/database-remote.types.ts' \
+            --glob '!**/CHANGELOG*' \
+            --glob '!**/.ai/**' \
+            --glob '!**/node_modules/**' \
+            --glob '!**/.next/**' \
+            .; then
+            echo "❌ Found references to legacy 'memory_entries' table"
+            echo "Please use 'memories' table instead"
+            exit 1
+          fi
+          echo "✅ No memory_entries references found"
+
+      - name: Check for processing_status field
+        run: |
+          echo "Checking for legacy processing_status field references..."
+
+          # Exclude migration files, mapping functions, and generated types
+          if rg -n "\bprocessing_status\b" \
+            --glob '!**/migrations/**' \
+            --glob '!**/memory-status.ts' \
+            --glob '!**/*.generated.ts' \
+            --glob '!**/*.backup.ts' \
+            --glob '!**/database-remote.types.ts' \
+            --glob '!**/.ai/**' \
+            --glob '!**/node_modules/**' \
+            --glob '!**/.next/**' \
+            .; then
+            echo "❌ Found references to legacy 'processing_status' field"
+            echo "Please use 'status' field with memory_status enum instead"
+            exit 1
+          fi
+          echo "✅ No processing_status references found"
+
+      - name: Check for created_by field in memories context
+        run: |
+          echo "Checking for legacy created_by field references..."
+
+          # This is trickier since other tables use created_by legitimately
+          # Check specifically in memory-related files
+          if rg -n "memories.*created_by|created_by.*memories" \
+            --glob '!**/migrations/**' \
+            --glob '!**/*.generated.ts' \
+            --glob '!**/*.backup.ts' \
+            --glob '!**/test-rls.js' \
+            --glob '!**/.ai/**' \
+            --glob '!**/node_modules/**' \
+            --glob '!**/.next/**' \
+            .; then
+            echo "❌ Found 'created_by' used with memories table"
+            echo "Please use 'user_id' field instead"
+            exit 1
+          fi
+          echo "✅ No created_by references in memories context"
+
+      - name: Check for StatusCompat usage
+        run: |
+          echo "Checking for StatusCompat references..."
+
+          if rg -n "StatusCompat\." \
+            --glob '!**/database-compatibility.ts' \
+            --glob '!**/.ai/**' \
+            --glob '!**/node_modules/**' \
+            --glob '!**/.next/**' \
+            .; then
+            echo "❌ Found active usage of StatusCompat"
+            echo "Please use centralized mapping functions from lib/memory-status.ts"
+            exit 1
+          fi
+          echo "✅ No StatusCompat usage found"
+
+      - name: Check for direct MemoryEntry type usage
+        run: |
+          echo "Checking for direct MemoryEntry type imports..."
+
+          # Look for imports that use the legacy aliases
+          if rg -n "import.*\bMemoryEntry\b.*from.*['\"]@/lib/(types|database)['\"]" \
+            --glob '!**/adapters/**' \
+            --glob '!**/.ai/**' \
+            --glob '!**/node_modules/**' \
+            --glob '!**/.next/**' \
+            .; then
+            echo "⚠️  Found imports of legacy MemoryEntry type aliases"
+            echo "Consider migrating to Memory/MemoryInsert/MemoryUpdate types"
+            echo "Note: This is currently a warning, will become an error after alias removal"
+          fi
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ All legacy reference checks passed!"
+          echo "The codebase is free from direct references to the old database structure."

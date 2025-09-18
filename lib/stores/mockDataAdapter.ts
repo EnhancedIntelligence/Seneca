@@ -11,6 +11,7 @@ import type {
   Milestone,
 } from "./mockData";
 import { toLabels, hasTagLabel } from "@/lib/utils/tags";
+import { mapProcessingToMemoryStatus } from "@/lib/memory-status";
 
 // Convert mock memory to database MemoryEntry type
 export function mockMemoryToDbMemory(mock: MockMemory): MemoryEntry {
@@ -26,14 +27,14 @@ export function mockMemoryToDbMemory(mock: MockMemory): MemoryEntry {
     id: mock.id,
     child_id: mock.childId,
     family_id: "mock-family-1", // Required field - using sensible default
-    created_by: "mock-user-1", // Required field - using sensible default
+    user_id: "mock-user-1", // Changed from created_by to user_id
     title: null,
     content: mock.content,
     memory_date: mock.timestamp, // Already ISO string
     category: null, // Don't derive from tags - keep separate
     tags: mock.tags ? toLabels(mock.tags) : null,
-    processing_status: (processingStatusMap[mock.processingStatus || ""] ||
-      "queued") as ProcessingStatus,
+    status: mapProcessingToMemoryStatus((processingStatusMap[mock.processingStatus || ""] || "queued") as ProcessingStatus), // Map to new status field
+    kind: "text", // Default kind
     classification_confidence: null,
     milestone_detected: mock.tags ? hasTagLabel(mock.tags, "milestone") : null,
     milestone_type: null,
@@ -50,6 +51,7 @@ export function mockMemoryToDbMemory(mock: MockMemory): MemoryEntry {
     location_name: mock.location || null,
     app_context: null,
     needs_review: null,
+    source_table: "memories", // Default source
   };
 }
 

@@ -8,7 +8,7 @@ import {
   handleDatabaseError,
   handleError,
 } from "./errors";
-import { callRPCWithFallback, StatusCompat } from "./database-compatibility";
+import { callRPCWithFallback } from "./database-compatibility";
 export type JobType = string;
 
 // Priority helper functions

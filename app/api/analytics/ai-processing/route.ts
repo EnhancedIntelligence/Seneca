@@ -107,23 +107,23 @@ async function getAIProcessingAnalytics(params: AnalyticsQuery): Promise<{
 
   // Get processing statistics
   const { data: processingStats } = await adminClient
-    .from("memory_entries")
-    .select("processing_status, milestone_detected, created_at, updated_at")
+    .from("memories")
+    .select("status, milestone_detected, created_at, updated_at")
     .eq("family_id", params.familyId)
     .gte("created_at", timeCutoff.toISOString());
 
   // Calculate metrics
   const totalProcessed = processingStats?.length || 0;
   const successfulProcessing =
-    processingStats?.filter((m) => m.processing_status === "completed")
+    processingStats?.filter((m) => m.status === "ready")
       .length || 0;
   const milestonesDetected =
     processingStats?.filter((m) => m.milestone_detected).length || 0;
 
   // Get recent processing for detailed view
   const { data: recentProcessing } = await adminClient
-    .from("memory_entries")
-    .select("id, title, processing_status, milestone_type, created_at")
+    .from("memories")
+    .select("id, title, status, milestone_type, created_at")
     .eq("family_id", params.familyId)
     .order("created_at", { ascending: false })
     .limit(10);

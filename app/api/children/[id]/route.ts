@@ -191,7 +191,7 @@ export async function DELETE(
 
     // Check if child has associated memories - head-only for performance
     const { count: memoryCount } = await adminClient
-      .from("memory_entries")
+      .from("memories")
       .select("*", { count: "exact", head: true })
       .eq("child_id", childId);
 

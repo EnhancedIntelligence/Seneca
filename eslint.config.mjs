@@ -37,6 +37,27 @@ const config = [
     ],
   },
 
+  // ==== GLOBAL RULES - Prevent legacy table usage ====
+  {
+    files: ["**/*.{ts,tsx,js,jsx}"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [
+          {
+            name: "@/lib/types",
+            importNames: ["MemoryEntry", "MemoryEntryInsert", "MemoryEntryUpdate"],
+            message: "Use Memory/MemoryInsert/MemoryUpdate (memories table) instead. Legacy aliases will be removed."
+          },
+          {
+            name: "@/lib/database",
+            importNames: ["MemoryEntry", "MemoryEntryInsert", "MemoryEntryUpdate"],
+            message: "Use Memory/MemoryInsert/MemoryUpdate (memories table) instead. Legacy aliases will be removed."
+          }
+        ]
+      }]
+    }
+  },
+
   // ==== UI layer (app, components) ====
   {
     files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],

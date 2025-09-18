@@ -224,7 +224,7 @@ export class RPCCompat {
 
       // Get memory count
       const { count: memoryCount } = await this.adminClient
-        .from("memory_entries")
+        .from("memories")
         .select("*", { count: "exact", head: true })
         .eq("family_id", params.family_id);
 
@@ -365,7 +365,7 @@ export class RPCCompat {
   }) {
     try {
       const { data, error } = await this.adminClient
-        .from("memory_entries")
+        .from("memories")
         .select("milestone_detected, milestone_type, created_at")
         .eq("family_id", params.family_id || "")
         .gte("created_at", params.time_cutoff || "2024-01-01");
@@ -455,7 +455,7 @@ export class RPCCompat {
     try {
       // Fallback to basic text search if semantic search RPC is missing
       const { data, error } = await this.adminClient
-        .from("memory_entries")
+        .from("memories")
         .select(
           `
           *,
@@ -486,7 +486,7 @@ export class RPCCompat {
   static async countSemanticSearchResults(params: any) {
     try {
       const { count, error } = await this.adminClient
-        .from("memory_entries")
+        .from("memories")
         .select("*", { count: "exact", head: true })
         .eq("family_id", params.family_id)
         .textSearch("content", params.query_text.replace(/\s+/g, " & "));

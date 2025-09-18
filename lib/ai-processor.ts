@@ -1,11 +1,8 @@
 import { createAdminClient } from "./server-only/admin-client";
-import { MemoryEntry, Child, Family } from "./database";
+import { MemoryEntry, Child, Family, MemoryStatus } from "./database";
 import { aiConfig } from "./env";
 import { ProcessingError, ExternalAPIError, handleError } from "./errors";
-import {
-  StatusCompat,
-  mapProcessingAnalyticsFields,
-} from "./database-compatibility";
+import { mapProcessingAnalyticsFields } from "./database-compatibility";
 
 interface AIProcessingResult {
   milestoneDetected: boolean;
@@ -61,8 +58,9 @@ class AIProcessor {
       // Process with AI
       const result = await this.analyzeMemoryContent(context);
 
-      // Generate embedding for semantic search
-      const embedding = await this.generateEmbedding(context.memory.content);
+      // Generate embedding for semantic search - skip if content is too short
+      const content = context.memory.content?.trim() ?? "";
+      const embedding = content.length < 12 ? undefined : await this.generateEmbedding(content);
 
       // Update memory with comprehensive results
       await this.updateMemoryWithResults(memoryId, {
@@ -71,8 +69,8 @@ class AIProcessor {
         processingTime: Date.now() - processingStartTime,
       });
 
-      // Update status to completed
-      await this.updateMemoryStatus(memoryId, "completed");
+      // Update status to ready
+      await this.updateMemoryStatus(memoryId, "ready");
 
       // Log processing analytics
       await this.logProcessingAnalytics(memoryId, result, processingStartTime);
@@ -83,8 +81,8 @@ class AIProcessor {
     } catch (error) {
       console.error(`Failed to process memory ${memoryId}:`, error);
 
-      // Update status to failed
-      await this.updateMemoryStatus(memoryId, "failed");
+      // Update status to error
+      await this.updateMemoryStatus(memoryId, "error");
 
       // Log failure analytics
       await this.logProcessingFailure(memoryId, error, processingStartTime);
@@ -100,7 +98,7 @@ class AIProcessor {
     memoryId: string,
   ): Promise<MemoryAnalysisContext> {
     const { data: memory, error } = await this.adminClient
-      .from("memory_entries")
+      .from("memories")
       .select(
         `
         *,
@@ -270,7 +268,7 @@ ${
 }
 
 **Memory Details:**
-- Content: "${memory.content}"
+- Content: "${memory.content || "No content"}"
 - Title: "${memory.title || "No title"}"
 - Date: ${memory.memory_date || memory.created_at}
 - Location: ${memory.location_name || "Not specified"}
@@ -465,7 +463,7 @@ Return only valid JSON, no additional text.
     context: MemoryAnalysisContext,
   ): AIProcessingResult {
     // Enhanced simulation for development/testing
-    const content = context.memory.content.toLowerCase();
+    const content = (context.memory.content || "").toLowerCase();
 
     const milestoneKeywords = [
       "first",
@@ -556,11 +554,11 @@ Return only valid JSON, no additional text.
 
   private async updateMemoryStatus(
     memoryId: string,
-    status: "processing" | "completed" | "failed",
+    status: Extract<MemoryStatus, "processing" | "ready" | "error">,
   ): Promise<void> {
     const { error } = await this.adminClient
-      .from("memory_entries")
-      .update({ processing_status: status })
+      .from("memories")
+      .update({ status: status })
       .eq("id", memoryId);
 
     if (error) {
@@ -603,7 +601,7 @@ Return only valid JSON, no additional text.
     }
 
     const { error } = await this.adminClient
-      .from("memory_entries")
+      .from("memories")
       .update(updateData)
       .eq("id", memoryId);
 
@@ -632,9 +630,9 @@ Return only valid JSON, no additional text.
 
   async batchProcessMemories(limit: number = 10): Promise<number> {
     const { data: pendingMemories, error } = await this.adminClient
-      .from("memory_entries")
+      .from("memories")
       .select("id")
-      .eq("processing_status", StatusCompat.toNew("pending"))
+      .eq("status", "draft")
       .limit(limit);
 
     if (error) {

@@ -147,7 +147,7 @@ export function apiMemoryToUi(memory: any): UIMemory {
     category: memory.category || null,
     needsReview: memory.needsReview ?? memory.needs_review ?? false,
     processingStatus:
-      memory.processingStatus || memory.processing_status || "pending",
+      memory.processingStatus || memory.status || "pending",
     // Required media fields
     imageUrls: memory.imageUrls || memory.image_urls || [],
     videoUrls: memory.videoUrls || memory.video_urls || [],

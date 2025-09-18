@@ -13,6 +13,10 @@ import type {
   MemoryEntryInsert,
   MemoryEntryUpdate,
 } from "@/lib/types";
+import {
+  mapMemoryStatusToProcessing,
+  mapProcessingToMemoryStatus,
+} from "@/lib/memory-status";
 
 const deriveType = (m: DbMemory): UIMemoryType => {
   const c = (m.category ?? "").toLowerCase();
@@ -39,15 +43,15 @@ export function dbToUiMemory(m: DbMemory): UIMemory {
     id: m.id,
     childId: m.child_id,
     familyId: m.family_id,
-    createdBy: m.created_by,
+    createdBy: m.user_id, // Changed from created_by to user_id
     title: m.title,
-    content: m.content,
+    content: m.content || "", // Handle null content
     timestamp: m.memory_date ?? m.created_at, // Never null
     type: deriveType(m),
     tags: toTags(m.tags), // Never null, always array
     category: m.category,
     needsReview: m.needs_review ?? false,
-    processingStatus: m.processing_status ?? "queued",
+    processingStatus: mapMemoryStatusToProcessing(m.status), // Map from new status field
     // Required fields with sensible defaults
     imageUrls: m.image_urls || [],
     videoUrls: m.video_urls || [],
@@ -73,13 +77,14 @@ export function uiToDbMemoryInsert(m: Omit<UIMemory, "id">): MemoryEntryInsert {
   return {
     child_id: m.childId,
     family_id: m.familyId,
-    created_by: m.createdBy,
+    user_id: m.createdBy, // Changed from created_by to user_id
     title: m.title,
     content: m.content,
     memory_date: m.timestamp,
     category: m.category ?? m.type, // Pragmatic mapping
     tags: m.tags.map((t) => t.label),
-    processing_status: m.processingStatus,
+    status: mapProcessingToMemoryStatus(m.processingStatus), // Map to new status field
+    kind: "text", // Default kind
     milestone_detected: m.tags.some((t) => t.label === "milestone"),
     needs_review: m.needsReview,
     // created_at/updated_at are DB defaults
@@ -95,13 +100,14 @@ export function uiToDbMemory(m: UIMemory): DbMemory {
     id: m.id,
     child_id: m.childId,
     family_id: m.familyId,
-    created_by: m.createdBy,
+    user_id: m.createdBy, // Changed from created_by to user_id
     title: m.title,
     content: m.content,
     memory_date: m.timestamp,
     category: m.category ?? m.type,
     tags: m.tags.map((t) => t.label),
-    processing_status: m.processingStatus,
+    status: mapProcessingToMemoryStatus(m.processingStatus), // Map to new status field
+    kind: "text", // Default kind
     classification_confidence: null,
     milestone_detected: m.tags.some((t) => t.label === "milestone"),
     milestone_type: null,
@@ -118,6 +124,7 @@ export function uiToDbMemory(m: UIMemory): DbMemory {
     location_name: null,
     app_context: null,
     needs_review: m.needsReview,
+    source_table: "memories", // Default source
   };
 }
 
@@ -132,7 +139,7 @@ export function uiUpdateToDb(updates: Partial<UIMemory>): MemoryEntryUpdate {
     dbUpdate.tags = updates.tags.map((t) => t.label);
   if (updates.category !== undefined) dbUpdate.category = updates.category;
   if (updates.processingStatus !== undefined)
-    dbUpdate.processing_status = updates.processingStatus;
+    dbUpdate.status = mapProcessingToMemoryStatus(updates.processingStatus); // Map to new status field
   if (updates.needsReview !== undefined)
     dbUpdate.needs_review = updates.needsReview;
 

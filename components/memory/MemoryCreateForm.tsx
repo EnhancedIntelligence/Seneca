@@ -118,7 +118,8 @@ interface MemoryEntryDTO {
   child_id: string | null;
   family_id: string;
   created_at: string;
-  processing_status?: string | null;
+  status?: string | null;
+  kind?: string;
   tags?: string[];
 }
 
@@ -141,7 +142,7 @@ function adaptMemoryToUI(dto: MemoryEntryDTO): UICreatedMemory {
     childId: dto.child_id,
     familyId: dto.family_id,
     createdAt: dto.created_at,
-    processingStatus: dto.processing_status ?? undefined,
+    processingStatus: dto.status ?? undefined,
     tags: dto.tags ?? [],
   };
 }

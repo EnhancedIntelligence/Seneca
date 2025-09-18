@@ -61,7 +61,7 @@ async function getSearchSuggestions(params: SuggestionsQuery): Promise<
   try {
     // Get category suggestions
     const { data: categories } = await adminClient
-      .from("memory_entries")
+      .from("memories")
       .select("category")
       .eq("family_id", params.familyId)
       .not("category", "is", null)
@@ -70,7 +70,7 @@ async function getSearchSuggestions(params: SuggestionsQuery): Promise<
 
     // Get tag suggestions
     const { data: tagData } = await adminClient
-      .from("memory_entries")
+      .from("memories")
       .select("tags")
       .eq("family_id", params.familyId)
       .not("tags", "is", null)
@@ -86,7 +86,7 @@ async function getSearchSuggestions(params: SuggestionsQuery): Promise<
 
     // Get location suggestions
     const { data: locations } = await adminClient
-      .from("memory_entries")
+      .from("memories")
       .select("location_name")
       .eq("family_id", params.familyId)
       .not("location_name", "is", null)

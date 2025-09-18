@@ -10,7 +10,8 @@ export type { Database, Json };
 // Convenience type exports
 export type Family = Database["public"]["Tables"]["families"]["Row"];
 export type Child = Database["public"]["Tables"]["children"]["Row"];
-export type MemoryEntry = Database["public"]["Tables"]["memory_entries"]["Row"];
+export type Memory = Database["public"]["Tables"]["memories"]["Row"];
+export type MemoryEntry = Memory; // Legacy alias for compatibility
 export type FamilyMembership =
   Database["public"]["Tables"]["family_memberships"]["Row"];
 export type EmbeddingsIndex =
@@ -31,6 +32,8 @@ export type QueueJob = Database["public"]["Tables"]["queue_jobs"]["Row"];
 export type ProcessingStatus =
   Database["public"]["Enums"]["processing_status_enum"];
 export type FamilyRole = Database["public"]["Enums"]["family_role_enum"];
+export type MemoryKind = Database["public"]["Enums"]["memory_kind"];
+export type MemoryStatus = Database["public"]["Enums"]["memory_status"];
 
 // UI-specific types (will be mapped to DB types)
 export type MemoryType = "voice" | "text" | "manual";
@@ -63,10 +66,13 @@ export type LegacyProcessingStatus =
   | "failed";
 
 // Insert/Update types for common operations
-export type MemoryEntryInsert =
-  Database["public"]["Tables"]["memory_entries"]["Insert"];
-export type MemoryEntryUpdate =
-  Database["public"]["Tables"]["memory_entries"]["Update"];
+export type MemoryInsert =
+  Database["public"]["Tables"]["memories"]["Insert"];
+export type MemoryUpdate =
+  Database["public"]["Tables"]["memories"]["Update"];
+// Legacy aliases for compatibility
+export type MemoryEntryInsert = MemoryInsert;
+export type MemoryEntryUpdate = MemoryUpdate;
 export type FamilyInsert = Database["public"]["Tables"]["families"]["Insert"];
 export type ChildInsert = Database["public"]["Tables"]["children"]["Insert"];
 export type ChildUpdate = Database["public"]["Tables"]["children"]["Update"];

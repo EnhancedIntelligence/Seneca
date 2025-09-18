@@ -62,8 +62,8 @@ async function runTests() {
 
     // Create a memory
     await client.query(`
-      INSERT INTO memory_entries (id, child_id, created_by, content, kind, created_at, updated_at)
-      VALUES ($1, $2, $3, 'Test memory content', 'text', NOW(), NOW())
+      INSERT INTO memories (id, child_id, user_id, content, kind, status, created_at, updated_at)
+      VALUES ($1, $2, $3, 'Test memory content', 'text', 'draft', NOW(), NOW())
       ON CONFLICT (id) DO NOTHING
     `, [MEMORY_ID, CHILD_ID, USER1]);
 
@@ -73,7 +73,7 @@ async function runTests() {
     console.log("\n🧪 Test 1: USER1 can read their own memory");
     await setUser(USER1);
     const ownMemory = await client.query(
-      `SELECT COUNT(*) FROM memory_entries WHERE id = $1`,
+      `SELECT COUNT(*) FROM memories WHERE id = $1`,
       [MEMORY_ID]
     );
 
@@ -86,7 +86,7 @@ async function runTests() {
     console.log("\n🧪 Test 2: USER2 cannot read USER1's memory");
     await setUser(USER2);
     const otherMemory = await client.query(
-      `SELECT COUNT(*) FROM memory_entries WHERE id = $1`,
+      `SELECT COUNT(*) FROM memories WHERE id = $1`,
       [MEMORY_ID]
     );
 
@@ -154,8 +154,8 @@ async function runTests() {
 
     try {
       await client.query(`
-        INSERT INTO memory_entries (child_id, created_by, content, kind, created_at, updated_at)
-        VALUES ($1, $2, 'Unauthorized memory', 'text', NOW(), NOW())
+        INSERT INTO memories (child_id, user_id, content, kind, status, created_at, updated_at)
+        VALUES ($1, $2, 'Unauthorized memory', 'text', 'draft', NOW(), NOW())
       `, [CHILD_ID, USER2]);
 
       // If we get here, RLS failed

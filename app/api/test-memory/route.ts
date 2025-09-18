@@ -10,7 +10,7 @@ export async function GET() {
 
     // Test basic memory retrieval
     const { data: memories, error } = await adminClient
-      .from("memory_entries")
+      .from("memories")
       .select(
         `
         id,
@@ -18,7 +18,8 @@ export async function GET() {
         content,
         location_name,
         category,
-        processing_status,
+        status,
+        kind,
         milestone_detected,
         milestone_type,
         created_at,
@@ -42,7 +43,7 @@ export async function GET() {
           status: "error",
           error: error.message,
           suggestion:
-            "Check if memory_entries table exists and has proper permissions",
+            "Check if memories table exists and has proper permissions",
         },
         { status: 500 },
       );
@@ -59,7 +60,7 @@ export async function GET() {
           content_preview: memory.content?.substring(0, 100) + "...",
           location: memory.location_name,
           category: memory.category,
-          processing_status: memory.processing_status,
+          status: memory.status,
           milestone_detected: memory.milestone_detected,
           milestone_type: memory.milestone_type,
           child_name:
@@ -99,16 +100,17 @@ export async function POST() {
       content: `Emma tried a scrambled egg for the first time today! She was hesitant at first, poking it with her fork and making funny faces. But after the first bite, she gobbled up the whole portion and asked for more. She kept saying "egg, egg!" and pointing to her plate. It was such a sweet milestone - her first time really enjoying eggs. She even tried to feed some to her teddy bear! The way her face lit up when she tasted it was absolutely precious. This is definitely a memory worth preserving.`,
       location_name: "Kitchen at home",
       category: "milestone",
-      processing_status: "queued",
+      status: "draft", // Changed from processing_status
+      kind: "text", // Added required field
       milestone_detected: false,
       milestone_type: "first_food",
       family_id: "11111111-1111-1111-1111-111111111111", // Test family ID
       child_id: "22222222-2222-2222-2222-222222222222", // Test child ID
-      created_by: "550e8400-e29b-41d4-a716-446655440000", // Test user ID
+      user_id: "550e8400-e29b-41d4-a716-446655440000", // Changed from created_by to user_id
     };
 
     const { data: memory, error } = await adminClient
-      .from("memory_entries")
+      .from("memories")
       .insert(testMemory)
       .select()
       .single();
@@ -131,7 +133,8 @@ export async function POST() {
       data: {
         memory_id: memory.id,
         title: memory.title,
-        processing_status: memory.processing_status,
+        status: memory.status,
+        kind: memory.kind,
         created_at: memory.created_at,
       },
       next_steps: [
